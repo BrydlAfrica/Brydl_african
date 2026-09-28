@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Terms &amp; Conditions · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <h1 class="h4 fw-bold mb-1">Brydl Annotator — Terms &amp; Conditions</h1>
+        <p class="text-muted small">
+          Version {{ version }} · Brydl (operated from Abuja, Nigeria).
+          Please read these terms before starting work.
+        </p>
+
+        <h2 class="h6 fw-bold mt-4">1. Your status</h2>
+        <p class="small text-muted">
+          You work as an independent contractor for Brydl's labelling
+          projects. You are not an employee; you choose how and when to
+          complete assigned work within each project's deadline, and you
+          are responsible for the accuracy of the answers you submit.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">2. The work and quality standards</h2>
+        <p class="small text-muted">
+          Tasks may include classification, translation, entity marking,
+          rating and other annotation formats. Work is reviewed by Brydl
+          QA before approval. To protect client quality, some tasks carry
+          hidden checks (known to Brydl only); consistently failing them,
+          copying answers, or submitting without reading the content may
+          lead to rejected work or deactivation. Rejected tasks may be
+          revised and resubmitted where the project allows it.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">3. Payment</h2>
+        <p class="small text-muted">
+          Each project states a fixed per-task rate between $0.05 and
+          $5.00 before you start. Your ledger is kept in US Dollars and
+          converted to Naira for display at the rate Brydl sets — the
+          Dollar amount is the amount of record. Only approved work is
+          payable. Approved work is bundled into payment cycles run by
+          Brydl (typically monthly); a payment record marked
+          &ldquo;paid&rdquo; is Brydl's confirmation that the transfer
+          was made to the details you provided to Brydl administration.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">4. Your account</h2>
+        <p class="small text-muted">
+          Keep one account only, use a strong unique password, and never
+          share your sign-in with anyone — including friends and family.
+          You are responsible for activity carried out with your
+          account. You may change your name and password from your
+          profile page; your email can only be changed by an admin.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">5. Confidentiality and data protection</h2>
+        <p class="small text-muted">
+          Task content is client property and strictly confidential: do
+          not copy, screenshot, share or discuss it outside Brydl. Brydl
+          stores the minimum personal data needed to run the platform
+          (your name, email, work record and payment history), keeps an
+          audit record of platform actions, and handles this data in
+          line with the Nigeria Data Protection Regulation. Requests
+          about your data go through Brydl administration.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">6. Deactivation</h2>
+        <p class="small text-muted">
+          Brydl may deactivate an account for quality, integrity or
+          security reasons. Deactivation ends platform access
+          immediately; your work and payment history are retained so
+          earned money up to the deactivation date is still accounted
+          for.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">7. Changes to these terms</h2>
+        <p class="small text-muted">
+          These terms carry a version number. When Brydl updates them,
+          you will be asked to accept the new version before continuing
+          work. Continuing to work on the platform after accepting a
+          version means you agree to it.
+        </p>
+
+        <h2 class="h6 fw-bold mt-3">8. Governing law</h2>
+        <p class="small text-muted">
+          These terms are governed by the laws of the Federal Republic
+          of Nigeria.
+        </p>
+
+        <div class="border-top mt-4 pt-4">
+          {% if accepted %}
+          <div class="alert alert-success mb-0 py-3">
+            <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>
+            You accepted version {{ version }}{% if current_user.terms_accepted_at %}
+            on {{ current_user.terms_accepted_at.strftime('%d %b %Y at %H:%M UTC') }}{% endif %}.
+            You're all set.
+          </div>
+          {% else %}
+          <form method="post" action="{{ url_for('annotator.accept_terms') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox"
+                     id="terms-understand" required>
+              <label class="form-check-label small" for="terms-understand">
+                I have read and understood version {{ version }} and agree
+                to work under these terms.
+              </label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+              <i class="bi bi-hand-thumbs-up me-1" aria-hidden="true"></i>
+              Accept version {{ version }} and continue
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

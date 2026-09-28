@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Tasks</h1>
+    <p class="text-muted mb-0">Upload, filter, assign and track labelling work.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+            data-bs-target="#uploadCard" aria-expanded="{{ 'true' if request.args.get('upload_open') else 'false' }}"
+            aria-controls="uploadCard">
+      <i class="bi bi-cloud-upload me-1" aria-hidden="true"></i>Upload Tasks
+    </button>
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse"
+            data-bs-target="#importCard" aria-expanded="{{ 'true' if request.args.get('import_open') else 'false' }}"
+            aria-controls="importCard">
+      <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>Import from file
+    </button>
+  </div>
+</div>
+
+{# ===== Bulk upload (collapsible card; auto-opened after upload errors) ===== #}
+<div class="collapse{{ ' show' if request.args.get('upload_open') }}" id="uploadCard">
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">
+      <i class="bi bi-cloud-upload me-1" aria-hidden="true"></i>Bulk upload tasks
+    </div>
+    <div class="card-body">
+      {% if upload_form.project.choices %}
+      <form method="post" action="{{ url_for('admin.upload_tasks') }}" novalidate>
+        {{ upload_form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-4">
+            {{ upload_form.project.label(class="form-label") }}
+            {{ upload_form.project(class="form-select") }}
+            <div class="form-text">Active projects only — tasks cannot be added to paused or completed work.</div>
+          </div>
+          <div class="col-md-8">
+            {{ upload_form.tasks_data.label(class="form-label") }}
+            {{ upload_form.tasks_data(class="form-control font-monospace", rows=8,
+                                      placeholder="The rain in Spain falls mainly\nOlumu r:i, o dun mi l'oju\nThis movie was great\tpositive") }}
+            <div class="form-text">
+              One task per line. Optional gold answer after a TAB character
+              (input <i class="bi bi-arrow-right" aria-hidden="true"></i> answer).
+              Blank lines are ignored; each task is capped at 10,000
+              characters and batches at 500 tasks. If any
+              line has a problem, <strong>nothing</strong> is saved — fix and re-upload.
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Upload tasks
+          </button>
+        </div>
+      </form>
+      {% else %}
+      <div class="alert alert-warning mb-0">
+        <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>
+        You need an <strong>active project</strong> before uploading tasks.
+        <a href="{{ url_for('admin.new_project') }}" class="alert-link">Create one now</a>.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ===== Import from a device file (CSV; preview before saving) ===== #}
+<div class="collapse{{ ' show' if request.args.get('import_open') }}" id="importCard">
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">
+      <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>Import tasks from a file (CSV)
+    </div>
+    <div class="card-body">
+      {% if import_form.project.choices %}
+      <form method="post" action="{{ url_for('admin.import_tasks') }}"
+            enctype="multipart/form-data" novalidate>
+        {{ import_form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-4">
+            {{ import_form.project.label(class="form-label") }}
+            {{ import_form.project(class="form-select") }}
+            <div class="form-text">Active projects only.</div>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" for="csv_file">CSV file from your device</label>
+            <input type="file" name="csv_file" id="csv_file" accept=".csv,text/csv"
+                   class="form-control" required>
+            <div class="form-text">
+              First column <strong>text</strong>, optional second column
+              <strong>gold</strong> (export from Excel/Sheets as
+              &ldquo;CSV UTF-8&rdquo;). Up to {{ config.IMPORT_MAX_ROWS }} rows,
+              max {{ (config.IMPORT_MAX_BYTES / 1000000)|round(1) }} MB —
+              nothing is saved until you review the preview.
+              <a href="{{ url_for('admin.import_template') }}">Download the CSV template</a>.
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-eye me-1" aria-hidden="true"></i>Preview import
+          </button>
+        </div>
+      </form>
+      {% else %}
+      <div class="alert alert-warning mb-0">
+        <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>
+        You need an <strong>active project</strong> before importing tasks.
+        <a href="{{ url_for('admin.new_project') }}" class="alert-link">Create one now</a>.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ===== Filter bar (GET form — stateless, no CSRF needed) ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" action="{{ url_for('admin.tasks') }}" class="row g-2 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-muted mb-1" for="filter-project">Project</label>
+        <select name="project" id="filter-project" class="form-select form-select-sm">
+          <option value="">All projects</option>
+          {% for p in all_projects %}
+          <option value="{{ p.id }}"{{ ' selected' if filters.project == p.id }}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-muted mb-1" for="filter-status">Status</label>
+        <select name="status" id="filter-status" class="form-select form-select-sm">
+          <option value="">All statuses</option>
+          {% set labels = {'pending': 'Pending', 'assigned': 'Assigned', 'in_progress': 'In progress',
+                           'submitted': 'Submitted', 'approved': 'Approved', 'rejected': 'Rejected'} %}
+          {% for s in statuses %}
+          <option value="{{ s }}"{{ ' selected' if filters.status == s }}>{{ labels[s] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small text-muted mb-1" for="filter-annotator">Annotator</label>
+        <select name="annotator" id="filter-annotator" class="form-select form-select-sm">
+          <option value="">All annotators</option>
+          {% for a in all_annotators %}
+          <option value="{{ a.id }}"{{ ' selected' if filters.annotator == a.id }}>
+            {{ a.name }}{{ ' (inactive)' if not a.is_active }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply
+        </button>
+        <a href="{{ url_for('admin.tasks') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ===== Bulk assign + tasks table (one form: checkboxes + annotator pick) ===== #}
+{% if rows %}
+<form method="post" action="{{ url_for('admin.assign_tasks') }}">
+  {{ assign_form.hidden_tag() }}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-7">
+          <span class="fw-semibold"><i class="bi bi-person-check me-1" aria-hidden="true"></i>Bulk assignment</span>
+          <span class="text-muted small ms-1">tick pending tasks below, pick an annotator, assign</span>
+        </div>
+        {% if assign_form.annotator_id.choices %}
+        <div class="col-8 col-md-3">
+          {{ assign_form.annotator_id(class="form-select form-select-sm", **{"aria-label": "Assignee"}) }}
+        </div>
+        <div class="col-4 col-md-2 text-md-end">
+          {{ assign_form.submit(class="btn btn-sm btn-primary w-100") }}
+        </div>
+        {% else %}
+        <div class="col-12 col-md-5 text-muted small">
+          No active annotators — activate one before assigning.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col" colspan="2">ID</th>
+            <th scope="col">Project</th>
+            <th scope="col">Input Data</th>
+            <th scope="col">Status</th>
+            <th scope="col">Assigned To</th>
+            <th scope="col" class="text-nowrap">Created (UTC)</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          {% set t = row.task %}
+          <tr>
+            <td>
+              {% if t.status == 'pending' %}
+              <input class="form-check-input" type="checkbox" name="task_ids"
+                     value="{{ t.id }}" aria-label="Select task {{ t.id }}">
+              {% endif %}
+            </td>
+            <td class="text-muted small">#{{ t.id }}</td>
+            <td>{{ row.project_name }}</td>
+            <td style="max-width: 260px;">
+              {# Truncated to 50 chars; native title tooltip carries the full text (no JS needed). #}
+              <span class="d-inline-block text-truncate align-middle"
+                    style="max-width: 240px;" title="{{ t.input_data }}">{{ t.input_data[:50] }}{{ '…' if t.input_data|length > 50 }}</span>
+            </td>
+            <td>
+              {% set badge = {'pending': 'warning text-dark', 'assigned': 'secondary',
+                              'in_progress': 'info', 'submitted': 'primary',
+                              'approved': 'success', 'rejected': 'danger'} %}
+              <span class="badge bg-{{ badge.get(t.status, 'secondary') }}">{{ labels.get(t.status, t.status) }}</span>
+            </td>
+            <td>
+              {% if row.assignee_name %}
+              {{ row.assignee_name }}
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-nowrap text-muted small">{{ t.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+            <td>
+              {% if t.status in ('assigned', 'in_progress', 'rejected') %}
+              {# Button references its CSRF form below the table (HTML form= attribute, no nesting). #}
+              <button type="submit" form="unassign-{{ t.id }}"
+                      class="btn btn-sm btn-outline-warning" title="Return to pending pool">
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Unassign
+              </button>
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ===== Result count + pagination ===== #}
+    {% if pagination %}
+    <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span class="text-muted small">
+        Showing {{ rows|length }} of {{ pagination.total }} task(s)
+      </span>
+      {% if pagination.pages > 1 %}
+      <nav aria-label="Task pages">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+            <a class="page-link" href="{{ url_for('admin.tasks', page=pagination.prev_num or 1, project=filters.project, status=filters.status, annotator=filters.annotator) }}">
+              <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </a>
+          </li>
+          {% set start = [pagination.page - 2, 1] | max %}
+          {% set end = [pagination.page + 2, pagination.pages] | min %}
+          {% for p in range(start, end + 1) %}
+          <li class="page-item{{ ' active' if p == pagination.page }}">
+            <a class="page-link" href="{{ url_for('admin.tasks', page=p, project=filters.project, status=filters.status, annotator=filters.annotator) }}">{{ p }}</a>
+          </li>
+          {% endfor %}
+          <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+            <a class="page-link" href="{{ url_for('admin.tasks', page=pagination.next_num or pagination.pages, project=filters.project, status=filters.status, annotator=filters.annotator) }}">
+              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</form>
+
+{# Per-row unassign forms (kept out of the bulk form to avoid nesting;
+   the buttons above reference them via the form= attribute). #}
+{% for row in rows %}
+{% if row.task.status in ('assigned', 'in_progress') %}
+<form id="unassign-{{ row.task.id }}" method="post"
+      action="{{ url_for('admin.unassign_task', task_id=row.task.id) }}" class="d-none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
+{% endfor %}
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-inbox fs-1 d-block mb-2" aria-hidden="true"></i>
+    No tasks match the current filters.
+    <a href="{{ url_for('admin.tasks', upload_open=1) }}">Upload tasks</a> or
+    <a href="{{ url_for('admin.tasks') }}">clear the filters</a>.
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,69 @@
+# Render Blueprint for Brydl Dashboard.
+# Deploy: push this repo to GitHub/GitLab, then Render Dashboard ->
+# "New +" -> "Blueprint" -> pick the repository. Render reads this file
+# and provisions the PostgreSQL database + web service below.
+#
+# SCHEMA: production never uses db.create_all(). The build command runs
+# `flask db upgrade` (migrations/) on every deploy BEFORE the service
+# starts, so the database schema is always the migrated, versioned one.
+#
+# FREE-PLAN CAVEAT: Render's FREE PostgreSQL expires after ~30 days
+# (contents are then deleted). Fine for the deploy rehearsal; upgrade
+# the database plan below (e.g. basic-256mb) before real annotator
+# data goes in. Snapshots: `pg_dump` the External Database URL
+# + download the file (the built-in backup CLI is SQLite-only).
+services:
+  - type: web
+    name: brydl-dashboard
+    env: python
+    plan: free
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt && flask --app app db upgrade
+    # 4 threads per worker: annotator requests are IO-bound (SQLite
+    # WAL allows concurrent readers), so threads raise throughput on
+    # the free tier's single worker.
+    startCommand: gunicorn --threads 4 "app:create_app()"
+    healthCheckPath: /login
+    envVars:
+      # Matches runtime.txt; Render installs this Python version.
+      - key: PYTHON_VERSION
+        value: "3.11.6"
+      # Render generates a strong random value on first deploy and
+      # keeps it stable across restarts (sessions/CSRF depend on it).
+      - key: SECRET_KEY
+        generateValue: true
+      # Hard opt-in to production behaviour (blocks seed.py, etc.).
+      - key: FLASK_ENV
+        value: production
+      # Cookies Secure/HSTS activate automatically via the RENDER env
+      # var that Render injects; nothing to configure here.
+      # Schema authority in production is `flask db upgrade` (build
+      # command); direct create_all stays a local-dev-only convenience.
+      - key: BRYDL_AUTO_SCHEMA
+        value: "0"
+      # OPTIONAL outbound mail for password-reset links (Build 20).
+      # Uncomment and fill from your mail provider (Brevo/Resend/Gmail
+      # app-password). Without these, reset links land in the app log.
+      # - key: SMTP_HOST
+      #   value: "smtp.yourprovider.com"
+      # - key: SMTP_PORT
+      #   value: "587"
+      # - key: SMTP_USERNAME
+      #   value: "your-smtp-user"
+      # - key: SMTP_PASSWORD
+      #   sync: false          # paste the secret in the dashboard
+      # - key: MAIL_FROM
+      #   value: "Brydl <no-reply@yourdomain.com>"
+      # Injected by Render from the database provisioned below;
+      # config.py rewrites the legacy postgres:// scheme itself.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: brydl-postgres
+          property: connectionString
+
+# PostgreSQL backing the service above. Free plan expires after ~30
+# days — upgrade `plan` (e.g. basic-256mb) before real data goes in.
+databases:
+  - name: brydl-postgres
+    databaseName: brydl
+    plan: free

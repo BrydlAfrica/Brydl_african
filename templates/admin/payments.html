@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Payments · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Payments</h1>
+    <p class="text-muted mb-0">
+      Annotator earnings ledger &mdash; amounts in USD; Naira shown at the
+      fixed rate of &#8358;{{ "%.0f"|format(1600) }}/$1.
+    </p>
+  </div>
+  <form method="post" action="{{ url_for('admin.generate_payments') }}"
+        data-confirm="Generate pending payment records for every active annotator with approved unpaid work?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-cash-stack me-1" aria-hidden="true"></i>Generate Payments
+    </button>
+  </form>
+</div>
+
+{# ===== Summary cards ===== #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-4">
+    <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">${{ "%.2f"|format(summary.pending_usd) }}</div>
+            <div class="text-muted small">Total pending payout</div>
+            <div class="text-muted" style="font-size: .7rem;">
+              &#8358;{{ "%.2f"|format(usd_to_ngn(summary.pending_usd)) }}
+            </div>
+          </div>
+          <i class="bi bi-hourglass-split fs-2 text-warning" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-4">
+    <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">${{ "%.2f"|format(summary.paid_month_usd) }}</div>
+            <div class="text-muted small">Paid this month</div>
+            <div class="text-muted" style="font-size: .7rem;">
+              &#8358;{{ "%.2f"|format(usd_to_ngn(summary.paid_month_usd)) }}
+            </div>
+          </div>
+          <i class="bi bi-check2-circle fs-2 text-success" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-4">
+    <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">{{ summary.active_annotators }}</div>
+            <div class="text-muted small">Active annotators</div>
+          </div>
+          <i class="bi bi-people fs-2 text-primary" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ===== Per-annotator earnings ledger ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-wallet2 me-1" aria-hidden="true"></i>Earnings awaiting payout
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col" class="text-center">Approved tasks (unpaid)</th>
+          <th scope="col">Earnings (USD)</th>
+          <th scope="col">Earnings (NGN)</th>
+          <th scope="col">Status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in earnings_rows %}
+        <tr>
+          <td class="fw-semibold">
+            <i class="bi bi-person-circle me-1 text-muted" aria-hidden="true"></i>{{ row.annotator.name }}
+          </td>
+          <td class="text-center">{{ row.approved_count }}</td>
+          <td class="text-nowrap">${{ "%.2f"|format(row.earnings_usd) }}</td>
+          <td class="text-nowrap text-muted">&#8358;{{ "%.2f"|format(usd_to_ngn(row.earnings_usd)) }}</td>
+            {% if row.earnings_usd and not row.has_bank %}
+            <span class="badge bg-warning text-dark ms-1" title="No bank details on file — annotator must add them on their profile">
+              <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>no bank
+            </span>
+            {% endif %}
+          <td>
+            {% if row.pending_payments %}
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
+              Payout pending &middot; ${{ "%.2f"|format(row.pending_usd) }}
+            </span>
+            {% elif row.last_paid_at %}
+            <span class="text-muted small">Last paid {{ row.last_paid_at.strftime('%d %b %Y') }}</span>
+            {% else %}
+            <span class="text-muted">&mdash;</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.approved_count %}
+            <form method="post" action="{{ url_for('admin.generate_payments') }}" class="d-inline"
+                  data-confirm="Generate a pending payment of ${{ '%.2f'|format(row.earnings_usd) }} ({{ row.approved_count }} task(s)) for {{ row.annotator.name }}?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="annotator_id" value="{{ row.annotator.id }}">
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>Generate
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted small">&mdash;</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">
+            <i class="bi bi-people me-1" aria-hidden="true"></i>
+            No active annotators yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-white text-muted small">
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+    Generating creates a <strong>pending</strong> payment record and claims the work.
+    Mark it paid only after the money has actually gone out. Deactivated annotators
+    are hidden from this table — settle their balance before deactivating anyone.
+    {% if inactive_debt %}
+    <span class="text-warning-emphasis">
+      ${{ "%.2f"|format(inactive_debt) }} of the pending total is owed to deactivated annotators.
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+{# ===== Payment history ===== #}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span>
+      <i class="bi bi-receipt me-1" aria-hidden="true"></i>Payment history
+    </span>
+    <form method="post" class="d-inline"
+          action="{{ url_for('admin.export_bank_batch') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-bank me-1" aria-hidden="true"></i>Bank batch CSV
+        (pending)
+      </button>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Annotator</th>
+          <th scope="col">Period</th>
+          <th scope="col" class="text-center">Tasks</th>
+          <th scope="col">Amount (USD)</th>
+          <th scope="col">Amount (NGN)</th>
+          <th scope="col">Status</th>
+          <th scope="col">Method</th>
+          <th scope="col" class="text-nowrap">Paid at (UTC)</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in history_rows %}
+        {% set p = row.payment %}
+        <tr>
+          <td class="text-muted small">#{{ p.id }}</td>
+          <td>{{ row.annotator_name }}</td>
+          <td class="text-nowrap small">{{ p.period_start.strftime('%d %b') }} &ndash; {{ p.period_end.strftime('%d %b %Y') }}</td>
+          <td class="text-center">{{ p.tasks_count }}</td>
+          <td class="text-nowrap">${{ "%.2f"|format(p.amount) }}</td>
+          <td class="text-nowrap text-muted">&#8358;{{ "%.2f"|format(usd_to_ngn(p.amount)) }}</td>
+          <td>
+            {% if p.status == 'paid' %}
+            <span class="badge bg-success"><i class="bi bi-check2" aria-hidden="true"></i> Paid</span>
+            {% elif p.status == 'pending' %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Pending</span>
+            {% else %}
+            <span class="badge bg-danger"><i class="bi bi-x-circle" aria-hidden="true"></i> {{ p.status }}</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ p.payment_method.replace('_', ' ') if p.payment_method else '—' }}</td>
+          <td class="text-nowrap small text-muted">{{ p.paid_at.strftime('%d %b %Y, %H:%M') if p.paid_at else '—' }}</td>
+          <td>
+            {% if p.status == 'pending' %}
+            {% if paystack_enabled %}
+            <form method="post" action="{{ url_for('admin.paystack_pay', payment_id=p.id) }}"
+                  class="d-inline mb-1"
+                  data-confirm="Send ${{ '%.2f'|format(p.amount) }} (&#8358;{{ '%.2f'|format(usd_to_ngn(p.amount)) }}) to {{ row.annotator_name }} via Paystack?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi-lightning-charge me-1" aria-hidden="true"></i>Pay via Paystack
+              </button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('admin.mark_payment_paid', payment_id=p.id) }}"
+                  class="d-flex gap-1 align-items-center"
+                  data-confirm="Mark ${{ '%.2f'|format(p.amount) }} (&#8358;{{ '%.2f'|format(usd_to_ngn(p.amount)) }}) to {{ row.annotator_name }} as PAID?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select name="payment_method" class="form-select form-select-sm" style="max-width: 140px;"
+                      aria-label="Payment method for payment {{ p.id }}">
+                {% for method in payment_methods %}
+                <option value="{{ method }}">{{ method.replace('_', ' ')|title }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-success">
+                <i class="bi bi-check2 me-1" aria-hidden="true"></i>Mark paid
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted small">&mdash;</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-4">
+            <i class="bi bi-receipt me-1" aria-hidden="true"></i>
+            No payments generated yet — approved annotator work will appear here after you run Generate Payments.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if history_pagination and history_pagination.pages > 1 %}
+  <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-muted small">
+      Showing {{ history_rows|length }} of {{ history_pagination.total }} payment(s)
+    </span>
+    <nav aria-label="Payment history pages">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item{{ ' disabled' if not history_pagination.has_prev }}">
+          <a class="page-link" href="{{ url_for('admin.payments', page=history_pagination.prev_num or 1) }}">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% set start = [history_pagination.page - 2, 1] | max %}
+        {% set end = [history_pagination.page + 2, history_pagination.pages] | min %}
+        {% for page_num in range(start, end + 1) %}
+        <li class="page-item{{ ' active' if page_num == history_pagination.page }}">
+          <a class="page-link" href="{{ url_for('admin.payments', page=page_num) }}">{{ page_num }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item{{ ' disabled' if not history_pagination.has_next }}">
+          <a class="page-link" href="{{ url_for('admin.payments', page=history_pagination.next_num or history_pagination.pages) }}">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

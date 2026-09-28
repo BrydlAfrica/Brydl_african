@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Data Protection (NDPR) — Brydl{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 860px;">
+  <h1 class="h3 fw-bold mt-4 mb-1">Data Protection Notice</h1>
+  <p class="text-muted small">Nigeria Data Protection Regulation (NDPR) &mdash; how Brydl collects, uses, protects and retains personal data. Last updated: September 2026.</p>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">1. Who we are</h2>
+      <p class="small mb-2">Brydl is an AI data labelling company based in Kano, Nigeria. For the personal data of our workers and website visitors, Brydl is the <strong>data controller</strong>. For the source data our clients upload for labelling (images, text, audio and related content), the client remains the <strong>data controller</strong> and Brydl acts as the <strong>data processor</strong>, handling that data strictly on the client's documented instructions.</p>
+      <p class="small mb-0"><strong>Data protection contact:</strong> the Data Protection focal point, reachable through your Brydl team contact or at our Kano office address.</p>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">2. Data we collect</h2>
+      <ul class="small mb-2">
+        <li><strong>Worker account data:</strong> full name, email address, role, password (stored only as a modern salted hash), theme preference, and terms-acceptance records.</li>
+        <li><strong>Payout data:</strong> bank name, bank account type, and bank account number — the account number is <strong>encrypted at rest</strong> with an industry-standard cipher and only ever decrypted inside a payout process by authorised staff.</li>
+        <li><strong>Work records:</strong> task submissions, quality scores, reviewer notes, consensus verdicts and justification texts — this is the work product you produce on the platform.</li>
+        <li><strong>Security records:</strong> sign-in audit events (email, IP address, timestamp, action) kept in an append-only trail.</li>
+        <li><strong>Client project data:</strong> project definitions, uploaded source data and export deliveries.</li>
+      </ul>
+      <p class="small mb-0">We do not collect advertising identifiers, and we run no third-party advertising or tracking scripts on this platform.</p>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">3. Why we use it (lawful basis)</h2>
+      <ul class="small mb-0">
+        <li><strong>Contract:</strong> running your account, assigning work, reviewing submissions and paying you exactly what you earned.</li>
+        <li><strong>Legal obligation:</strong> payroll, tax and accounting records; audit trails required of a financial platform.</li>
+        <li><strong>Legitimate interests:</strong> platform security (login lockouts, session revocation, fraud prevention) and service integrity.</li>
+        <li><strong>Client instructions:</strong> labelling work performed on client source data is processed purely to deliver the contracted dataset.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">4. Sharing</h2>
+      <p class="small mb-2">Personal data is shared only when the job requires it:</p>
+      <ul class="small mb-0">
+        <li><strong>Payout providers</strong> (our bank or our licensed payment processor) receive the bank details needed to send your money — nothing more.</li>
+        <li><strong>Clients</strong> receive work product (labels, scores, justifications) for the projects they commissioned — never your bank details or password.</li>
+        <li><strong>Nobody else.</strong> We sell no data, and we run no ad trackers.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">5. Security</h2>
+      <p class="small mb-0">Bank numbers encrypted at rest; passwords hashed, never stored in readable form; HTTPS enforced in production; per-role access control (annotators never see gold answers or payout data); every administrative action written to an append-only audit trail; regular credential rotation and verified off-site backups. Workers are issued individual accounts so all actions are attributable.</p>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">6. Retention</h2>
+      <ul class="small mb-0">
+        <li><strong>Account and payout records:</strong> retained for as long as your account is active, then as long as Nigerian payroll, tax and accounting rules require.</li>
+        <li><strong>Work product:</strong> retained per the client's project contract so quality can be audited and datasets re-delivered.</li>
+        <li><strong>Security logs:</strong> retained in the append-only audit trail for platform integrity investigations.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 fw-bold">7. Your rights</h2>
+      <p class="small mb-2">You may request: access to your personal data; correction of inaccurate data; deletion of data we no longer need (subject to payroll/audit retention); and restriction of processing while a dispute is resolved. Requests are free, answered within a reasonable time, and verifiable — we will confirm your identity before acting.</p>
+      <p class="small mb-0">You also have the right to lodge a complaint with the Nigeria Data Protection Commission.</p>
+    </div>
+  </div>
+
+  <p class="text-center pb-4">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('public.landing') }}">
+      <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to the homepage
+    </a>
+  </p>
+</div>
+{% endblock %}

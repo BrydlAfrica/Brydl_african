@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}My History · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">My History</h1>
+    <p class="text-muted mb-0">Every answer you've submitted, newest first.</p>
+  </div>
+  <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Dashboard
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Task</th>
+          <th scope="col">Project</th>
+          <th scope="col" class="text-nowrap">Submitted (UTC)</th>
+          <th scope="col">Status</th>
+          <th scope="col">QA score</th>
+          <th scope="col">QA notes</th>
+          <th scope="col" class="text-nowrap">Earned</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set s = row.submission %}
+        <tr>
+          <td class="text-muted small">#{{ row.task_id }}</td>
+          <td>{{ row.project_name }}</td>
+          <td class="text-nowrap text-muted small">{{ s.submitted_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td>
+            {% set badge = {'submitted': 'warning text-dark', 'approved': 'success',
+                            'rejected': 'danger', 'revision': 'info'} %}
+            <span class="badge bg-{{ badge.get(s.status, 'secondary') }}">{{ s.status }}</span>
+          </td>
+          <td>
+            {% if s.qa_score is not none %}
+            <span class="badge {{ 'bg-success' if s.qa_score >= 80 else ('bg-warning text-dark' if s.qa_score >= 50 else 'bg-danger') }}">
+              {{ '%.0f'|format(s.qa_score) }}
+            </span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td style="max-width: 220px;">
+            {% if s.qa_notes %}
+            <span class="d-inline-block text-truncate align-middle" style="max-width: 200px;"
+                  title="{{ s.qa_notes }}">{{ s.qa_notes }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if s.status == 'approved' %}
+            <span class="text-success fw-semibold">${{ "%.2f"|format(row.pay) }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-5">
+            <i class="bi bi-clock-history fs-1 d-block mb-2" aria-hidden="true"></i>
+            No submissions yet.
+            <a href="{{ url_for('annotator.dashboard') }}">Start a task</a> and it will show up here.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ===== Result count + pagination ===== #}
+  {% if pagination %}
+  <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-muted small">
+      Showing {{ rows|length }} of {{ pagination.total }} submission(s)
+    </span>
+    {% if pagination.pages > 1 %}
+    <nav aria-label="History pages">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+          <a class="page-link" href="{{ url_for('annotator.history', page=pagination.prev_num or 1) }}">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% set start = [pagination.page - 2, 1] | max %}
+        {% set end = [pagination.page + 2, pagination.pages] | min %}
+        {% for p in range(start, end + 1) %}
+        <li class="page-item{{ ' active' if p == pagination.page }}">
+          <a class="page-link" href="{{ url_for('annotator.history', page=p) }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+          <a class="page-link" href="{{ url_for('annotator.history', page=pagination.next_num or pagination.pages) }}">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

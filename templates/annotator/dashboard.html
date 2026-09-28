@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}My Dashboard · {{ app_name }}{% endblock %}
+
+{% block content %}
+
+{% if pending_quizzes %}
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3" role="alert">
+  <div>
+    <strong><i class="bi bi-patch-exclamation me-1" aria-hidden="true"></i>Qualification needed.</strong>
+    Pass {% if pending_quizzes | length == 1 %}this quiz{% else %}these quizzes{% endif %}
+    to work the project{{ 's' if pending_quizzes | length != 1 }}:
+    {% for item in pending_quizzes %}
+    <span class="d-block d-md-inline ms-md-2">
+      {{ item.project_name }} — {{ item.attempts_used }}/{{ item.quiz.max_attempts }} attempts used
+      <a class="btn btn-sm btn-warning ms-1"
+         href="{{ url_for('annotator.take_quiz', quiz_id=item.quiz.id) }}">Take the quiz</a>
+    </span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+  <h1 class="h3 mb-0">My Dashboard</h1>
+  <span class="d-flex align-items-center gap-2">
+    <form method="post" action="{{ url_for('annotator.continue_work') }}"
+          class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-play-fill me-1" aria-hidden="true"></i><span class="text-nowrap">Continue working</span>
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('annotator.claim_task') }}"
+          class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-primary btn-sm"
+              title="Claim the next pending task ({{ claimed_today }}/{{ claim_cap }} claimed today)">
+        <i class="bi bi-plus-circle me-1" aria-hidden="true"></i><span class="text-nowrap">Claim next task</span>
+        <span class="badge bg-light text-dark ms-1">{{ claimed_today }}/{{ claim_cap }}</span>
+      </button>
+    </form>
+    <span class="badge role-badge bg-secondary">ANNOTATOR</span>
+  </span>
+</div>
+<p class="text-muted">Welcome back, {{ current_user.name }}. Here's where you stand.</p>
+
+{# ===== Stats cards ===== #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">{{ stats.open_tasks }}</div>
+            <div class="text-muted small">Open tasks</div>
+          </div>
+          <i class="bi bi-inbox stat-icon" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">{{ stats.completed }}</div>
+            <div class="text-muted small">Completed</div>
+            <div class="text-muted" style="font-size: .7rem;">
+              {{ stats.awaiting_review }} awaiting review · {{ stats.rejected }} rejected
+            </div>
+          </div>
+          <i class="bi bi-clipboard-check stat-icon" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">{{ stats.approved }}</div>
+            <div class="text-muted small">Approved</div>
+          </div>
+          <i class="bi bi-patch-check stat-icon" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h3 fw-bold mb-0">${{ "%.2f"|format(stats.earnings_month) }}</div>
+            <div class="text-muted small">Earned this month</div>
+            <div class="text-muted" style="font-size: .7rem;">All-time: ${{ "%.2f"|format(stats.earnings_all) }}</div>
+            <div class="text-muted" style="font-size: .7rem;">&asymp; &#8358;{{ "%.0f"|format(usd_to_ngn(stats.earnings_all)) }} all-time</div>
+          </div>
+          <i class="bi bi-cash-coin stat-icon" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="text-muted small mb-3">
+  <i class="bi bi-fire me-1" aria-hidden="true"></i>
+  Today: {{ stats.today }} submitted · Last 7 days: {{ stats.week }} ·
+  Active streak: {{ stats.streak }} day{{ 's' if stats.streak != 1 }}
+</p>
+
+{# ===== My open tasks ===== #}
+<div class="card border-0 shadow-sm mb-4" id="my-tasks">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-list-check me-1" aria-hidden="true"></i>My open tasks
+    </span>
+    <span class="badge bg-secondary">{{ stats.open_tasks }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Task</th>
+          <th scope="col">Project</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="text-nowrap">Assigned (UTC)</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in open_tasks %}
+        {% set t = item.task %}
+        <tr>
+          <td class="text-muted small">#{{ t.id }}</td>
+          <td>
+            {{ item.project_name }}
+            {% if item.project_deadline %}
+            <div class="small text-muted"><i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Due {{ item.project_deadline.strftime('%d %b %Y') }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.status == 'assigned' %}
+            <span class="badge bg-secondary">Assigned</span>
+            {% elif t.status == 'rejected' %}
+            <span class="badge bg-danger">Revise needed</span>
+            {% else %}
+            <span class="badge bg-info">In progress</span>
+            {% endif %}
+          </td>
+          <td class="text-nowrap text-muted small">{{ t.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td>
+            <a class="btn btn-sm {{ 'btn-warning' if t.status == 'rejected' else 'btn-primary' }}"
+               href="{{ url_for('annotator.task_page', task_id=t.id) }}">
+              {% if t.status == 'assigned' %}
+              <i class="bi bi-play-fill me-1" aria-hidden="true"></i>Start
+              {% elif t.status == 'rejected' %}
+              <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Revise
+              {% else %}
+              <i class="bi bi-arrow-right me-1" aria-hidden="true"></i>Continue
+              {% endif %}
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            <i class="bi bi-inbox me-1" aria-hidden="true"></i>
+            No open tasks right now — new work appears here as soon as it's assigned to you.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ===== Recent submissions ===== #}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-clock-history me-1" aria-hidden="true"></i>Recent submissions
+    </span>
+    <a href="{{ url_for('annotator.history') }}" class="small">View full history</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Task</th>
+          <th scope="col">Project</th>
+          <th scope="col">Status</th>
+          <th scope="col">QA score</th>
+          <th scope="col" class="text-nowrap">Submitted (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in recent %}
+        <tr>
+          <td class="text-muted small">#{{ item.task_id }}
+            {# Once QA has a submission (or approved it), its saved
+               draft is no longer needed — main.js purges it here. #}
+            {% if item.status in ('submitted', 'approved') %}
+            <span data-draft-purge="task-{{ item.task_id }}" hidden></span>
+            {% endif %}
+          </td>
+          <td>{{ item.project_name }}</td>
+          <td>
+            {% set badge = {'submitted': 'warning text-dark', 'approved': 'success',
+                            'rejected': 'danger', 'revision': 'info'} %}
+            <span class="badge bg-{{ badge.get(item.status, 'secondary') }}">{{ item.status }}</span>
+          </td>
+          <td>{{ '%.0f'|format(item.qa_score) if item.qa_score is not none else '—' }}</td>
+          <td class="text-nowrap text-muted small">{{ item.submitted_at.strftime('%d %b %Y, %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            <i class="bi bi-send me-1" aria-hidden="true"></i>
+            Nothing submitted yet — start your first task above.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

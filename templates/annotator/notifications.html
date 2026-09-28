@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Notifications</h1>
+  <span class="badge role-badge bg-secondary">ANNOTATOR</span>
+</div>
+<p class="text-muted">Assigned work, QA feedback and payouts land here as they happen.</p>
+
+<div class="card border-0 shadow-sm">
+  <div class="list-group list-group-flush">
+    {% for n in items %}
+    <div class="list-group-item d-flex gap-3 align-items-start">
+      <i class="bi {{ 'bi-plus-circle-fill text-success' if n.kind == 'task.assigned' else 'bi-arrow-return-left text-danger' if n.kind == 'task.rejected' else 'bi-box-arrow-up-right text-warning' if n.kind == 'task.escalated' else 'bi-cash-coin text-primary' }} fs-5" aria-hidden="true"></i>
+      <div class="flex-grow-1">
+        {% if n.kind == 'task.assigned' %}
+          <span class="fw-semibold">New work assigned</span>
+        {% endif %}
+        {% if n.kind == 'task.rejected' %}
+          <span class="fw-semibold">Revision requested by QA</span>
+        {% endif %}
+        {% if n.kind == 'task.escalated' %}
+          <span class="fw-semibold">Task escalated to Brydl</span>
+        {% endif %}
+        {% if n.kind == 'payout.paid' %}
+          <span class="fw-semibold">Payout sent</span>
+        {% endif %}
+        <div class="small text-muted">
+          {{ n.created_at.strftime('%d %b %Y, %H:%M') }} UTC
+          {% if n.kind == 'task.assigned' %}· check your queue below the dashboard{% endif %}
+          {% if n.kind == 'task.rejected' %}· open the task to see the QA notes{% endif %}
+          {% if n.kind == 'task.escalated' %}· the task was reassigned by Brydl — nothing for you to do{% endif %}
+          {% if n.kind == 'payout.paid' %}· see Payments history on your profile{% endif %}
+        </div>
+      </div>
+      {% if not n.read_at %}<span class="badge bg-primary">New</span>{% endif %}
+    </div>
+    {% else %}
+    <div class="list-group-item text-center text-muted py-5">
+      <i class="bi bi-bell-slash fs-1 d-block mb-2" aria-hidden="true"></i>
+      Nothing yet — when admins assign work, review your tasks or send a payout, it shows up here.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

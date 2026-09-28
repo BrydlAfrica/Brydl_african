@@ -1,0 +1,772 @@
+/* Brydl Dashboard — design layer on top of Bootstrap 5.
+ *
+ * Direction: a calm, professional AI-labelling tool. Muted cool-grey
+ * surfaces, one brand accent (Brydl navy/blue from the logo mark), flat cards with hairline
+ * borders, soft status badges, dense but airy data tables, monospace for
+ * machine data. No glow, no gradients on content — the work is the star.
+ */
+
+:root {
+  --brydl-bg: #f4f6f5;
+  --brydl-surface: #ffffff;
+  --brydl-border: #e2e8e5;
+  --brydl-ink: #1c2a24;
+  --brydl-muted: #5f6f68;
+  /* Brand palette (from the Brydl mark: binary Africa on navy). */
+  --brydl-navy: #173363;         /* logo navy — chrome + hero surfaces */
+  --brydl-navy-deep: #0f2447;    /* darker navy for gradients/hover */
+  --brydl-accent: #2b5bba;       /* interactive blue (links, buttons) */
+  --brydl-accent-bright: #4f7fe0;
+  --brydl-accent-soft: rgba(43, 91, 186, 0.12);
+  --brydl-nav: #173363;          /* top chrome matches the logo */
+}
+
+/* ---- Base ---- */
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--brydl-bg);
+  color: var(--brydl-ink);
+  font-size: 0.95rem;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h3, .h4, .h5 {
+  letter-spacing: -0.01em;
+  font-weight: 650;
+}
+
+a { color: var(--brydl-accent); }
+a:hover { color: #1f4691; }
+
+code, .font-monospace { font-size: 0.875em; }
+
+/* Brand utilities used across templates */
+.brydl-accent { color: var(--brydl-accent); }
+
+.brydl-accent-border { border-bottom: 3px solid var(--brydl-accent-bright); }
+
+.brydl-footer { margin-top: auto; }
+
+.role-badge {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  vertical-align: middle;
+}
+
+.stat-icon { font-size: 1.6rem; color: var(--brydl-accent); }
+
+/* ---- Chrome: navbar + footer ---- */
+
+.navbar.bg-dark {
+  background-color: var(--brydl-nav) !important;
+}
+
+.navbar-brand { letter-spacing: -0.01em; }
+
+.navbar .nav-link {
+  border-radius: 0.45rem;
+  padding-left: 0.65rem;
+  padding-right: 0.65rem;
+}
+
+.navbar .nav-link.active {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* ---- Cards: flat surface, hairline border, quiet shadow ---- */
+
+.card {
+  border: 1px solid var(--brydl-border);
+  border-radius: 0.6rem;
+  box-shadow: 0 1px 2px rgba(18, 30, 24, 0.04) !important;
+}
+
+.card-header {
+  border-bottom: 1px solid var(--brydl-border);
+  font-size: 0.9rem;
+}
+
+/* ---- Tables: data-first ---- */
+
+.table { --bs-table-hover-bg: #f7faf8; }
+
+.table thead th {
+  font-size: 0.68rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--brydl-muted);
+  border-bottom-color: var(--brydl-border);
+  white-space: nowrap;
+}
+
+.table td { vertical-align: middle; }
+
+/* ---- Badges: soft tints instead of shouty solids ---- */
+
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge.bg-success {
+  background-color: #d7ebdf !important;
+  color: #116643 !important;
+}
+
+.badge.bg-warning,
+.badge.bg-warning.text-dark {
+  background-color: #fdf0d1 !important;
+  color: #815a00 !important;
+}
+
+.badge.bg-danger {
+  background-color: #fadfd9 !important;
+  color: #a13327 !important;
+}
+
+.badge.bg-info {
+  background-color: #dcedf5 !important;
+  color: #0b5b7f !important;
+}
+
+.badge.bg-secondary {
+  background-color: #e6e9e8 !important;
+  color: #4c5854 !important;
+}
+
+.badge.bg-primary {
+  background-color: #dbe5f8 !important;
+  color: #1d3f7a !important;
+}
+
+/* ---- Forms ---- */
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--brydl-accent);
+  box-shadow: 0 0 0 0.2rem var(--brydl-accent-soft);
+}
+
+.form-check-input:checked {
+  background-color: var(--brydl-accent);
+  border-color: var(--brydl-accent);
+}
+
+.form-text { color: var(--brydl-muted); }
+
+kbd {
+  background: #eef1ef;
+  border: 1px solid var(--brydl-border);
+  border-bottom-width: 2px;
+  border-radius: 0.3rem;
+  color: var(--brydl-ink);
+  font-size: 0.75em;
+  padding: 0.1em 0.4em;
+}
+
+/* Live character counter (attached by main.js next to any
+ * textarea[maxlength]) — tabular digits so it never jitters. */
+.char-counter {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.char-counter.near-limit {
+  color: #b45309;
+  font-weight: 600;
+}
+
+/* ---- Buttons: brand + loading state ---- */
+
+.btn-primary {
+  --bs-btn-bg: var(--brydl-accent);
+  --bs-btn-border-color: var(--brydl-accent);
+  --bs-btn-hover-bg: #1f4691;
+  --bs-btn-hover-border-color: #1f4691;
+  --bs-btn-active-bg: #0f2447;
+  --bs-btn-active-border-color: #0f2447;
+  --bs-btn-disabled-bg: var(--brydl-accent);
+  --bs-btn-disabled-border-color: var(--brydl-accent);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--brydl-accent);
+  --bs-btn-border-color: var(--brydl-accent);
+  --bs-btn-hover-bg: var(--brydl-accent);
+  --bs-btn-hover-border-color: var(--brydl-accent);
+  --bs-btn-active-bg: var(--brydl-accent);
+  --bs-btn-active-border-color: var(--brydl-accent);
+}
+
+.btn-link.nav-link { text-align: left; }
+
+/* Submit loading state (driven by static/js/main.js): while a form is
+ * submitting, its buttons get data-loading="true" — a CSS-only spinner
+ * appears via ::before and the button locks. CSP-safe by construction. */
+@keyframes brydl-spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn[data-loading="true"] {
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.btn[data-loading="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: -0.125em;
+  animation: brydl-spin 0.6s linear infinite;
+}
+
+/* ---- Page-load progress bar (top of viewport) ----
+ * main.js activates it on form submits / navigations; the fresh page
+ * hides it again as soon as its own JS runs. */
+
+@keyframes brydl-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(450%); }
+}
+
+.brydl-progress {
+  height: 3px;
+  left: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transition: opacity 0.25s ease;
+  width: 100%;
+  z-index: 3000;
+}
+
+.brydl-progress.active { opacity: 1; }
+
+.brydl-progress::before {
+  animation: brydl-slide 1s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--brydl-accent-bright),
+    transparent
+  );
+  content: "";
+  display: block;
+  height: 100%;
+  width: 30%;
+}
+
+/* ---- Alerts: quieter edges ---- */
+
+.alert {
+  border-radius: 0.6rem;
+  border-width: 0;
+  border-left: 4px solid transparent;
+}
+
+.alert-success { border-left-color: #2e9e6b; }
+.alert-danger { border-left-color: #d9534f; }
+.alert-warning { border-left-color: #e0a800; }
+.alert-info { border-left-color: #4aa3c0; }
+
+/* ---- Labelling workspace (annotator task page) ---- */
+
+.task-input-text {
+  font-size: 1.12rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.answer-form textarea { line-height: 1.6; }
+
+/* ============================================================
+ * Brand layer: signature boot, landing page, binary drift
+ * (palette lives in :root above — logo navy #173363)
+ * ============================================================ */
+
+/* ---- Signature boot overlay -------------------------------
+ * Pure-CSS timeline: the mark materialises with expanding rings,
+ * the wordmark rises, a sliver bar fills, then the whole overlay
+ * fades itself out (animation-fill-mode) even if JS never runs.
+ * main.js removes the node and skips repeats via sessionStorage. */
+
+.brydl-boot {
+  align-items: center;
+  animation: brydl-boot-out 2.6s ease forwards;
+  background: linear-gradient(
+    160deg, var(--brydl-navy-deep), var(--brydl-navy) 70%);
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  position: fixed;
+  z-index: 4000;
+}
+
+.brydl-boot--quick { animation-duration: 1.5s; }
+
+.brydl-boot.is-done {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+  visibility: hidden;
+}
+
+@keyframes brydl-boot-out {
+  0%, 62% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+.brydl-boot-inner { text-align: center; }
+
+.brydl-boot-mark {
+  animation: brydl-boot-pop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  display: inline-block;
+  position: relative;
+}
+
+.brydl-boot-mark img {
+  border-radius: 1.1rem;
+  box-shadow: 0 18px 50px rgba(4, 12, 28, 0.55);
+  display: block;
+}
+
+.brydl-boot-ring {
+  animation: brydl-boot-ring 1.6s ease-out infinite;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 1.3rem;
+  inset: 0;
+  position: absolute;
+}
+
+.brydl-boot-ring--late { animation-delay: 0.5s; }
+
+@keyframes brydl-boot-ring {
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes brydl-boot-pop {
+  0% { opacity: 0; transform: scale(0.82); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.brydl-boot-word {
+  animation: brydl-boot-rise 0.6s ease 0.25s both;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  margin-top: 1.1rem;
+  text-indent: 0.32em; /* recentres the letterspaced word */
+}
+
+.brydl-boot-bits {
+  animation: brydl-boot-rise 0.6s ease 0.45s both;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: var(--bs-font-monospace), ui-monospace, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  margin-top: 0.4rem;
+  max-width: 240px;
+  white-space: normal;
+}
+
+@keyframes brydl-boot-rise {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.brydl-boot-bar {
+  animation: brydl-boot-rise 0.4s ease 0.6s both;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 99px;
+  height: 3px;
+  margin: 1.1rem auto 0;
+  overflow: hidden;
+  width: 180px;
+}
+
+.brydl-boot-bar span {
+  animation: brydl-boot-fill 1.9s ease forwards;
+  background: linear-gradient(90deg, #fff, var(--brydl-accent-bright));
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  width: 100%;
+}
+
+.brydl-boot--quick .brydl-boot-bar span { animation-duration: 1.1s; }
+
+@keyframes brydl-boot-fill {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brydl-boot { display: none; }
+}
+
+/* ---- Landing page ------------------------------------------ */
+
+.brydl-eyebrow {
+  color: var(--brydl-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.brydl-hero { padding: 2.2rem 0 1rem; }
+
+.brydl-hero-title {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0.6rem 0 1rem;
+}
+
+.brydl-hero-shine {
+  background: linear-gradient(
+    92deg, var(--brydl-navy), var(--brydl-accent-bright));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brydl-hero-sub {
+  color: var(--brydl-muted);
+  font-size: 1.06rem;
+  max-width: 34rem;
+}
+
+.brydl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.brydl-chips li {
+  background: var(--brydl-accent-soft);
+  border-radius: 99px;
+  color: #1d3f7a;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+}
+
+.brydl-hero-media { position: relative; }
+
+.brydl-hero-img {
+  border-radius: 1rem;
+  box-shadow: 0 24px 60px rgba(15, 36, 71, 0.28);
+  height: auto;
+  width: 100%;
+}
+
+.brydl-hero-float {
+  animation: brydl-float 5s ease-in-out infinite;
+  bottom: -14px;
+  left: 18px;
+  position: absolute;
+}
+
+@keyframes brydl-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.brydl-step-num {
+  background: var(--brydl-navy);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  height: 1.7rem;
+  line-height: 1.7rem;
+  position: absolute;
+  text-align: center;
+  top: 0.9rem;
+  width: 1.7rem;
+}
+
+.brydl-cta-band {
+  background: linear-gradient(135deg, var(--brydl-navy-deep),
+    var(--brydl-navy));
+  border-radius: 1rem;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---- Binary drift (decorative digits on brand surfaces) ---- */
+
+.brydl-binary {
+  color: rgba(255, 255, 255, 0.35);
+  column-gap: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--bs-font-monospace), ui-monospace, monospace;
+  font-size: 0.72rem;
+  inset: auto 12px 10px;
+  letter-spacing: 0.2em;
+  line-height: 1.9;
+  pointer-events: none;
+  position: absolute;
+  row-gap: 0;
+}
+
+.brydl-binary span {
+  animation: brydl-bit 3.2s ease-in-out infinite;
+}
+
+.brydl-binary span:nth-child(3n) { animation-delay: 0.7s; }
+.brydl-binary span:nth-child(4n) { animation-delay: 1.3s; }
+.brydl-binary span:nth-child(5n) { animation-delay: 2.1s; }
+
+@keyframes brydl-bit {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+.brydl-binary--band {
+  inset: 0;
+  opacity: 0.55;
+  padding: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brydl-binary span,
+  .brydl-hero-float { animation: none; }
+}
+
+/* ---- Scroll reveal (main.js adds .is-visible) -------------- */
+
+.brydl-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.brydl-reveal.is-visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brydl-reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---- Login mark -------------------------------------------- */
+
+.brydl-login-mark {
+  box-shadow: 0 10px 26px rgba(15, 36, 71, 0.25);
+}
+
+.brydl-brand-mark {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* ---- Dark theme (per-user preference, Bootstrap 5.3 data-bs-theme)
+ * Bootstrap restyles its own components; we only need to re-map our
+ * custom tokens and the few hard-tinted surfaces. */
+[data-bs-theme="dark"] {
+  --brydl-bg: #0f1523;
+  --brydl-surface: #182033;
+  --brydl-border: #2a3450;
+  --brydl-ink: #e7ebf6;
+  --brydl-muted: #9aa6c2;
+  --brydl-accent-soft: rgba(79, 127, 224, 0.16);
+  color-scheme: dark;
+}
+
+[data-bs-theme="dark"] body {
+  background-color: var(--brydl-bg);
+  color: var(--brydl-ink);
+}
+
+[data-bs-theme="dark"] .card {
+  background-color: var(--brydl-surface);
+}
+
+[data-bs-theme="dark"] .card-header.bg-white,
+[data-bs-theme="dark"] .card-footer.bg-white,
+[data-bs-theme="dark"] .brydl-footer {
+  background-color: var(--brydl-surface) !important;
+}
+
+[data-bs-theme="dark"] .table {
+  --bs-table-hover-bg: rgba(79, 127, 224, 0.08);
+}
+
+[data-bs-theme="dark"] kbd {
+  background: #202a44;
+  border-color: #313d61;
+}
+
+[data-bs-theme="dark"] .brydl-chips li { color: #9db9f0; }
+
+[data-bs-theme="dark"] .badge.bg-success {
+  background-color: rgba(46, 158, 107, 0.2) !important;
+  color: #7bd8ab !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-warning,
+[data-bs-theme="dark"] .badge.bg-warning.text-dark {
+  background-color: rgba(224, 168, 0, 0.18) !important;
+  color: #ecc55a !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-danger {
+  background-color: rgba(217, 83, 79, 0.2) !important;
+  color: #f19995 !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-info {
+  background-color: rgba(74, 163, 192, 0.2) !important;
+  color: #8ed0e5 !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-secondary {
+  background-color: rgba(154, 166, 194, 0.18) !important;
+  color: #b9c3da !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-primary {
+  background-color: rgba(79, 127, 224, 0.2) !important;
+  color: #9db9f0 !important;
+}
+
+[data-bs-theme="dark"] .navbar {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+
+/* ---- Offline resilience ------------------------------------ */
+
+.brydl-offline-badge {
+  background: #815a00;
+  border-radius: 99px 0 0 99px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem 0.35rem 1rem;
+  position: fixed;
+  right: 0;
+  top: 4.2rem;
+  z-index: 3500;
+}
+
+.brydl-draft-banner {
+  font-size: 0.85rem;
+}
+
+/* ---- Rich content rendering (RLHF Phase 3) ------------------- */
+.rich-text { line-height: 1.55; }
+.rich-text > :first-child { margin-top: 0; }
+.rich-text > :last-child { margin-bottom: 0; }
+.rich-text h1, .rich-text h2, .rich-text h3,
+.rich-text h4, .rich-text h5, .rich-text h6 {
+  margin: 1rem 0 .5rem;
+  line-height: 1.25;
+}
+.rich-text h1 { font-size: 1.35rem; }
+.rich-text h2 { font-size: 1.2rem; }
+.rich-text h3 { font-size: 1.05rem; }
+.rich-text p { margin: .5rem 0; }
+.rich-text ul, .rich-text ol { margin: .5rem 0; padding-left: 1.5rem; }
+.rich-text blockquote {
+  border-left: 4px solid var(--bs-secondary-bg, #e9ecef);
+  margin: .75rem 0;
+  padding: .25rem .9rem;
+  color: var(--bs-secondary-color);
+}
+.rich-text code {
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  padding: .1rem .3rem;
+  border-radius: .25rem;
+  font-size: .875em;
+}
+.rich-text pre code { padding: 0; background: transparent; }
+.rich-text table {
+  border-collapse: collapse;
+  margin: .75rem 0;
+  width: 100%;
+}
+.rich-text th, .rich-text td {
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  padding: .35rem .6rem;
+  text-align: left;
+}
+.rich-text thead th { background: var(--bs-tertiary-bg, #f8f9fa); }
+.rich-text pre {
+  margin: .75rem 0;
+  padding: .9rem 1rem;
+  border-radius: .5rem;
+  overflow-x: auto;
+  background: #f8f9fa;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+}
+.rich-text pre code {
+  background: transparent;
+  padding: 0;
+  font-size: .85em;
+}
+[data-bs-theme="dark"] .rich-text pre {
+  background: #161b22;
+  border-color: #30363d;
+}
+[data-bs-theme="dark"] .rich-text code {
+  background: #21262d;
+}
+
+/* ---- Multi-turn chat bubbles ---------------------------------- */
+.chat-thread { display: flex; flex-direction: column; gap: .75rem; }
+.chat-turn {
+  max-width: 88%;
+  border-radius: .9rem;
+  padding: .6rem .9rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+}
+.chat-turn .chat-role {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+  margin-bottom: .25rem;
+  opacity: .65;
+}
+.chat-turn.chat-user {
+  align-self: flex-end;
+  background: var(--bs-primary-bg-subtle, #cfe2ff);
+  border-color: var(--bs-primary-border-subtle, #b6d4fe);
+  border-bottom-right-radius: .2rem;
+}
+.chat-turn.chat-assistant {
+  align-self: flex-start;
+  background: var(--bs-body-bg, #fff);
+  border-bottom-left-radius: .2rem;
+}
+.chat-turn.chat-system {
+  align-self: center;
+  background: var(--bs-secondary-bg, #e9ecef);
+  font-size: .9em;
+  max-width: 95%;
+}
+[data-bs-theme="dark"] .chat-turn.chat-user {
+  background: #1c2e4a;
+  border-color: #2c4a77;
+}
+[data-bs-theme="dark"] .chat-turn.chat-system {
+  background: #21262d;
+}

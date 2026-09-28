@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Audit trail · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Audit trail</h1>
+    <p class="text-muted mb-0">
+      Every significant action, newest first &mdash; who, what, when, from where.
+    </p>
+  </div>
+  <span class="badge bg-secondary">{{ pagination.total if pagination else 0 }} event(s)</span>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-2">
+    <form class="row g-2 align-items-center" method="get" aria-label="Audit filters">
+      <div class="col-12 col-md-4">
+        <label class="form-label small mb-0" for="actor">Actor</label>
+        <select id="actor" name="actor" class="form-select form-select-sm">
+          <option value="">All actors</option>
+          {% for uid, name in actors %}
+          <option value="{{ uid }}"{{ ' selected' if actor_id == uid }}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label small mb-0" for="q">Action contains</label>
+        <input id="q" name="q" class="form-control form-control-sm" value="{{ q }}"
+               placeholder="e.g. payment, review, login">
+      </div>
+      <div class="col-12 col-md-4 d-flex gap-2 align-items-end">
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply
+        </button>
+        <a href="{{ url_for('admin.audit_log') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Time (UTC)</th>
+          <th scope="col">Actor</th>
+          <th scope="col">Action</th>
+          <th scope="col">Entity</th>
+          <th scope="col">Detail</th>
+          <th scope="col">IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in rows %}
+        <tr>
+          <td class="text-nowrap small text-muted">{{ entry.created_at.strftime('%d %b %Y, %H:%M:%S') }}</td>
+          <td class="text-nowrap small">
+            <i class="bi bi-person-circle me-1 text-muted" aria-hidden="true"></i>{{ entry.actor_name }}
+          </td>
+          <td><code class="small">{{ entry.action }}</code></td>
+          <td class="small text-muted">
+            {% if entry.entity_type %}{{ entry.entity_type }} #{{ entry.entity_id }}{% else %}&mdash;{% endif %}
+          </td>
+          <td class="small font-monospace text-truncate" style="max-width: 320px;"
+              title="{{ entry.detail or '' }}">{{ entry.detail or '—' }}</td>
+          <td class="small text-muted font-monospace">{{ entry.ip_address or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">
+            <i class="bi bi-journal-text me-1" aria-hidden="true"></i>
+            No audit events match the current filters.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-muted small">
+      Showing {{ rows|length }} of {{ pagination.total }} event(s)
+    </span>
+    <nav aria-label="Audit trail pages">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+          <a class="page-link" href="{{ url_for('admin.audit_log', page=pagination.prev_num or 1, actor=actor_id or None, q=q or None) }}">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% set start = [pagination.page - 2, 1] | max %}
+        {% set end = [pagination.page + 2, pagination.pages] | min %}
+        {% for page_num in range(start, end + 1) %}
+        <li class="page-item{{ ' active' if page_num == pagination.page }}">
+          <a class="page-link" href="{{ url_for('admin.audit_log', page=page_num, actor=actor_id or None, q=q or None) }}">{{ page_num }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+          <a class="page-link" href="{{ url_for('admin.audit_log', page=pagination.next_num or pagination.pages, actor=actor_id or None, q=q or None) }}">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

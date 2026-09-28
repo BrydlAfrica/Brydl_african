@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} — Brydl Client Portal{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 900px;">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3 gap-2">
+    <div>
+      <p class="brydl-eyebrow mb-1">
+        <i class="bi bi-briefcase me-1" aria-hidden="true"></i>Client portal
+      </p>
+      <h1 class="h3 mb-0">{{ project.name }}</h1>
+    </div>
+    <span class="badge {{ 'bg-success' if project.status == 'active' else 'bg-secondary' }} fs-6">
+      {{ project.status|title }}
+    </span>
+  </div>
+  <p class="text-muted small">
+    Prepared for <strong>{{ label }}</strong> · task type
+    {{ project.task_type.replace('_', ' ')|title }} · all times UTC.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
+        <div class="h3 fw-bold mb-0">{{ summary.total_tasks }}</div>
+        <div class="text-muted small">Tasks in scope</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
+        <div class="h3 fw-bold mb-0 text-success">{{ summary.approved }}</div>
+        <div class="text-muted small">Delivered (approved)</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
+        <div class="h3 fw-bold mb-0 text-warning">{{ summary.in_review }}</div>
+        <div class="text-muted small">In review</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
+        <div class="h3 fw-bold mb-0">{{ summary.avg_qa_score if summary.avg_qa_score is not none else '—' }}</div>
+        <div class="text-muted small">Avg. quality score</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 fw-bold mb-0">Overall progress</h2>
+        <span class="fw-semibold">{{ summary.progress_percent }}%</span>
+      </div>
+      <div class="progress" role="progressbar"
+           aria-label="Project progress" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="{{ summary.progress_percent }}">
+        <div class="progress-bar bg-primary"
+             style="width: {{ summary.progress_percent }}%;"></div>
+      </div>
+      <p class="text-muted small mb-0 mt-2">
+        {{ summary.approved }} of {{ summary.total_tasks }} task(s)
+        quality-approved and ready for delivery.
+      </p>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">
+      <i class="bi bi-download me-1" aria-hidden="true"></i>Your deliverables
+    </div>
+    <div class="card-body">
+      <p class="small text-muted">
+        Download the quality-approved rows of your dataset. Files are
+        regenerated live and exclude internal review metadata. Rejected
+        work is re-labelled by our team before it reaches you.
+      </p>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary btn-sm" href="{{ export_jsonl_url }}">
+          <i class="bi bi-filetype-json me-1" aria-hidden="true"></i>JSONL
+        </a>
+        <a class="btn btn-outline-primary btn-sm" href="{{ export_csv_url }}">
+          <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-muted small text-center pb-4">
+    Questions about this project? Contact your Brydl team lead —
+    this portal is private to your link; please do not share it
+    publicly. <a href="{{ url_for('public.privacy') }}">Data protection (NDPR)</a>
+  </p>
+</div>
+{% endblock %}

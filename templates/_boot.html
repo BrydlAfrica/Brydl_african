@@ -1,0 +1,21 @@
+{# Signature Brydl boot sequence: the logo materialises with expanding
+   rings while a sliver bar fills, then the whole overlay fades away.
+   Pure CSS timeline (animation-fill-mode) so it can never strand a
+   visitor without JavaScript; main.js only accelerates + removes the
+   node and skips repeats via sessionStorage. prefers-reduced-motion
+   users never see it at all (style.css hides it). #}
+<div class="brydl-boot{{ ' brydl-boot--quick' if boot_quick|default(false) }}"
+     id="brydl-boot" aria-hidden="true">
+  <div class="brydl-boot-inner">
+    <div class="brydl-boot-mark">
+      <span class="brydl-boot-ring"></span>
+      <span class="brydl-boot-ring brydl-boot-ring--late"></span>
+      <img src="{{ url_for('static', filename='brand/logo-192.png') }}"
+           alt="" width="96" height="96">
+    </div>
+    <div class="brydl-boot-word">Brydl</div>
+    <div class="brydl-boot-bits" aria-hidden="true">01000010 01110010
+      01111001 01100100 01101100</div>
+    <div class="brydl-boot-bar"><span></span></div>
+  </div>
+</div>

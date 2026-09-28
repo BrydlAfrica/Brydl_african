@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Review #{{ submission.id }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('admin.review') }}">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>QA Review
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Submission #{{ submission.id }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0">Review submission #{{ submission.id }}</h1>
+  <span class="text-muted small">
+    <i class="bi bi-person-circle me-1" aria-hidden="true"></i>{{ annotator.name }}
+    &middot; {{ project.name }}
+    &middot; submitted {{ submission.submitted_at.strftime('%d %b %Y, %H:%M') }} UTC
+  </span>
+</div>
+
+{# ===== Side-by-side comparison ===== #}
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-file-text me-1" aria-hidden="true"></i>Task input
+      </div>
+      {% if pref_input %}
+      <div class="card-body">
+        <div class="small text-muted fw-semibold mb-1">PROMPT</div>
+        <div class="mb-3" style="white-space: pre-wrap;">{{ pref_input.prompt }}</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="border rounded p-2 h-100">
+              <div class="small fw-semibold text-muted mb-1">Response A (canonical)</div>
+              <div style="white-space: pre-wrap;">{{ pref_input.response_a }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="border rounded p-2 h-100">
+              <div class="small fw-semibold text-muted mb-1">Response B (canonical)</div>
+              <div style="white-space: pre-wrap;">{{ pref_input.response_b }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-text mt-2">
+          The annotator saw these in a randomized order; "Chose" below
+          refers to the canonical labels above.
+        </div>
+      </div>
+      {% elif input_view and input_view.type == 'conversation' %}
+      <div class="card-body">
+        <div class="chat-thread">
+          {% for turn in input_view.turns %}
+          <div class="chat-turn chat-{{ turn.role }}">
+            <div class="chat-role">{{ turn.role }}</div>
+            <div class="chat-body rich-text">{{ turn.html|safe }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% elif media_doc and media_url %}
+      <div class="card-body">
+        {% if media_doc.kind == 'image_labeling' %}
+        <div class="mb-3 text-center">
+          <img src="{{ media_url }}" alt="Task image {{ media_doc.media_id }}"
+               class="img-fluid rounded border" style="max-height: 380px;">
+        </div>
+        {% else %}
+        <div class="mb-3 text-center">
+          <audio controls preload="metadata" src="{{ media_url }}"
+                 class="w-100" style="max-width: 520px;"></audio>
+        </div>
+        {% endif %}
+        {% if media_prompt %}
+        <div class="rich-text">{{ media_prompt.html|safe }}</div>
+        {% endif %}
+      </div>
+      {% elif input_view %}
+      <div class="card-body">
+        <div class="rich-text">{{ input_view.html|safe }}</div>
+      </div>
+      {% else %}
+      <div class="card-body" style="white-space: pre-wrap;">{{ task.input_data }}</div>
+      {% endif %}
+      {% if task.expected_output %}
+      <div class="card-header bg-white fw-semibold border-top">
+        <i class="bi bi-award me-1 text-warning" aria-hidden="true"></i>Expected output (gold standard)
+      </div>
+      <div class="card-body border-top-warning" style="white-space: pre-wrap;">{{ task.expected_output }}</div>
+      {% else %}
+      <div class="card-footer bg-white text-muted small">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+        No gold standard was provided for this task — judge on the project instructions.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Annotator output
+        {% if consensus %}
+        <span class="badge {{ 'bg-success' if consensus.status == 'agreed' else 'bg-danger' if consensus.status == 'conflict' else 'bg-secondary' if consensus.status == 'resolved' else 'bg-warning text-dark' }} float-end">
+          Consensus: {{ consensus.status }}{% if consensus.decision %} → {{ consensus.decision }}{% endif %}
+        </span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <pre class="mb-0 small" style="white-space: pre-wrap;">{{ output_display }}</pre>
+        {% if rubric_view %}
+        <table class="table table-sm table-striped mt-3 mb-0 small">
+          <thead>
+            <tr><th>Rubric</th><th class="text-center">A</th><th class="text-center">B</th></tr>
+          </thead>
+          <tbody>
+            {% for dim, scores in rubric_view.items() %}
+            <tr>
+              <td>{{ dim }}</td>
+              <td class="text-center">{{ scores.a }}</td>
+              <td class="text-center">{{ scores.b }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ===== Verdict form ===== #}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Your verdict
+  </div>
+  <div class="card-body p-4">
+    <form method="post" novalidate
+          data-confirm="Record this verdict? A submission can only be reviewed once.">
+      {{ form.hidden_tag() }}
+
+      <div class="mb-3">
+        {{ form.qa_score.label(class="form-label fw-semibold") }}
+        <div class="d-flex align-items-center gap-3">
+          {{ form.qa_score(type="range", min=0, max=100, step=1, value=100,
+                           class="form-range flex-grow-1",
+                           **{"data-score-display": "score-value",
+                              "aria-describedby": "score-value"}) }}
+          <span class="badge bg-primary fs-6" id="score-value" style="min-width: 3.5rem;">100</span>
+        </div>
+        {% for error in form.qa_score.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="mb-3">
+        {{ form.qa_notes.label(class="form-label fw-semibold") }}
+        {{ form.qa_notes(class="form-control", rows=4, maxlength=2000,
+                         placeholder="Feedback for the annotator (optional). Shown to them when a task is rejected.") }}
+        {% for error in form.qa_notes.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-check mb-3">
+        {{ form.return_for_revision(class="form-check-input") }}
+        {{ form.return_for_revision.label(class="form-check-label") }}
+        <div class="form-text">
+          Applies to rejections: the task stays with {{ annotator.name }} and reappears in
+          their queue for a revision pass. Untick it to strip ownership and requeue the
+          task yourself later from the Tasks page.
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <button type="submit" name="action" value="approve" class="btn btn-success btn-lg">
+          <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Approve
+        </button>
+        <button type="submit" name="action" value="reject" class="btn btn-danger btn-lg">
+          <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Reject
+        </button>
+        <a href="{{ url_for('admin.review') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

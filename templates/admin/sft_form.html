@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}{{ 'SFT pair #' ~ example.id if example else 'New SFT pair' }} — Brydl Admin{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">
+    <i class="bi bi-collection me-2" aria-hidden="true"></i>
+    {{ 'SFT pair #' ~ example.id if example else 'New SFT pair' }}
+  </h1>
+  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.sft_examples') }}">
+    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to builder
+  </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% if frozen %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white d-flex flex-wrap align-items-center gap-2">
+    <span class="badge text-bg-dark">exported</span>
+    <span class="fw-semibold">This pair is frozen</span>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small">
+      It shipped in an exported corpus, so it can no longer be edited —
+      the file and the database must stay provably in sync.
+    </p>
+    {% if example.edit_note %}
+    <p class="mb-1"><strong>Rewrite note:</strong> {{ example.edit_note }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        {% if example %}Edit pair{% else %}Pair{% endif %}
+      </div>
+      <div class="card-body">
+        {% if task %}
+        <p class="small text-muted">
+          <i class="bi bi-link-45deg" aria-hidden="true"></i>
+          Source task <strong>#{{ task.id }}</strong>
+          {% if task.project %}in <strong>{{ task.project.name }}</strong>{% endif %}
+          — harvested from
+          <span class="badge text-bg-light border">{{ source }}</span>.
+        </p>
+        {% endif %}
+        <form method="post"
+              action="{{ url_for('admin.sft_detail', example_id=example.id) if example else url_for('admin.sft_new') }}">
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            {{ form.task_id.label(class_="form-label small fw-semibold") }}
+            {{ form.task_id(class_="form-control form-control-sm", **{"aria-describedby": "task-id-help"}) }}
+            <div id="task-id-help" class="form-text small">
+              Every pair keeps its provenance: finalized task the pair
+              was harvested from.
+            </div>
+            {% for e in form.task_id.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.prompt.label(class_="form-label small fw-semibold") }}
+            {{ form.prompt(class_="form-control form-control-sm", rows=4) }}
+            {% for e in form.prompt.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.completion.label(class_="form-label small fw-semibold") }}
+            {{ form.completion(class_="form-control form-control-sm", rows=6) }}
+            {% for e in form.completion.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.system_prompt.label(class_="form-label small fw-semibold") }}
+            {{ form.system_prompt(class_="form-control form-control-sm", rows=2) }}
+            {% for e in form.system_prompt.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.edit_note.label(class_="form-label small fw-semibold") }}
+            {{ form.edit_note(class_="form-control form-control-sm", rows=2) }}
+            <div class="form-text small">
+              Required whenever the saved completion differs from the
+              harvested source — say why the rewrite improves it.
+            </div>
+            {% for e in form.edit_note.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          {% if not frozen %}
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-6">
+              {{ form.status.label(class_="form-label small fw-semibold") }}
+              {{ form.status(class_="form-select form-select-sm") }}
+              {% for e in form.status.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-6 text-sm-end">
+              {{ form.submit(class_="btn btn-sm btn-primary") }}
+            </div>
+          </div>
+          {% endif %}
+        </form>
+        {% if example and example.status == 'draft' %}
+        <form method="post" class="mt-3 pt-3 border-top"
+              action="{{ url_for('admin.sft_delete', example_id=example.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash me-1" aria-hidden="true"></i>Delete draft
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-clock-history me-2" aria-hidden="true"></i>Harvested source
+      </div>
+      <div class="card-body">
+        {% if source_completion %}
+        <p class="small text-muted mb-1">The machine-harvested completion (immutable audit anchor):</p>
+        <pre class="small bg-light border rounded p-2 mb-2">{{ source_completion }}</pre>
+        {% if example %}
+        <p class="small mb-0">
+          {{ 'The completion has been rewritten — note on file.' if example.completion != example.source_completion else 'Completion matches the harvest.' }}
+        </p>
+        {% endif %}
+        {% else %}
+        <p class="text-muted small mb-0">
+          No finalized source on this task — the pair is manual. The
+          saved completion becomes its own anchor.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if prompt_view or completion_view %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-eye me-2" aria-hidden="true"></i>Rendered preview
+      </div>
+      <div class="card-body">
+        {% if prompt_view %}
+        <h2 class="h6 text-muted fw-semibold">Prompt</h2>
+        {% if prompt_view.type == 'conversation' %}
+        <div class="chat-thread mb-3">
+          {% for turn in prompt_view.turns %}
+          <div class="chat-turn chat-{{ turn.role }}">
+            <div class="chat-body rich-text">{{ turn.html|safe }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="rich-text mb-3">{{ prompt_view.html|safe }}</div>
+        {% endif %}
+        {% endif %}
+        {% if completion_view %}
+        <h2 class="h6 text-muted fw-semibold">Completion</h2>
+        {% if completion_view.type == 'conversation' %}
+        <div class="chat-thread">
+          {% for turn in completion_view.turns %}
+          <div class="chat-turn chat-{{ turn.role }}">
+            <div class="chat-body rich-text">{{ turn.html|safe }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="rich-text">{{ completion_view.html|safe }}</div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+# App code (routes/, app.py, config.py, models.py, extensions.py,
+# audit.py, backup.py, seed.py) stays STRICT at 79 columns.
+# The end-to-end suites in tests/ are linear scripts by design: long
+# assert expressions and section prints are exempted there.
+[flake8]
+max-line-length = 79
+per-file-ignores =
+    tests/*: E501,E702,E302,E305,E402,F401

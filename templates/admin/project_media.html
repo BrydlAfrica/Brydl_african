@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Media — {{ project.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">
+    <i class="bi bi-images me-2" aria-hidden="true"></i>Media — {{ project.name }}
+  </h1>
+  <a class="btn btn-sm btn-outline-secondary"
+     href="{{ url_for('admin.export_project', project_id=project.id) }}">
+    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to project
+  </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i>Upload media
+  </div>
+  <div class="card-body p-4">
+    <p class="small text-muted">
+      Images: PNG, JPEG, WebP, GIF. Audio: MP3, WAV, OGG, M4A. Up to
+      {{ (config.MEDIA_MAX_BYTES / (1024 * 1024)) | round(0, 'floor') | int }}&nbsp;MB
+      per file; files are verified by content, deduplicated per
+      project, and stored with the database backups.
+    </p>
+    <form method="post" enctype="multipart/form-data"
+          class="row g-2 align-items-end">
+      {{ form.hidden_tag() }}
+      <div class="col-sm-8">
+        {{ form.file.label(class_="form-label small mb-1") }}
+        {{ form.file(class_="form-control form-control-sm") }}
+        {% for e in form.file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-sm-4">
+        {{ form.submit(class_="btn btn-sm btn-primary w-100") }}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if assets %}
+<div class="row g-3">
+  {% for a in assets %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="mb-2 text-center">
+          {% if a.kind == 'image' %}
+          <img src="{{ url_for('admin.media_serve', asset_id=a.id) }}"
+               alt="{{ a.filename }}" class="img-fluid rounded border"
+               style="max-height: 160px;">
+          {% else %}
+          <audio controls preload="none"
+                 src="{{ url_for('admin.media_serve', asset_id=a.id) }}"
+                 class="w-100"></audio>
+          {% endif %}
+        </div>
+        <div class="small">
+          <strong>media_id: {{ a.id }}</strong>
+          <span class="badge {{ 'bg-primary' if a.kind == 'image' else 'bg-info text-dark' }} ms-1">{{ a.kind }}</span>
+          <div class="text-muted text-truncate" title="{{ a.filename }}">{{ a.filename }}</div>
+          <div class="text-muted">{{ (a.byte_size / 1024) | round(0) | int }} KB · {{ a.content_type }}</div>
+        </div>
+        <div class="form-text small mt-2 text-wrap" style="user-select: all;">{{ {"kind": a.kind ~ "_labeling" if a.kind == "image" else "audio_transcription", "media_id": a.id, "prompt": "Describe / transcribe this media."} | tojson }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-inbox fs-1 d-block mb-2" aria-hidden="true"></i>
+    No media yet. Upload files, then reference a media_id in an imported
+    task document — the annotator workspace and QA review render it
+    automatically.
+  </div>
+</div>
+{% endif %}
+{% endblock %}

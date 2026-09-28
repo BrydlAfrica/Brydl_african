@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Team · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Team</h1>
+    <p class="text-muted mb-0">
+      Create accounts, deactivate leavers and reset passwords. Every change is audited.
+    </p>
+  </div>
+  <span class="badge bg-secondary">{{ pagination.total if pagination else 0 }} account(s)</span>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white">
+    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
+            data-bs-target="#createCard" aria-expanded="false"
+            aria-controls="createCard">
+      <i class="bi bi-person-plus me-1" aria-hidden="true"></i>Create account
+    </button>
+  </div>
+  <div class="collapse" id="createCard">
+    <div class="card-body">
+      <form method="post" action="{{ url_for('admin.create_user') }}" novalidate
+            class="row g-3 align-items-end">
+        {{ form.hidden_tag() }}
+        <div class="col-12 col-md-4">
+          {{ form.name.label(class="form-label") }}
+          {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                       placeholder="e.g. Chinedu Okafor") }}
+          {% for error in form.name.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-12 col-md-4">
+          {{ form.email.label(class="form-label") }}
+          {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
+                       placeholder="them@brydl.ng") }}
+          {% for error in form.email.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-6 col-md-2">
+          {{ form.role.label(class="form-label") }}
+          {{ form.role(class="form-select" + (" is-invalid" if form.role.errors else "")) }}
+          {% for error in form.role.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-6 col-md-2">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Create
+          </button>
+        </div>
+      </form>
+      <div class="form-text mt-2">
+        A strong temporary password is generated for you and shown once after
+        creation — copy it and hand it to the person over a private channel.
+        They keep signing in with it until you reset it.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Role</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="text-center">Open tasks</th>
+          <th scope="col">Payout account</th>
+          <th scope="col">Created</th>
+          <th scope="col" class="text-nowrap">Last login (UTC)</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set u = row.user %}
+        <tr>
+          <td>
+            <i class="bi bi-person-circle me-1 text-muted" aria-hidden="true"></i>
+            <span class="fw-semibold">{{ u.name }}</span>
+            <div class="small text-muted">{{ u.email }}</div>
+            {% if u.phone %}
+            <div class="small text-muted">
+              <i class="bi bi-telephone me-1" aria-hidden="true"></i>{{ u.phone }}
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.role == 'admin' %}
+            <span class="badge role-badge bg-warning text-dark">ADMIN</span>
+            {% else %}
+            <span class="badge role-badge bg-secondary">ANNOTATOR</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}
+            <span class="badge bg-success">Active</span>
+            {% else %}
+            <span class="badge bg-danger">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if u.role == 'annotator' %}{{ row.open_tasks }}{% else %}&mdash;{% endif %}
+          </td>
+          <td class="small">
+            {% if u.role == 'annotator' and row.bank_masked %}
+            <i class="bi bi-bank me-1 text-muted" aria-hidden="true"></i>
+            {{ u.bank_name }} <span class="font-monospace">{{ row.bank_masked }}</span>
+            <div class="text-muted">{{ u.bank_account_name }}{% if u.bank_account_type %} · {{ u.bank_account_type|capitalize }} account{% endif %}</div>
+            {% elif u.role == 'annotator' %}
+            <span class="text-warning">
+              <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Not provided
+            </span>
+            {% else %}&mdash;{% endif %}
+          </td>
+          <td class="text-nowrap small text-muted">{{ u.created_at.strftime('%d %b %Y') }}</td>
+          <td class="text-nowrap small text-muted">
+            {{ row.last_login.strftime('%d %b %Y, %H:%M') if row.last_login else '—' }}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              {% if u.is_active %}
+              <form method="post" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}"
+                    data-confirm="Deactivate {{ u.name }}? Their sessions end immediately.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger"
+                        {{ 'disabled' if u.id == current_user.id }}
+                        title="{{ 'You cannot deactivate yourself' if u.id == current_user.id else 'Deactivate' }}">
+                  <i class="bi bi-person-slash me-1" aria-hidden="true"></i>Deactivate
+                </button>
+              </form>
+              {% else %}
+              <form method="post" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}"
+                    data-confirm="Reactivate {{ u.name }}? They can sign in again.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-success">
+                  <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Reactivate
+                </button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('admin.reset_user_password', user_id=u.id) }}"
+                    data-confirm="Generate a new temporary password for {{ u.name }}?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-key me-1" aria-hidden="true"></i>Reset password
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-4">
+            <i class="bi bi-people me-1" aria-hidden="true"></i>
+            No accounts yet — create the first one above.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-muted small">
+      <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+      Showing {{ rows|length }} of {{ pagination.total }} account(s).
+      Deactivating ends sessions immediately and hides the person from
+      annotator pickers — history and payouts are kept; accounts are
+      never deleted.
+    </span>
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Team pages">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+          <a class="page-link" href="{{ url_for('admin.users', page=pagination.prev_num or 1) }}">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% set start = [pagination.page - 2, 1] | max %}
+        {% set end = [pagination.page + 2, pagination.pages] | min %}
+        {% for page_num in range(start, end + 1) %}
+        <li class="page-item{{ ' active' if page_num == pagination.page }}">
+          <a class="page-link" href="{{ url_for('admin.users', page=page_num) }}">{{ page_num }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+          <a class="page-link" href="{{ url_for('admin.users', page=pagination.next_num or pagination.pages) }}">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

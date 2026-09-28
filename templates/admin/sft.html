@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}SFT builder — Brydl Admin{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">
+    <i class="bi bi-collection me-2" aria-hidden="true"></i>SFT builder
+  </h1>
+  <div class="btn-group" role="group" aria-label="Filter by status">
+    <a class="btn btn-sm {{ 'btn-dark' if not filters.status else 'btn-outline-dark' }}"
+       href="{{ url_for('admin.sft_examples', project=filters.project or none) }}">All</a>
+    {% for s in sft_statuses %}
+    <a class="btn btn-sm {{ 'btn-dark' if filters.status == s else 'btn-outline-dark' }}"
+       href="{{ url_for('admin.sft_examples', status=s, project=filters.project or none) }}">
+      {{ s|title }} <span class="badge text-bg-light ms-1">{{ counts.get(s, 0) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-download me-2" aria-hidden="true"></i>Export corpus
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">
+          Exports the <strong>ready</strong> pairs as SFT JSONL
+          (chat <code>messages</code> records) and freezes them
+          <strong>exported</strong> — the shipped file and the database
+          stay in sync.
+        </p>
+        <form method="post" action="{{ url_for('admin.sft_export') }}"
+              class="row g-2 align-items-end">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="col-sm-6">
+            <label class="form-label small mb-1" for="export-project">Project</label>
+            {{ export_form.project(id="export-project", class_="form-select form-select-sm") }}
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label small mb-1" for="export-status">Pairs</label>
+            {{ export_form.status(id="export-status", class_="form-select form-select-sm") }}
+          </div>
+          <div class="col-sm-2">
+            {{ export_form.submit(class_="btn btn-sm btn-primary w-100") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6 text-muted fw-semibold mb-2">Build a pair</h2>
+        <p class="small mb-2">Open a finalized task and harvest its pair:</p>
+        <form method="get" action="{{ url_for('admin.sft_new') }}"
+              class="row g-2 align-items-end">
+          <div class="col-7">
+            <label class="form-label small mb-1" for="harvest-task">Task ID</label>
+            <input type="number" min="1" class="form-control form-control-sm"
+                   id="harvest-task" name="task_id" placeholder="e.g. 42" required>
+          </div>
+          <div class="col-5">
+            <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+              <i class="bi bi-magic me-1" aria-hidden="true"></i>Harvest
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not rows %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-inboxes fs-1 d-block mb-2" aria-hidden="true"></i>
+    No SFT pairs here yet. Harvest one from a finalized task above —
+    resolved consensus rounds, approved submissions and gold-key tasks
+    all prefill the builder.
+  </div>
+</div>
+{% endif %}
+
+{% for ex in rows %}
+<div class="card border-0 shadow-sm mb-2">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+    <div class="me-auto" style="min-width: 0;">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="fw-semibold">Pair #{{ ex.id }}</span>
+        <span class="badge {{ 'text-bg-secondary' if ex.status == 'draft' else ('text-bg-success' if ex.status == 'ready' else 'text-bg-dark') }}">{{ ex.status }}</span>
+        <span class="badge text-bg-light border">{{ ex.source }}</span>
+        {% if ex.completion != ex.source_completion %}
+        <span class="badge text-bg-warning">rewritten</span>
+        {% endif %}
+      </div>
+      <div class="text-muted small text-truncate mt-1" style="max-width: 640px;">
+        {{ project_names.get(ex.project_id, 'Project #' ~ ex.project_id) }}
+        · task #{{ ex.task_id }} · {{ ex.prompt[:110] }}{% if ex.prompt|length > 110 %}…{% endif %}
+      </div>
+    </div>
+    <div class="text-muted small me-3">{{ ex.updated_at.strftime('%Y-%m-%d %H:%M') if ex.updated_at }}</div>
+    <a class="btn btn-sm btn-outline-primary"
+       href="{{ url_for('admin.sft_detail', example_id=ex.id) }}">
+      {% if ex.status == 'exported' %}View{% else %}Edit{% endif %}
+    </a>
+  </div>
+</div>
+{% endfor %}
+
+{% if pagination and pagination.pages > 1 %}
+<nav aria-label="SFT pages">
+  <ul class="pagination pagination-sm">
+    <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+      <a class="page-link" href="{{ url_for('admin.sft_examples', page=pagination.prev_num or 1, project=filters.project or none, status=filters.status or none) }}">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+      </a>
+    </li>
+    {% set start = [pagination.page - 2, 1] | max %}
+    {% set end = [pagination.page + 2, pagination.pages] | min %}
+    {% for p in range(start, end + 1) %}
+    <li class="page-item{{ ' active' if p == pagination.page }}">
+      <a class="page-link" href="{{ url_for('admin.sft_examples', page=p, project=filters.project or none, status=filters.status or none) }}">{{ p }}</a>
+    </li>
+    {% endfor %}
+    <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+      <a class="page-link" href="{{ url_for('admin.sft_examples', page=pagination.next_num or pagination.pages, project=filters.project or none, status=filters.status or none) }}">
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

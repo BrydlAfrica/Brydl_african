@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Import preview · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Import preview</h1>
+    <p class="text-muted mb-0">
+      {{ rows|length }} row(s) from <span class="font-monospace">{{ filename }}</span>
+      into <strong>{{ project.name }}</strong>
+    </p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin.tasks', import_open=1) }}">
+    <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancel
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm"><div class="card-body py-3">
+      <div class="h4 mb-0">{{ rows|length }}</div>
+      <div class="text-muted small">Rows in file</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm"><div class="card-body py-3">
+      <div class="h4 mb-0 text-success">{{ ready }}</div>
+      <div class="text-muted small">Ready to import</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm"><div class="card-body py-3">
+      <div class="h4 mb-0 text-danger">{{ attention }}</div>
+      <div class="text-muted small">Need attention</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm"><div class="card-body py-3">
+      <div class="h4 mb-0">{{ existing_count }}</div>
+      <div class="text-muted small">Tasks already in project</div>
+    </div></div>
+  </div>
+</div>
+
+{% if attention %}
+<div class="alert alert-warning">
+  <i class="bi bi-pencil-square me-1" aria-hidden="true"></i>
+  Fix the flagged rows right here (edit the text, then tick the row) or
+  leave them unticked to skip them. Everything is re-validated when you
+  save — nothing enters the project until it passes the same checks as
+  the upload form.
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('admin.import_confirm') }}" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="project" value="{{ project.id }}">
+  <input type="hidden" name="n_rows" value="{{ rows|length }}">
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Import</th>
+            <th scope="col">Task text</th>
+            <th scope="col">Gold answer (optional)</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr class="{{ 'table-warning' if not row.ok }}">
+            <td class="text-muted small">{{ row.no }}</td>
+            <td>
+              <input type="checkbox" class="form-check-input"
+                     name="row_include_{{ loop.index0 }}" value="y"
+                     aria-label="Import row {{ row.no }}"
+                     {{ 'checked' if row.ok }}>
+            </td>
+            <td>
+              <textarea class="form-control font-monospace" rows="2"
+                        name="row_text_{{ loop.index0 }}"
+                        maxlength="{{ config.MAX_TEXTAREA_CHARS }}"
+                        aria-label="Task text for row {{ row.no }}"
+                        >{{ row.text }}</textarea>
+            </td>
+            <td>
+              <input type="text" class="form-control" name="row_gold_{{ loop.index0 }}"
+                     value="{{ row.gold or '' }}"
+                     maxlength="{{ config.MAX_TEXTAREA_CHARS }}"
+                     aria-label="Gold answer for row {{ row.no }}">
+            </td>
+            <td class="small text-nowrap">
+              {% if row.ok %}
+              <span class="badge bg-success">Ready</span>
+              {% else %}
+              <span class="badge bg-danger">Problem</span>
+              <div class="text-muted mt-1" style="max-width: 14rem;">{{ row.reason }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-white d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Import ticked rows
+      </button>
+      <a class="btn btn-outline-secondary"
+         href="{{ url_for('admin.tasks', import_open=1) }}">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

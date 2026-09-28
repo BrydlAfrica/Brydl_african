@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% set boot_loader = true %}
+
+{% block title %}Brydl — Africa's AI data labelling company{% endblock %}
+
+{% block content %}
+{# ---------------------------------------------------------------- hero #}
+<section class="brydl-hero brydl-reveal">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-6">
+      <p class="brydl-eyebrow">
+        <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i>
+        AI data labelling · built in Nigeria · working across Africa
+      </p>
+      <h1 class="brydl-hero-title">
+        Training data for AI,
+        <span class="brydl-hero-shine">built by African hands.</span>
+      </h1>
+      <p class="brydl-hero-sub">
+        Brydl is Africa's AI data labelling company. Clients get accurately
+        labelled datasets — vision, text, audio and RLHF preference data —
+        delivered with provable quality. African annotators, QA reviewers
+        and auditors get fairly paid digital work. One platform runs both
+        sides, to the last kobo.
+      </p>
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="btn btn-primary btn-lg px-4" href="#clients">
+          <i class="bi bi-briefcase me-1" aria-hidden="true"></i>
+          I need data labelled
+        </a>
+        <a class="btn btn-outline-primary btn-lg px-4" href="#staff">
+          <i class="bi bi-person-workspace me-1" aria-hidden="true"></i>
+          I want to work as an annotator
+        </a>
+      </div>
+      <ul class="brydl-chips mt-4">
+        <li><i class="bi bi-journal-check me-1" aria-hidden="true"></i>Every action audited</li>
+        <li><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>Blind consensus QA</li>
+        <li><i class="bi bi-cash-coin me-1" aria-hidden="true"></i>Naira-ready payouts</li>
+      </ul>
+    </div>
+    <div class="col-lg-6">
+      <div class="brydl-hero-media">
+        <img src="{{ url_for('static', filename='brand/hero-cover.jpg') }}"
+             alt="The African continent rendered from binary digits — Brydl's mark"
+             class="brydl-hero-img" width="1376" height="768">
+        <div class="brydl-binary" aria-hidden="true">{% for i in range(48) %}<span>{{ (i * 7) % 2 }}</span>{% endfor %}</div>
+        <div class="brydl-hero-float card border-0 shadow-sm">
+          <div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+            <i class="bi bi-patch-check-fill brydl-accent" aria-hidden="true"></i>
+            <span class="small"><strong>600+ automated checks</strong>
+              <span class="text-muted">· passing</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ------------------------------------------------------------ clients #}
+<section id="clients" class="mt-5 brydl-reveal">
+  <h2 class="h4 fw-bold mb-1">For clients: ship AI models on trustworthy data</h2>
+  <p class="text-muted mb-4">
+    Outsource your labelling to a team that treats quality as
+    engineering, not luck — with the receipts to prove it.
+  </p>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-tags" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Vision, text, audio &amp; content</h3>
+        <p class="text-muted small mb-0">Image and video labelling, classification, named entities, transcription and translation — including African languages such as Hausa, Yoruba and Igbo alongside English.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-hand-thumbs-up" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">RLHF &amp; preference data</h3>
+        <p class="text-muted small mb-0">Side-by-side model response comparisons with written justifications, rubric dimension ratings, and blind multi-annotator consensus — the signal modern models need.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-patch-check" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Quality you can audit</h3>
+        <p class="text-muted small mb-0">Gold-standard scoring, double or triple annotation on request, independent arbitration on disagreements, and a per-action audit trail. You see exactly how every label was decided.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-filetype-json" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Delivery in your format</h3>
+        <p class="text-muted small mb-0">Datasets export as JSONL, CSV, COCO or YOLO — including consensus decisions and fine-tuning-ready chat records. Hand us raw data, get back training-ready files.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="mt-4">
+    <a class="btn btn-primary" href="{{ url_for('auth.login') }}">
+      <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>
+      Sign in to start a project
+    </a>
+    <span class="text-muted small ms-2">Your Brydl team sets up the first labelling project with you.</span>
+  </div>
+</section>
+
+{# --------------------------------------------------------------- staff #}
+<section id="staff" class="mt-5 brydl-reveal">
+  <h2 class="h4 fw-bold mb-1">For annotators &amp; staff: digital work that pays exactly</h2>
+  <p class="text-muted mb-4">
+    Join a remote team labelling the data behind the world's AI —
+    from anywhere in Africa, on any connection.
+  </p>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-cash-coin" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Paid per task, to the kobo</h3>
+        <p class="text-muted small mb-0">Every task carries a clear rate. Approved work is bundled into payouts computed in exact decimals and sent to your Nigerian bank account — no approximations, ever.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-wifi" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Built for low bandwidth</h3>
+        <p class="text-muted small mb-0">Lean, fast pages with zero unnecessary scripts. Your draft answers are even saved locally, so a dropped connection never costs you work.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-mortarboard" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Clear guidance, real feedback</h3>
+        <p class="text-muted small mb-0">Written instructions on every project, QA scores and reviewer notes on every submission, and a fair revision loop with a hard cap — quality work is never stranded.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-arrow-up-right-circle" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Grow beyond annotating</h3>
+        <p class="text-muted small mb-0">Strong annotators advance into QA review, consensus arbitration and audit roles — the same platform powers the whole career ladder.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="mt-4">
+    <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+      <i class="bi bi-person-workspace me-1" aria-hidden="true"></i>
+      Sign in to your workspace
+    </a>
+    <span class="text-muted small ms-2">Brydl issues accounts directly — ask your team lead for yours.</span>
+  </div>
+</section>
+
+{# --------------------------------------------------------- how it works #}
+<section id="how" class="mt-5 brydl-reveal">
+  <h2 class="h4 fw-bold mb-1">How a project runs, end to end</h2>
+  <p class="text-muted mb-4">The whole pipeline is one tool — no spreadsheets, no manual tracking.</p>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="brydl-step-num">1</div>
+          <div class="stat-icon mb-2"><i class="bi bi-upload" aria-hidden="true"></i></div>
+          <h3 class="h6 fw-bold">Upload your tasks</h3>
+          <p class="text-muted mb-2 small">CSV batches up to 500 rows land in a project in one atomic step — a bad row aborts the whole batch, never half a dataset.</p>
+          <span class="badge bg-primary">atomic imports</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="brydl-step-num">2</div>
+          <div class="stat-icon mb-2"><i class="bi bi-pencil-square" aria-hidden="true"></i></div>
+          <h3 class="h6 fw-bold">Trained annotators label it</h3>
+          <p class="text-muted mb-2 small">African annotators work in a clean, keyboard-fast workspace. Double-submits are impossible and gold answers never leak to them.</p>
+          <span class="badge bg-primary">double-submit safe</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="brydl-step-num">3</div>
+          <div class="stat-icon mb-2"><i class="bi bi-clipboard-check" aria-hidden="true"></i></div>
+          <h3 class="h6 fw-bold">Review and pay exactly</h3>
+          <p class="text-muted mb-2 small">QA-score every submission (0–100), bulk-approve, and generate payouts computed in exact decimals — never floating-point drift.</p>
+          <span class="badge bg-primary">Decimal payouts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# -------------------------------------------------------------- features #}
+<section class="mt-5 brydl-reveal">
+  <h2 class="h4 fw-bold mb-1">Built like infrastructure, not a demo</h2>
+  <p class="text-muted mb-4">The boring, critical things are already done and continuously tested.</p>
+  <div class="row g-3">
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Audit everything</h3>
+        <p class="text-muted small mb-0">Every create, approval and payout lands in a per-actor audit trail with UTC timestamps and request IDs.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-shield-lock" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Security by default</h3>
+        <p class="text-muted small mb-0">CSRF on every form, brute-force lockouts, strict security headers, and instant session revocation for deactivated accounts.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-cash-coin" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Exact money</h3>
+        <p class="text-muted small mb-0">Payouts are Decimal end to end — $0.05 to $5.00 per task — with Naira shown at display only, never stored.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-speedometer2" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Fast under load</h3>
+        <p class="text-muted small mb-0">Indexed, paginated lists with flat query counts — 50+ concurrent annotators, race-safe writes, millisecond pages.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Team management</h3>
+        <p class="text-muted small mb-0">Create accounts, deactivate leavers instantly, and reset passwords to one-off secrets — all from the browser, all audited.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm"><div class="card-body p-4">
+        <div class="stat-icon mb-2"><i class="bi bi-geo-alt" aria-hidden="true"></i></div>
+        <h3 class="h6 fw-bold">Built for African teams</h3>
+        <p class="text-muted small mb-0">Naira payouts, UTC everywhere, and lean pages that stay quick on low-bandwidth connections across the continent.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+{# ------------------------------------------------------------- CTA band #}
+<section class="brydl-cta-band mt-5 brydl-reveal">
+  <div class="brydl-binary brydl-binary--band" aria-hidden="true">{% for i in range(64) %}<span>{{ (i * 11) % 2 }}</span>{% endfor %}</div>
+  <div class="position-relative text-center py-5 px-3">
+    <h2 class="h3 fw-bold text-white mb-2">Let's build your dataset — or your career</h2>
+    <p class="mb-4 text-white-50">Clients: your first project can be live in minutes. Workers: your next payout is a sign-in away.</p>
+    <a class="btn btn-light btn-lg px-4 text-primary fw-semibold" href="{{ url_for('auth.login') }}">
+      <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>Sign in to Brydl
+    </a>
+  </div>
+</section>
+{% endblock %}

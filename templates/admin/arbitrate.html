@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Arbitrate round #{{ group.id }} — Brydl Admin{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">
+  <i class="bi bi-gavel me-2" aria-hidden="true"></i>Arbitrate round #{{ group.id }}
+</h1>
+<p class="text-muted">
+  {{ group.project.name }} · {{ group.required_count }} annotators ·
+  currently <strong>{{ group.status }}</strong>. Your ruling is
+  binding and cannot be changed.
+</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">The prompt</div>
+  {% if prompt_view and prompt_view.type == 'conversation' %}
+  <div class="card-body">
+    <div class="chat-thread">
+      {% for turn in prompt_view.turns %}
+      <div class="chat-turn chat-{{ turn.role }}">
+        <div class="chat-role">{{ turn.role }}</div>
+        <div class="chat-body rich-text">{{ turn.html|safe }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body">
+    {% if media_doc and media_url %}
+      {% if media_doc.kind == 'image_labeling' %}
+      <div class="mb-3 text-center">
+        <img src="{{ media_url }}" alt="Round image {{ media_doc.media_id }}"
+             class="img-fluid rounded border" style="max-height: 340px;">
+      </div>
+      {% else %}
+      <div class="mb-3 text-center">
+        <audio controls preload="metadata" src="{{ media_url }}"
+               class="w-100" style="max-width: 520px;"></audio>
+      </div>
+      {% endif %}
+    {% endif %}
+    <div class="rich-text">{{ prompt_view.html|safe if prompt_view else '' }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row g-3 mb-4">
+    {% for v in verdicts %}
+    <div class="col-md-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+          Task #{{ v.task_id }} · {{ v.annotator or 'not yet answered' }}
+          {% if v.status %}<span class="badge bg-light text-dark border ms-1">{{ v.status }}</span>{% endif %}
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            Choice: <strong>{{ v.choice if v.choice else '—' }}</strong>
+          </div>
+          {% if v.justification %}
+          <div class="small text-muted" style="white-space: pre-wrap;">&ldquo;{{ v.justification }}&rdquo;</div>
+          {% else %}
+          <div class="small text-muted fst-italic">No justification recorded.</div>
+          {% endif %}
+          {% if v.rubric %}
+          <div class="mt-2 pt-2 border-top small">
+            {% for dim, scores in v.rubric.items() %}
+            <span class="badge bg-light text-dark border me-1">{{ dim }}: A {{ scores.a }} · B {{ scores.b }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold">
+      <i class="bi bi-gavel me-1" aria-hidden="true"></i>Your ruling
+    </div>
+    <div class="card-body">
+      {% if group.project.task_type == 'preference' %}
+      <fieldset class="mb-3">
+        <legend class="form-label fs-6 fw-semibold">Canonical answer</legend>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="decided_choice" id="dc-a" value="a" required>
+            <label class="form-check-label" for="dc-a">Response A</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="decided_choice" id="dc-b" value="b" required>
+            <label class="form-check-label" for="dc-b">Response B</label>
+          </div>
+        </div>
+      </fieldset>
+      {% else %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="dc-free">Canonical answer</label>
+        <input class="form-control" id="dc-free" name="decided_choice" maxlength="100" required
+               placeholder="The binding label / answer for this round">
+      </div>
+      {% endif %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="dc-note">Ruling note (optional)</label>
+        <textarea class="form-control" id="dc-note" name="decided_note" rows="3" maxlength="2000"
+                  placeholder="Why this ruling wins — kept with the round for the client deliverable."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Record binding ruling
+      </button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('admin.consensus_conflicts') }}">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

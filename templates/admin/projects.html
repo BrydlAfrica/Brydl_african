@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Projects · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Projects</h1>
+    <p class="text-muted mb-0">Labelling engagements for all clients.</p>
+  </div>
+  <a href="{{ url_for('admin.new_project') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>New Project
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Client</th>
+          <th scope="col">Type</th>
+          <th scope="col" class="text-nowrap">Pay/Task</th>
+          <th scope="col" class="text-nowrap">Deadline</th>
+          <th scope="col" class="text-center">Tasks</th>
+          <th scope="col" style="min-width: 140px;">Completion %</th>
+          <th scope="col">Status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set p = row.project %}
+        <tr>
+          <td class="fw-semibold">{{ p.name }}</td>
+          <td>{{ p.client_name }}</td>
+          <td>
+            <span class="badge bg-light text-dark border">
+              <i class="bi bi-tag me-1" aria-hidden="true"></i>{{ p.task_type.replace('_', ' ')|title }}
+            </span>
+          </td>
+          <td class="text-nowrap">${{ "%.2f"|format(p.pay_per_task) }}</td>
+          <td class="text-nowrap small text-muted">{% if p.deadline %}<i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{{ p.deadline.strftime('%d %b %Y') }}{% else %}&mdash;{% endif %}</td>
+          <td class="text-center">{{ row.total_tasks }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height: 6px; min-width: 70px;">
+                <div class="progress-bar bg-success" role="progressbar"
+                     aria-valuenow="{{ row.completion }}" aria-valuemin="0"
+                     aria-valuemax="100" aria-label="Completion for {{ p.name }}"
+                     style="width: {{ row.completion }}%;"></div>
+              </div>
+              <small class="text-muted text-nowrap">{{ row.completion }}%</small>
+            </div>
+          </td>
+          <td>
+            {# Status colours: green=active, yellow=paused, gray=completed. #}
+            {% if p.status == 'active' %}
+            <span class="badge bg-success"><i class="bi bi-play-fill" aria-hidden="true"></i> Active</span>
+            {% elif p.status == 'paused' %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-pause-fill" aria-hidden="true"></i> Paused</span>
+            {% else %}
+            <span class="badge bg-secondary"><i class="bi bi-check2" aria-hidden="true"></i> Completed</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.export_project', project_id=p.id) }}"
+                 aria-label="Export {{ p.name }}">
+                <i class="bi bi-box-arrow-down" aria-hidden="true"></i> Export
+              </a>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.edit_project', project_id=p.id) }}"
+                 aria-label="Edit {{ p.name }}">
+                <i class="bi bi-pencil" aria-hidden="true"></i> Edit
+              </a>
+              {% if p.status in ('active', 'paused') %}
+              {# State changes are POST + CSRF: links must never mutate data. #}
+              <form method="post" action="{{ url_for('admin.toggle_pause', project_id=p.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if p.status == 'active' else 'btn-outline-success' }}">
+                  {% if p.status == 'active' %}
+                  <i class="bi bi-pause-fill" aria-hidden="true"></i> Pause
+                  {% else %}
+                  <i class="bi bi-play-fill" aria-hidden="true"></i> Resume
+                  {% endif %}
+                </button>
+              </form>
+              {% else %}
+              <button type="button" class="btn btn-sm btn-outline-secondary" disabled
+                      title="Completed projects cannot be paused">
+                <i class="bi bi-slash-circle" aria-hidden="true"></i> Done
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-5">
+            <i class="bi bi-kanban fs-1 d-block mb-2" aria-hidden="true"></i>
+            No projects yet.
+            <a href="{{ url_for('admin.new_project') }}">Create your first project</a> to start uploading tasks.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if rows %}
+  <div class="card-footer bg-white text-muted small d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span>
+      Showing {{ rows|length }} of {{ pagination.total }} project{{ 's' if pagination.total != 1 }}
+      · completion counts QA-approved tasks only.
+    </span>
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Project pages">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+          <a class="page-link" href="{{ url_for('admin.projects', page=pagination.prev_num or 1) }}">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% set start = [pagination.page - 2, 1] | max %}
+        {% set end = [pagination.page + 2, pagination.pages] | min %}
+        {% for page_num in range(start, end + 1) %}
+        <li class="page-item{{ ' active' if page_num == pagination.page }}">
+          <a class="page-link" href="{{ url_for('admin.projects', page=page_num) }}">{{ page_num }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+          <a class="page-link" href="{{ url_for('admin.projects', page=pagination.next_num or pagination.pages) }}">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

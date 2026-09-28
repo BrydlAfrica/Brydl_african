@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Export project · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Export dataset</h1>
+  <a class="btn btn-sm btn-outline-secondary"
+     href="{{ url_for('admin.projects') }}">
+    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>All projects
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-box-arrow-down me-1" aria-hidden="true"></i>
+        {{ project.name }} <span class="text-muted fw-normal">(#{{ project.id }},
+          {{ project.task_type.replace('_', ' ')|title }})</span>
+      </div>
+      <div class="card-body p-4">
+        <form method="post"
+              action="{{ url_for('admin.export_project', project_id=project.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="export-format">Format</label>
+            <select name="format" id="export-format" class="form-select">
+              <option value="jsonl">JSONL — one JSON object per line (ML training)</option>
+              <option value="csv">CSV — spreadsheet friendly</option>
+              <option value="coco">COCO JSON — vision schema (categories + annotations)</option>
+              <option value="yolo">YOLO text — ZIP with classes.txt + per-task label files</option>
+            </select>
+            <div class="form-text">
+              JSONL/CSV carry the same columns (gold only when ticked).
+              COCO maps tasks to images and answers to annotations.
+              YOLO ships classes.txt + one label file per task
+              (full-frame placeholders until media tasks ship).
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="export-scope">
+              Which submissions?
+            </label>
+            <select name="scope" id="export-scope" class="form-select">
+              <option value="approved">Approved only — QA-passed work (recommended for training data)</option>
+              <option value="reviewed">Reviewed — approved and rejected</option>
+              <option value="all">Everything ever submitted</option>
+            </select>
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox"
+                   id="include-gold" name="include_gold" value="1">
+            <label class="form-check-label" for="include-gold">
+              Include gold (answer-key) answers
+            </label>
+            <div class="form-text">
+              Off by default so a training file never contains the QA
+              answer key by accident. Only tick this for internal QA
+              analysis — anything shipped to a client should not include
+              gold answers unless the contract says so.
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-download me-1" aria-hidden="true"></i>
+            Download export
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>What's inside
+      </div>
+      <div class="card-body p-4">
+        <p class="small text-muted mb-2">Every row is one submission:</p>
+        <ul class="small text-muted mb-3">
+          <li><code>task_id</code>, <code>input</code> (the task content)</li>
+          <li><code>output</code> (the annotator's answer)</li>
+          <li><code>status</code>, <code>qa_score</code></li>
+          <li><code>annotator_id</code> (numeric id, not a name)</li>
+          <li><code>submitted_at</code>, <code>reviewed_at</code> (UTC)</li>
+          <li><code>is_gold</code> — was this a checked task</li>
+          <li><code>gold</code> — the answer key, <strong>only when
+            included above</strong></li>
+        </ul>
+        <p class="small text-muted mb-0">
+          <i class="bi bi-journal-check me-1" aria-hidden="true"></i>
+          Every export is recorded in the audit trail (what format, how
+          many rows) — never the data itself. Annotators stay
+          pseudonymous: ids only, no names or emails in dataset files.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ===== Client portal links (Phase 7) ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-briefcase me-1" aria-hidden="true"></i>Client portal
+  </div>
+  <div class="card-body p-4">
+    <p class="small text-muted">
+      Give your client a private link to follow this project's progress
+      and download approved rows — no account needed, revocable any
+      time, and the raw link is shown only once.
+    </p>
+    <form method="post"
+          action="{{ url_for('admin.create_client_token', project_id=project.id) }}"
+          class="row g-2 align-items-end mb-3">
+      {{ token_form.hidden_tag() }}
+      <div class="col-sm-7">
+        {{ token_form.label.label(class_="form-label small mb-1") }}
+        {{ token_form.label(class_="form-control form-control-sm",
+                            placeholder="e.g. Acme AI — delivery contact") }}
+      </div>
+      <div class="col-sm-3">
+        {{ token_form.submit(class_="btn btn-sm btn-primary w-100") }}
+      </div>
+    </form>
+    {% if client_tokens %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr><th>Label</th><th>Created</th><th>Last used</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for t in client_tokens %}
+          <tr>
+            <td>{{ t.label }}</td>
+            <td class="small text-muted">{{ t.created_at.strftime('%d %b %Y') if t.created_at }}</td>
+            <td class="small text-muted">{{ t.last_used_at.strftime('%d %b %Y %H:%M') if t.last_used_at else 'never' }}</td>
+            <td>
+              {% if t.is_active %}
+              <span class="badge bg-success">active</span>
+              {% else %}
+              <span class="badge bg-secondary">deactivated</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if t.is_active %}
+              <form method="post" class="d-inline"
+                    action="{{ url_for('admin.deactivate_client_token', token_id=t.id) }}"
+                    data-confirm="Deactivate the client link for {{ t.label }}? The link stops working immediately.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+              </form>
+              {% else %}
+              <span class="text-muted small">&mdash;</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted small mb-0">No client links issued for this project yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ===== Media library (Phase 8) ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h2 class="h6 fw-bold mb-0">
+        <i class="bi bi-images me-1" aria-hidden="true"></i>Media library
+      </h2>
+      <span class="text-muted small">Upload images and audio for media
+      workspaces (image labelling, audio transcription).</span>
+    </div>
+    <a class="btn btn-sm btn-outline-primary"
+       href="{{ url_for('admin.project_media', project_id=project.id) }}">
+      Open media library
+    </a>
+  </div>
+</div>
+
+{# ===== Qualification quiz (Phase 9) ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h2 class="h6 fw-bold mb-0">
+        <i class="bi bi-patch-check me-1" aria-hidden="true"></i>Qualification quiz
+      </h2>
+      <span class="text-muted small">Gate this project: annotators pass a
+      short quiz before claim or assignment hands them its tasks.</span>
+    </div>
+    <a class="btn btn-sm btn-outline-primary"
+       href="{{ url_for('admin.project_quiz', project_id=project.id) }}">
+      Open quiz console
+    </a>
+  </div>
+</div>
+
+{# ===== Machine API keys (Phase 10) ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-braces me-1" aria-hidden="true"></i>Machine API (v1)
+  </div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Project-scoped Bearer keys for the client's systems:
+      <code>GET /api/v1/projects/{{ project.id }}</code>,
+      <code>GET /api/v1/projects/{{ project.id }}/results</code>,
+      <code>POST /api/v1/projects/{{ project.id }}/tasks</code>.
+      The raw key is shown once at creation.
+    </p>
+    {% if api_keys %}
+    <div class="table-responsive mb-3">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Label</th><th>Key</th><th>Status</th><th>Last used (UTC)</th><th></th></tr></thead>
+        <tbody>
+          {% for k in api_keys %}
+          <tr>
+            <td>{{ k.label }}</td>
+            <td><code>{{ k.key_prefix }}</code></td>
+            <td>
+              {% if k.revoked_at %}
+              <span class="badge bg-secondary">revoked</span>
+              {% else %}
+              <span class="badge bg-success">active</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ k.last_used_at.strftime('%Y-%m-%d %H:%M') if k.last_used_at else '—' }}</td>
+            <td class="text-end">
+              {% if not k.revoked_at %}
+              <form method="post"
+                    action="{{ url_for('admin.revoke_api_key', token_id=k.id) }}"
+                    class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted small">No API keys for this project yet.</p>
+    {% endif %}
+    <form method="post"
+          action="{{ url_for('admin.create_api_key', project_id=project.id) }}"
+          class="row g-2 align-items-end">
+      {{ api_key_form.hidden_tag() }}
+      <div class="col-sm-7">
+        {{ api_key_form.label.label(class_="form-label small mb-1") }}
+        {{ api_key_form.label(class_="form-control form-control-sm") }}
+        {% for e in api_key_form.label.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-sm-3">
+        {{ api_key_form.submit(class_="btn btn-sm btn-primary w-100") }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

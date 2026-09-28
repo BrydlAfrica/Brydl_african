@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}QA Review · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">QA Review</h1>
+    <p class="text-muted mb-0">Submissions awaiting your verdict, longest-waiting first.</p>
+  </div>
+  <span class="badge bg-primary">{{ pagination.total if pagination else 0 }} awaiting review</span>
+</div>
+
+{# ===== Filter bar (GET form — stateless) ===== #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" action="{{ url_for('admin.review') }}" class="row g-2 align-items-end">
+      <div class="col-6 col-md-4">
+        <label class="form-label small text-muted mb-1" for="filter-project">Project</label>
+        <select name="project" id="filter-project" class="form-select form-select-sm">
+          <option value="">All projects</option>
+          {% for p in all_projects %}
+          <option value="{{ p.id }}"{{ ' selected' if filters.project == p.id }}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label small text-muted mb-1" for="filter-annotator">Annotator</label>
+        <select name="annotator" id="filter-annotator" class="form-select form-select-sm">
+          <option value="">All annotators</option>
+          {% for a in all_annotators %}
+          <option value="{{ a.id }}"{{ ' selected' if filters.annotator == a.id }}>
+            {{ a.name }}{{ ' (inactive)' if not a.is_active }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply
+        </button>
+        <a href="{{ url_for('admin.review') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if rows %}
+<form method="post" action="{{ url_for('admin.review_bulk') }}">
+  {{ bulk_form.hidden_tag() }}
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col"><input type="checkbox" class="form-check-input" id="check-all"
+                                   aria-label="Select all"></th>
+            <th scope="col">Annotator</th>
+            <th scope="col">Project</th>
+            <th scope="col">Input</th>
+            <th scope="col">Submitted answer</th>
+            <th scope="col" class="text-nowrap">Submitted (UTC)</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          {% set s = row.submission %}
+          <tr>
+            <td>
+              <input class="form-check-input row-check" type="checkbox" name="submission_ids"
+                     value="{{ s.id }}" aria-label="Select submission {{ s.id }}">
+            </td>
+            <td class="text-nowrap">
+              <i class="bi bi-person-circle me-1 text-muted" aria-hidden="true"></i>{{ row.annotator_name }}
+            </td>
+            <td>{{ row.project_name }}</td>
+            <td style="max-width: 240px;">
+              <span class="d-inline-block text-truncate align-middle" style="max-width: 220px;"
+                    title="{{ row.task_input }}">{{ row.task_input[:50] }}{{ '…' if row.task_input|length > 50 }}</span>
+            </td>
+            <td style="max-width: 240px;">
+              <span class="d-inline-block text-truncate align-middle font-monospace small" style="max-width: 220px;"
+                    title="{{ s.output_data }}">{{ s.output_data[:50] }}{{ '…' if s.output_data|length > 50 }}</span>
+            </td>
+            <td class="text-nowrap text-muted small">{{ s.submitted_at.strftime('%d %b %Y, %H:%M') }}</td>
+            <td>
+              <a class="btn btn-sm btn-primary" href="{{ url_for('admin.review_detail', submission_id=s.id) }}">
+                <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Review
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ===== Bulk action bar ===== #}
+    <div class="card-footer bg-white">
+      <div class="row g-2 align-items-center">
+        <div class="col-6 col-md-2">
+          {{ bulk_form.qa_score(type="number", min=0, max=100, class="form-control form-control-sm",
+                                **{"aria-label": "Score to apply to selection"}) }}
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="form-check">
+            {{ bulk_form.return_for_revision(class="form-check-input") }}
+            {{ bulk_form.return_for_revision.label(class="form-check-label small") }}
+          </div>
+        </div>
+        <div class="col-12 col-md-7 text-md-end d-flex flex-wrap gap-2 justify-content-md-end">
+          <span class="text-muted small align-self-center" id="bulk-count">0 selected</span>
+          <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">
+            <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Approve Selected
+          </button>
+          <button type="submit" name="action" value="reject" class="btn btn-sm btn-danger">
+            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Reject Selected
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {# ===== Result count + pagination ===== #}
+    {% if pagination %}
+    <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span class="text-muted small">
+        Showing {{ rows|length }} of {{ pagination.total }} submission(s)
+      </span>
+      {% if pagination.pages > 1 %}
+      <nav aria-label="Review pages">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item{{ ' disabled' if not pagination.has_prev }}">
+            <a class="page-link" href="{{ url_for('admin.review', page=pagination.prev_num or 1, project=filters.project, annotator=filters.annotator) }}">
+              <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </a>
+          </li>
+          {% set start = [pagination.page - 2, 1] | max %}
+          {% set end = [pagination.page + 2, pagination.pages] | min %}
+          {% for p in range(start, end + 1) %}
+          <li class="page-item{{ ' active' if p == pagination.page }}">
+            <a class="page-link" href="{{ url_for('admin.review', page=p, project=filters.project, annotator=filters.annotator) }}">{{ p }}</a>
+          </li>
+          {% endfor %}
+          <li class="page-item{{ ' disabled' if not pagination.has_next }}">
+            <a class="page-link" href="{{ url_for('admin.review', page=pagination.next_num or pagination.pages, project=filters.project, annotator=filters.annotator) }}">
+              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</form>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-clipboard-check fs-1 d-block mb-2" aria-hidden="true"></i>
+    The review queue is clear — nothing is waiting on you.
+    <a href="{{ url_for('admin.review') }}">Refresh</a> to check again.
+  </div>
+</div>
+{% endif %}
+{% endblock %}

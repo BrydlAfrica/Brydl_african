@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Task #{{ task.id }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('annotator.dashboard') }}">
+      <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to Dashboard</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Task #{{ task.id }}</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-10 col-xl-9">
+
+    {# Project context: name + instructions #}
+    <div class="alert alert-primary" role="region" aria-label="Project instructions">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <i class="bi bi-kanban" aria-hidden="true"></i>
+        <strong>{{ project.name }}</strong>
+        <span class="badge bg-light text-dark border ms-1">{{ task_type.replace('_', ' ')|title }}</span>
+      </div>
+      <div style="white-space: pre-wrap;">{{ project.instructions }}</div>
+    </div>
+
+    {# QA feedback banner when redoing a rejected task #}
+    {% if task.status == 'rejected' %}
+    <div class="alert alert-warning" role="alert">
+      <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+      <strong>This task was sent back for revision.</strong>
+      {% if qa_notes %}QA feedback: &ldquo;{{ qa_notes }}&rdquo;{% else %}See the notes below and resubmit.{% endif %}
+      {% if previous %}
+      <details class="mt-2">
+        <summary class="text-muted small">Show your previous answer</summary>
+        <pre class="small mb-0 mt-1" style="white-space: pre-wrap;">{{ previous }}</pre>
+      </details>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# The work itself: large, readable #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-file-text me-1" aria-hidden="true"></i>Input data
+      </div>
+      <div class="card-body py-4 task-input-text">
+        {% if task_type == 'preference' and pref_input %}
+        <div class="small text-muted fw-semibold mb-1">
+          <i class="bi bi-person me-1" aria-hidden="true"></i>PROMPT
+        </div>
+        <div class="rich-text">{{ pref_views.prompt|safe }}</div>
+        {% elif task_type == 'image_labeling' and media_doc and media_url %}
+        <div class="mb-3 text-center">
+          <img src="{{ media_url }}" alt="Task image {{ media_doc.media_id }}"
+               class="img-fluid rounded border" style="max-height: 420px;">
+        </div>
+        {% if rendered_prompt %}
+        <div class="rich-text">{{ rendered_prompt|safe }}</div>
+        {% endif %}
+        {% elif task_type == 'audio_transcription' and media_doc and media_url %}
+        <div class="mb-3 text-center">
+          <audio controls preload="metadata" src="{{ media_url }}"
+                 class="w-100" style="max-width: 560px;">
+            Your browser does not support audio playback.
+          </audio>
+        </div>
+        {% if media_doc.prompt %}
+        <div class="rich-text">{{ rendered_prompt|safe }}</div>
+        {% endif %}
+        {% elif input_view and input_view.type == 'conversation' %}
+        <div class="chat-thread">
+          {% for turn in input_view.turns %}
+          <div class="chat-turn chat-{{ turn.role }}">
+            <div class="chat-role">{{ turn.role }}</div>
+            <div class="chat-body rich-text">{{ turn.html|safe }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="rich-text">{{ input_view.html|safe }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Answer form — fields depend on the project's task type #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Your answer
+      </div>
+      <div class="card-body p-4">
+        {# data-draft-key: main.js autosaves this form to localStorage
+           so a dropped connection never costs the annotator work. #}
+        <form method="post" novalidate
+              data-draft-key="task-{{ task.id }}"
+              data-confirm="Submit this answer for QA review? You can only submit once.">
+          {{ form.hidden_tag() }}
+
+          {% if task_type == 'classification' %}
+          <fieldset class="mb-3">
+            {{ form.label_choice.label(class="form-label fw-semibold") }}
+            <div>
+              {% for radio in form.label_choice %}
+              <div class="form-check form-check-inline">
+                {{ radio(class="form-check-input" + (" is-invalid" if form.label_choice.errors else "")) }}
+                {{ radio.label(class="form-check-label") }}
+              </div>
+              {% endfor %}
+            </div>
+            {% for error in form.label_choice.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </fieldset>
+
+          {% elif task_type == 'translation' %}
+          <div class="mb-3">
+            {{ form.translated_text.label(class="form-label fw-semibold") }}
+            {{ form.translated_text(class="form-control" + (" is-invalid" if form.translated_text.errors else ""),
+                                    rows=6, maxlength=max_chars,
+                                    placeholder="Write the translation here…") }}
+            <div class="form-text">Translate the full text above. Max {{ max_chars }} characters.</div>
+            {% for error in form.translated_text.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {% elif task_type == 'ner' %}
+          <div class="mb-3">
+            {{ form.marked_entities.label(class="form-label fw-semibold") }}
+            {{ form.marked_entities(class="form-control" + (" is-invalid" if form.marked_entities.errors else ""),
+                                    rows=6, maxlength=max_chars,
+                                    placeholder="List each entity you found and its type, e.g.\nLagos — LOCATION\nAcme AI — ORGANISATION") }}
+            <div class="form-text">
+              Read the text above and mark every named entity with its type
+              (person, organisation, location, date, …), one per line.
+            </div>
+            {% for error in form.marked_entities.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {% elif task_type == 'preference' %}
+          {% set left_label = 'B' if flipped else 'A' %}
+          {% set right_label = 'A' if flipped else 'B' %}
+          {# Sliders live on the DISPLAY side but name the CANONICAL
+             response — the same mapping the choice radios use. #}
+          {% set left_canon = 'b' if flipped else 'a' %}
+          {% set right_canon = 'a' if flipped else 'b' %}
+          {% set radios = form.chosen | list %}
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-6">
+              <div class="card h-100 border-2">
+                <div class="card-header bg-body-tertiary fw-semibold small">
+                  <i class="bi bi-1-circle me-1" aria-hidden="true"></i>Response A
+                </div>
+                <div class="card-body rich-text">{{ (pref_views.response_b if flipped else pref_views.response_a)|safe }}</div>
+                <div class="card-footer bg-white">
+                  <div class="form-check">
+                    {{ radios[0](class="form-check-input", id="chosen-a") }}
+                    <label class="form-check-label fw-semibold" for="chosen-a">
+                      Choose this response (A)
+                    </label>
+                  </div>
+                  {% if rubric_dims %}
+                  <div class="mt-3 pt-2 border-top">
+                    <div class="small fw-semibold text-muted mb-2">
+                      <i class="bi bi-sliders me-1" aria-hidden="true"></i>Rate this response
+                    </div>
+                    {% for dim in rubric_dims %}
+                    {% set field = form['rubric_' ~ loop.index0 ~ '_' ~ left_canon] %}
+                    <div class="mb-2">
+                      {{ field.label(class_="form-label small mb-0") }}
+                      {{ field(min=scale_min, max=scale_max, step=1, class_="form-range" + (" is-invalid" if field.errors else "")) }}
+                      {% for e in field.errors %}
+                      <div class="text-danger small">{{ e }}</div>
+                      {% endfor %}
+                      <div class="d-flex justify-content-between small text-muted" aria-hidden="true">
+                        <span>{{ scale_min }}</span><span>{{ ((scale_min + scale_max) / 2) | round(0, 'floor') | int }}</span><span>{{ scale_max }}</span>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-6">
+              <div class="card h-100 border-2">
+                <div class="card-header bg-body-tertiary fw-semibold small">
+                  <i class="bi bi-2-circle me-1" aria-hidden="true"></i>Response B
+                </div>
+                <div class="card-body rich-text">{{ (pref_views.response_a if flipped else pref_views.response_b)|safe }}</div>
+                <div class="card-footer bg-white">
+                  <div class="form-check">
+                    {{ radios[1](class="form-check-input", id="chosen-b") }}
+                    <label class="form-check-label fw-semibold" for="chosen-b">
+                      Choose this response (B)
+                    </label>
+                  </div>
+                  {% if rubric_dims %}
+                  <div class="mt-3 pt-2 border-top">
+                    <div class="small fw-semibold text-muted mb-2">
+                      <i class="bi bi-sliders me-1" aria-hidden="true"></i>Rate this response
+                    </div>
+                    {% for dim in rubric_dims %}
+                    {% set field = form['rubric_' ~ loop.index0 ~ '_' ~ right_canon] %}
+                    <div class="mb-2">
+                      {{ field.label(class_="form-label small mb-0") }}
+                      {{ field(min=scale_min, max=scale_max, step=1, class_="form-range" + (" is-invalid" if field.errors else "")) }}
+                      {% for e in field.errors %}
+                      <div class="text-danger small">{{ e }}</div>
+                      {% endfor %}
+                      <div class="d-flex justify-content-between small text-muted" aria-hidden="true">
+                        <span>{{ scale_min }}</span><span>{{ ((scale_min + scale_max) / 2) | round(0, 'floor') | int }}</span><span>{{ scale_max }}</span>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% for error in form.chosen.errors %}
+          <div class="invalid-feedback d-block mb-2">{{ error }}</div>
+          {% endfor %}
+          <div class="mb-3">
+            {{ form.justification.label(class="form-label fw-semibold") }}
+            {{ form.justification(class="form-control" + (" is-invalid" if form.justification.errors else ""),
+                                rows=4, maxlength=max_chars,
+                                placeholder="Explain concretely why your chosen response is better (facts, instruction-following, tone, completeness)…") }}
+            <div class="form-text">
+              Minimum {{ min_justification }} characters — your
+              justification is used to arbitrate disagreements.
+            </div>
+            {% for error in form.justification.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {% elif task_type == 'image_labeling' %}
+          <fieldset class="mb-3">
+            {{ form.label_choice.label(class="form-label fw-semibold") }}
+            {% if media_labels %}
+            <div class="d-flex flex-wrap gap-3">
+              {% for radio in form.label_choice %}
+              <div class="form-check">
+                {{ radio(class="form-check-input" + (" is-invalid" if form.label_choice.errors else "")) }}
+                {{ radio.label(class="form-check-label") }}
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            {{ form.label_choice(class="form-control" + (" is-invalid" if form.label_choice.errors else ""),
+                                 maxlength=200) }}
+            {% endif %}
+            {% for error in form.label_choice.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </fieldset>
+          <div class="mb-3">
+            {{ form.notes.label(class="form-label fw-semibold") }}
+            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                          rows=2, maxlength=max_chars) }}
+            {% for error in form.notes.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {% elif task_type == 'audio_transcription' %}
+          <div class="mb-3">
+            {{ form.transcript.label(class="form-label fw-semibold") }}
+            {{ form.transcript(class="form-control" + (" is-invalid" if form.transcript.errors else ""),
+                               rows=6, maxlength=max_chars,
+                               placeholder="Type exactly what you hear, in the requested language.") }}
+            {% for error in form.transcript.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {% elif task_type == 'rlhf' %}
+          <fieldset class="mb-3">
+            {{ form.rating.label(class="form-label fw-semibold") }}
+            <div class="d-flex flex-wrap gap-3 fs-4">
+              {% for radio in form.rating %}
+              <div class="form-check">
+                {{ radio(class="form-check-input" + (" is-invalid" if form.rating.errors else "")) }}
+                {{ radio.label(class="form-check-label") }}
+              </div>
+              {% endfor %}
+            </div>
+            {% for error in form.rating.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </fieldset>
+          <div class="mb-3">
+            {{ form.explanation.label(class="form-label fw-semibold") }}
+            {{ form.explanation(class="form-control" + (" is-invalid" if form.explanation.errors else ""),
+                                rows=5, maxlength=max_chars,
+                                placeholder="Explain why the response deserves this rating…") }}
+            {% for error in form.explanation.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {% else %}
+          <div class="mb-3">
+            {{ form.answer_text.label(class="form-label fw-semibold") }}
+            {{ form.answer_text(class="form-control" + (" is-invalid" if form.answer_text.errors else ""),
+                                rows=6, maxlength=max_chars) }}
+            {% for error in form.answer_text.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if form.rating or form.answer %}
+          <div class="form-text mb-2">
+            <i class="bi bi-keyboard me-1" aria-hidden="true"></i>Tip: press
+            <kbd>1</kbd>&ndash;<kbd>9</kbd> to pick an option.
+          </div>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-send me-1" aria-hidden="true"></i>Submit answer
+            </button>
+            <span class="text-muted small">
+              <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+              You can only submit once — double-check your answer.
+              Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to submit.
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
