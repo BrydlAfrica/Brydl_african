@@ -9,56 +9,95 @@
 </div>
 <p class="text-muted">Welcome back, {{ current_user.name }}. Here's Brydl at a glance.</p>
 
+{% if flagged %}
+<div class="mb-3">
+  <div class="card border-0 shadow-sm border-start border-4 border-primary">
+    <div class="card-body py-2">
+      <h6 class="mb-2"><i class="bi bi-lightning-charge text-primary me-1"></i>Needs attention</h6>
+      <div class="d-flex flex-wrap gap-2">
+        {% for f in flagged %}
+        <a href="{{ f.url }}" class="btn btn-sm btn-outline-{{ f.variant }}">{{ f.label }} →</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ===== Row 1: headline numbers ===== #}
 <div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.total_projects }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.total_projects }}</div>
             <div class="text-muted small">Projects</div>
+            <div class="small text-muted mt-1">
+              <span class="text-success">{{ stats.open_approvals }} pending</span>
+            </div>
           </div>
           <i class="bi bi-kanban stat-icon" aria-hidden="true"></i>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.total_tasks }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.total_tasks }}</div>
             <div class="text-muted small">Total tasks</div>
+            <div class="small text-muted mt-1">
+              {{ stats.submissions_7d }} submitted · 7d
+            </div>
           </div>
           <i class="bi bi-list-check stat-icon" aria-hidden="true"></i>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.active_annotators }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.active_annotators }}</div>
             <div class="text-muted small">Active annotators</div>
+            <div class="small text-muted mt-1">{{ stats.active_pms }} PMs</div>
           </div>
           <i class="bi bi-people stat-icon" aria-hidden="true"></i>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">${{ "%.2f"|format(stats.pending_payout) }}</div>
+            <div class="h4 fw-bold mb-0">${{ "%.2f"|format(stats.pending_payout) }}</div>
             <div class="text-muted small">Payout pending (USD)</div>
+            {% if stats.usd_to_ngn %}
+            <div class="small text-muted mt-1">≈ ₦{{ "%.0f"|format((stats.pending_payout * stats.usd_to_ngn)|float) }}</div>
+            {% endif %}
           </div>
           <i class="bi bi-cash-coin stat-icon" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-lg">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="h4 fw-bold mb-0">{{ stats.unread_feedback }}</div>
+            <div class="text-muted small">Unread messages</div>
+            <div class="small text-muted mt-1">{{ stats.submitted_tasks }} to review</div>
+          </div>
+          <i class="bi bi-bell stat-icon text-warning" aria-hidden="true"></i>
         </div>
       </div>
     </div>
@@ -72,10 +111,10 @@
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.pending_tasks }}</div>
-            <div class="text-muted small">Pending tasks</div>
+            <div class="h4 fw-bold mb-0">{{ stats.pending_tasks }}</div>
+            <div class="text-muted small">Pending</div>
           </div>
-          <i class="bi bi-inbox fs-2 text-warning" aria-hidden="true"></i>
+          <i class="bi bi-inbox fs-3 text-warning" aria-hidden="true"></i>
         </div>
       </div>
     </div>
@@ -85,10 +124,10 @@
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.in_progress_tasks }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.in_progress_tasks }}</div>
             <div class="text-muted small">In progress</div>
           </div>
-          <i class="bi bi-pencil-square fs-2 text-info" aria-hidden="true"></i>
+          <i class="bi bi-pencil-square fs-3 text-info" aria-hidden="true"></i>
         </div>
       </div>
     </div>
@@ -98,10 +137,10 @@
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.submitted_tasks }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.submitted_tasks }}</div>
             <div class="text-muted small">Submitted</div>
           </div>
-          <i class="bi bi-upload fs-2 text-primary" aria-hidden="true"></i>
+          <i class="bi bi-upload fs-3 text-primary" aria-hidden="true"></i>
         </div>
       </div>
     </div>
@@ -111,10 +150,10 @@
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.approved_tasks }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.approved_tasks }}</div>
             <div class="text-muted small">Approved</div>
           </div>
-          <i class="bi bi-check2-circle fs-2 text-success" aria-hidden="true"></i>
+          <i class="bi bi-check2-circle fs-3 text-success" aria-hidden="true"></i>
         </div>
       </div>
     </div>
@@ -124,10 +163,10 @@
       <div class="card-body py-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="h3 fw-bold mb-0">{{ stats.rejected_tasks }}</div>
+            <div class="h4 fw-bold mb-0">{{ stats.rejected_tasks }}</div>
             <div class="text-muted small">Rejected</div>
           </div>
-          <i class="bi bi-x-circle fs-2 text-danger" aria-hidden="true"></i>
+          <i class="bi bi-x-circle fs-3 text-danger" aria-hidden="true"></i>
         </div>
       </div>
     </div>
@@ -136,7 +175,7 @@
 
 <div class="row g-3">
   {# ===== Recent submissions awaiting review ===== #}
-  <div class="col-lg-8">
+  <div class="col-lg-7">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span class="fw-semibold">
@@ -164,7 +203,6 @@
               <td><span class="text-muted small">#{{ item.task_id }}</span></td>
               <td>{{ item.project }}</td>
               <td>
-                {# Status-to-colour mapping; anything unknown falls back to neutral grey. #}
                 {% set badge = {'submitted': 'warning text-dark',
                                 'approved': 'success',
                                 'rejected': 'danger',
@@ -184,37 +222,62 @@
           </tbody>
         </table>
       </div>
-      <div class="card-footer bg-white text-muted small">
-        Showing the {{ review_queue|length }} most recent of {{ stats.submitted_tasks }} awaiting review.
-        All times UTC.
+      <div class="card-footer bg-white text-muted small d-flex justify-content-between align-items-center">
+        <span>Showing {{ review_queue|length }} of {{ stats.submitted_tasks }} · all times UTC</span>
+        <a href="{{ url_for('admin.review') }}" class="btn btn-sm btn-outline-primary">Open review queue →</a>
       </div>
     </div>
   </div>
 
-  {# ===== Quick actions ===== #}
-  <div class="col-lg-4">
-    <div class="card border-0 shadow-sm h-100">
+  {# ===== Right rail: quick actions + FX rate ===== #}
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-white fw-semibold">
         <i class="bi bi-lightning-charge me-1" aria-hidden="true"></i>Quick actions
       </div>
       <div class="card-body d-grid gap-2">
-        {# Plain paths, not url_for(): these features ship next. #}
-        <a href="/admin/projects/new" class="btn btn-primary">
+        <a href="{{ url_for('admin.approvals') }}" class="btn btn-outline-warning position-relative">
+          <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Approvals
+          {% if stats.open_approvals %}<span class="badge bg-warning text-dark rounded-pill position-absolute top-50 start-100 translate-middle ms-2">{{ stats.open_approvals }}</span>{% endif %}
+        </a>
+        <a href="{{ url_for('admin.new_project') }}" class="btn btn-primary">
           <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Create Project
         </a>
-        <a href="/admin/tasks/upload" class="btn btn-outline-primary">
+        <a href="{{ url_for('admin.tasks') }}" class="btn btn-outline-primary">
           <i class="bi bi-cloud-upload me-1" aria-hidden="true"></i>Upload Tasks
         </a>
-        <a href="/admin/review" class="btn btn-outline-primary position-relative">
-          <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Review Submissions
-          {% if stats.submitted_tasks %}
-          <span class="badge bg-danger rounded-pill position-absolute top-50 start-100 translate-middle ms-2">{{ stats.submitted_tasks }}</span>
-          {% endif %}
+        <a href="{{ url_for('admin.payments') }}" class="btn btn-outline-primary">
+          <i class="bi bi-cash-stack me-1" aria-hidden="true"></i>Payments
+        </a>
+        <a href="{{ url_for('admin.site_settings') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-gear me-1" aria-hidden="true"></i>Settings
         </a>
       </div>
-      <div class="card-footer bg-white text-muted small">
-        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
-        Actions open their management pages as each feature ships.
+      {% if stats.usd_to_ngn %}
+      <div class="card-footer bg-white small text-muted">
+        <i class="bi bi-currency-exchange me-1"></i>USD→NGN rate: <strong>₦{{ "%.2f"|format(stats.usd_to_ngn) }}</strong> per $1
+        · <a href="{{ url_for('admin.site_settings') }}">edit</a>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ===== Recent activity feed ===== #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-activity me-1" aria-hidden="true"></i>Recent activity
+      </div>
+      <div class="list-group list-group-flush small" style="max-height:380px;overflow-y:auto">
+        {% for a in recent_activity %}
+        <div class="list-group-item py-2">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <span class="fw-semibold text-truncate">{{ a.action }}</span>
+            <span class="text-muted text-nowrap" title="{{ a.created_at.strftime('%Y-%m-%d %H:%M') }} UTC">{{ a.created_at.strftime('%d %b %H:%M') }}</span>
+          </div>
+          <div class="text-muted">by {{ a.actor }}{% if a.entity_type %} · {{ a.entity_type }}{% endif %}</div>
+        </div>
+        {% else %}
+        <div class="list-group-item text-muted py-3 text-center">No activity yet.</div>
+        {% endfor %}
       </div>
     </div>
   </div>

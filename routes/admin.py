@@ -42,7 +42,7 @@ from flask import (
 )
 from flask_login import current_user
 from datetime import timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import ValidationError, validate_csrf
@@ -492,9 +492,17 @@ def dashboard():
         "approved_tasks": 0,
         "rejected_tasks": 0,
         "active_annotators": 0,
-        "pending_payout": 0.0,
+        "active_pms": 0,
+        "pending_payout": money(0),
+        "pending_payments_count": 0,
+        "open_approvals": 0,
+        "unread_feedback": 0,
+        "submissions_7d": 0,
+        "usd_to_ngn": None,
     }
     review_queue = []
+    recent_activity = []
+    flagged = []  # projects/items needing attention
 
     try:
         # --- Task pipeline: one GROUP BY round-trip for all statuses ----
@@ -521,17 +529,46 @@ def dashboard():
             )
             or 0
         )
+        stats["active_pms"] = (
+            db.session.scalar(
+                select(func.count(User.id)).where(
+                    User.role == "project_manager", User.is_active.is_(True)
+                )
+            )
+            or 0
+        )
         stats["total_projects"] = (
             db.session.scalar(select(func.count(Project.id))) or 0
         )
+        stats["open_approvals"] = (
+            db.session.scalar(
+                select(func.count(Project.id)).where(
+                    Project.status == "pending_approval"
+                )
+            )
+            or 0
+        )
+        stats["unread_feedback"] = (
+            db.session.scalar(
+                select(func.count(FeedbackThread.id)).where(
+                    FeedbackThread.status.in_(("new", "reviewed")),
+                    FeedbackThread.kind == "feedback",
+                )
+            )
+            or 0
+        )
+        from datetime import timedelta as _td
+        seven_days_ago = utc_now() - _td(days=7)
+        stats["submissions_7d"] = (
+            db.session.scalar(
+                select(func.count(Submission.id)).where(
+                    Submission.submitted_at >= seven_days_ago
+                )
+            )
+            or 0
+        )
 
         # --- Pending payout ----------------------------------------------
-        # Value of QA-approved work minus what has actually gone out in
-        # 'paid' payments. Payments are period-based rather than linked
-        # to specific submissions, so the ledger difference is the
-        # outstanding balance. Clamped at zero: a negative figure would
-        # mean historic overpayment, which the payments feature will
-        # surface explicitly instead.
         approved_value = money(
             db.session.scalar(
                 select(func.coalesce(func.sum(Project.pay_per_task), 0))
@@ -553,10 +590,24 @@ def dashboard():
         stats["pending_payout"] = max(
             money(0), money(approved_value - paid_out)
         )
+        stats["pending_payments_count"] = (
+            db.session.scalar(
+                select(func.count(Payment.id)).where(
+                    Payment.status == "pending"
+                )
+            )
+            or 0
+        )
 
-        # --- Review queue: 5 most recent submissions awaiting review -----
-        # Column selection only: the queue never pulls input_data or
-        # expected_output, so the answer key cannot leak into this page.
+        # --- USD-NGN rate (display-only) ---------------------------------
+        rate_row = db.session.get(SiteSetting, "usd_to_ngn_rate")
+        if rate_row and rate_row.value:
+            try:
+                stats["usd_to_ngn"] = Decimal(str(rate_row.value))
+            except (TypeError, ValueError, InvalidOperation):
+                stats["usd_to_ngn"] = None
+
+        # --- Review queue -----------------------------------------------
         rows = db.session.execute(
             select(
                 Submission.id,
@@ -584,13 +635,64 @@ def dashboard():
             }
             for row in rows
         ]
+
+        # --- Recent activity (audit log) ---------------------------------
+        recent = db.session.execute(
+            select(AuditLog)
+            .order_by(AuditLog.created_at.desc())
+            .limit(15)
+        ).scalars().all()
+        recent_activity = [
+            {
+                "action": r.action,
+                "actor": r.actor_name or "system",
+                "entity_type": r.entity_type,
+                "created_at": r.created_at,
+                "detail": (r.detail or {}) if isinstance(r.detail, dict) else {},
+            }
+            for r in recent
+        ]
+
+        # --- Flagged items (action needed) -------------------------------
+        def _plural(n, singular, plural):
+            return singular if n == 1 else plural
+        n = stats["open_approvals"]
+        if n:
+            flagged.append({
+                "label": f"{n} project {_plural(n, 'approval', 'approvals')} awaiting sign-off",
+                "url": url_for("admin.approvals"),
+                "variant": "warning",
+            })
+        n = stats["submitted_tasks"]
+        if n:
+            flagged.append({
+                "label": f"{n} {_plural(n, 'submission', 'submissions')} awaiting QA",
+                "url": url_for("admin.review"),
+                "variant": "primary",
+            })
+        n = stats["pending_payments_count"]
+        if n:
+            flagged.append({
+                "label": f"{n} pending payment {_plural(n, 'batch', 'batches')}",
+                "url": url_for("admin.payments"),
+                "variant": "info",
+            })
+        n = stats["unread_feedback"]
+        if n:
+            flagged.append({
+                "label": f"{n} unread feedback {_plural(n, 'message', 'messages')}",
+                "url": url_for("staff.feedback_inbox"),
+                "variant": "secondary",
+            })
+        flagged = flagged[:6]
     except Exception:
-        # Stats are cosmetic; navigation is not. Log, flash, render.
         current_app.logger.exception("Admin dashboard statistics failed.")
         flash("Dashboard statistics could not be loaded.", "danger")
 
     return render_template(
-        "admin/dashboard.html", stats=stats, review_queue=review_queue
+        "admin/dashboard.html",
+        stats=stats, review_queue=review_queue,
+        recent_activity=recent_activity, flagged=flagged,
     )
 
 
@@ -2672,9 +2774,9 @@ def arbitrate(group_id: int):
     elif not decided:
         flash("Write the ruling for this round.", "danger")
         return render_template(
-                "admin/arbitrate.html", group=group,
-                verdicts=verdicts,
-            )
+            "admin/arbitrate.html", group=group,
+            verdicts=verdicts,
+        )
 
     group.status = "resolved"
     group.decided_choice = decided[:100]
