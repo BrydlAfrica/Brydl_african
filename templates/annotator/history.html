@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_money.html" import ngn with context %}
 
 {% block title %}My History · {{ app_name }}{% endblock %}
 
@@ -58,7 +59,7 @@
           </td>
           <td class="text-nowrap">
             {% if s.status == 'approved' %}
-            <span class="text-success fw-semibold">${{ "%.2f"|format(row.pay) }}</span>
+            <span class="text-success fw-semibold">${{ "%.2f"|format(row.pay) }} {{ ngn(row.pay) }}</span>
             {% else %}
             <span class="text-muted">—</span>
             {% endif %}

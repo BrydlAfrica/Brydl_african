@@ -425,6 +425,8 @@ def create_app(config_class: type = Config) -> Flask:
             except Exception:
                 # Context processor must never crash the page.
                 unread = 0
+        # Curry conversion so macros can call _ngn_convert(amount) without
+        # depending on the caller importing usd_to_ngn directly.
         return {
             "current_user": current_user,
             "app_name": site_name,

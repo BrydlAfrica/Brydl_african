@@ -1,0 +1,26 @@
+{# Money formatting helpers.
+   IMPORT with context so macros see the `usd_to_ngn` Jinja global set up
+   by app.context_processor:
+     {% from "_money.html" import usd, ngn, usd_ngn with context
+
+   Usage:
+     {{ usd(row.amount) }}          ->  $0.07
+     {{ usd_ngn(row.amount) }}      ->  $0.07 <small class="text-muted">· ₦119.00</small>
+     {{ usd(amount, proposed=True) }}  ->  proposed $0.08 (yellow)
+   Stored values are always USD; NGN is display-only.
+#}
+{% macro usd(amount, proposed=False, small=False, decimals=2) %}
+  {% if amount is none %}<span class="text-muted">—</span>
+  {% elif proposed %}<span class="text-warning{% if small %} small{% endif %}">${{ '%.' ~ decimals ~ 'f'|format(amount|float) }} <small>(proposed)</small></span>
+  {% else %}<span class="{% if small %}small{% endif %}">${{ '%.' ~ decimals ~ 'f'|format(amount|float) }}</span>
+  {% endif %}
+{% endmacro %}
+
+{% macro ngn(amount, class='text-muted') %}
+  {% if amount is not none %}<small class="{{ class }}">· ₦{{ '%.2f'|format(usd_to_ngn(amount)|float) }}</small>{% endif %}
+{% endmacro %}
+
+{% macro usd_ngn(amount, proposed=False) %}
+  {{ usd(amount, proposed=proposed) }}
+  {% if amount is not none and not proposed %}{{ ngn(amount) }}{% endif %}
+{% endmacro %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_money.html" import ngn with context %}
 
 {% block title %}My Dashboard · {{ app_name }}{% endblock %}
 
@@ -95,8 +96,10 @@
           <div>
             <div class="h3 fw-bold mb-0">${{ "%.2f"|format(stats.earnings_month) }}</div>
             <div class="text-muted small">Earned this month</div>
-            <div class="text-muted" style="font-size: .7rem;">All-time: ${{ "%.2f"|format(stats.earnings_all) }}</div>
-            <div class="text-muted" style="font-size: .7rem;">&asymp; &#8358;{{ "%.0f"|format(usd_to_ngn(stats.earnings_all)) }} all-time</div>
+            <div class="text-muted" style="font-size: .7rem;">
+              {{ ngn(stats.earnings_month) }} All-time: ${{ "%.2f"|format(stats.earnings_all) }}
+              &asymp; &#8358;{{ "%.0f"|format(usd_to_ngn(stats.earnings_all)|float) }}
+            </div>
           </div>
           <i class="bi bi-cash-coin stat-icon" aria-hidden="true"></i>
         </div>

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_pagination.html" import pager %}
+{% from "_money.html" import ngn with context %}
 {% block title %}PM Dashboard · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
@@ -25,7 +26,7 @@
     <div class="progress mt-2" style="height:6px"><div class="progress-bar bg-success" style="width:{{ pct_all }}%"></div></div>
   </div></div></div>
   <div class="col-6 col-md-4 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
-    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">${{ '%.2f'|format(totals.total_earned) }}</div><div class="text-muted small">Earned so far</div></div>
+    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">${{ '%.2f'|format(totals.total_earned) }}</div><div class="text-muted small">Earned so far {{ ngn(totals.total_earned) }}</div></div>
     <i class="bi bi-cash-coin stat-icon text-primary"></i></div>
     <div class="small text-muted mt-1">approved tasks × pay rate (USD)</div>
   </div></div></div>
@@ -96,11 +97,11 @@
             </div>
             <div class="col-sm-5 text-sm-end">
               {% if p.status == 'active' and p.pay_per_task %}
-                <span class="text-success fw-semibold">${{ '%.2f'|format(s.earned_usd) }}</span> earned
+                <span class="text-success fw-semibold">${{ '%.2f'|format(s.earned_usd) }} {{ ngn(s.earned_usd) }}</span> earned
                 <span class="text-muted"> · </span>
                 <span>${{ '%.4f'|format(p.pay_per_task) }}/task</span>
               {% elif p.status == 'pending_approval' %}
-                <span class="text-warning">proposed ${{ '%.4f'|format(p.proposed_pay_per_task or 0) }}</span>
+                <span class="text-warning">proposed ${{ '%.4f'|format(p.proposed_pay_per_task or 0) }}/task</span>
               {% else %}
                 <span class="text-muted">not yet live</span>
               {% endif %}

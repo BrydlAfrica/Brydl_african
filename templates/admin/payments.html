@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_money.html" import ngn with context %}
 
 {% block title %}Payments · {{ app_name }}{% endblock %}
 
@@ -8,7 +9,8 @@
     <h1 class="h3 mb-0">Payments</h1>
     <p class="text-muted mb-0">
       Annotator earnings ledger &mdash; amounts in USD; Naira shown at the
-      fixed rate of &#8358;{{ "%.0f"|format(1600) }}/$1.
+      live rate of &#8358;{{ "%.2f"|format(usd_to_ngn(1)|float) }}/$1 (set in
+      <a href="{{ url_for('admin.site_settings') }}">Settings</a>).
     </p>
   </div>
   <form method="post" action="{{ url_for('admin.generate_payments') }}"
@@ -30,7 +32,7 @@
             <div class="h3 fw-bold mb-0">${{ "%.2f"|format(summary.pending_usd) }}</div>
             <div class="text-muted small">Total pending payout</div>
             <div class="text-muted" style="font-size: .7rem;">
-              &#8358;{{ "%.2f"|format(usd_to_ngn(summary.pending_usd)) }}
+              &#8358;{{ "%.2f"|format(usd_to_ngn(summary.pending_usd)|float) }}
             </div>
           </div>
           <i class="bi bi-hourglass-split fs-2 text-warning" aria-hidden="true"></i>
@@ -46,7 +48,7 @@
             <div class="h3 fw-bold mb-0">${{ "%.2f"|format(summary.paid_month_usd) }}</div>
             <div class="text-muted small">Paid this month</div>
             <div class="text-muted" style="font-size: .7rem;">
-              &#8358;{{ "%.2f"|format(usd_to_ngn(summary.paid_month_usd)) }}
+              &#8358;{{ "%.2f"|format(usd_to_ngn(summary.paid_month_usd)|float) }}
             </div>
           </div>
           <i class="bi bi-check2-circle fs-2 text-success" aria-hidden="true"></i>

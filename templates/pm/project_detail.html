@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_money.html" import ngn with context %}
 {% block title %}{{ project.name }} · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -8,7 +9,7 @@
       <li class="breadcrumb-item active">{{ project.name }}</li>
     </ol></nav>
     <h1 class="h3 mb-0">{{ project.name }} <span class="badge bg-light text-dark border">{{ project.task_type.replace('_',' ')|title }}</span></h1>
-    <p class="text-muted mb-0">{{ project.client_name }} · {% if project.pay_per_task %}${{ "%.2f"|format(project.pay_per_task) }}/task{% elif project.proposed_pay_per_task %}<span class="text-warning">Proposed ${{ "%.2f"|format(project.proposed_pay_per_task) }}</span>{% else %}—{% endif %}</p>
+    <p class="text-muted mb-0">{{ project.client_name }} · {% if project.pay_per_task %}${{ "%.2f"|format(project.pay_per_task) }}/task {{ ngn(project.pay_per_task) }}{% elif project.proposed_pay_per_task %}<span class="text-warning">Proposed ${{ "%.2f"|format(project.proposed_pay_per_task) }}/task</span>{% else %}—{% endif %}</p>
   </div>
   {% set badge_cls = {'draft':'bg-secondary','pending_approval':'bg-warning text-dark','active':'bg-success','paused':'bg-secondary','completed':'bg-info text-dark','rejected':'bg-danger text-white'}[project.status] %}
   <div class="d-flex gap-2 align-items-center">
