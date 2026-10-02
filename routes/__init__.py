@@ -212,9 +212,6 @@ def usd_to_ngn(amount) -> Decimal:
     Returns:
         The Naira equivalent as a Decimal quantized to 2 places.
     """
-    from extensions import db
-    from models import SiteSetting
-
     rate = None
     if has_request_context():
         rate = get_setting("usd_to_ngn_rate")
