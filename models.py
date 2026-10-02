@@ -47,11 +47,27 @@ TASK_STATUSES = (
     "pending", "assigned", "in_progress", "submitted", "approved", "rejected",
 )
 SUBMISSION_STATUSES = ("submitted", "approved", "rejected", "revision")
-PROJECT_STATUSES = ("active", "paused", "completed")
-# Staff/annotator roles: admin = full control (money, projects, team),
-# qa = submission review + quality, auditor = arbitration + audit
-# trail, annotator = the workspace. Drives ck_users_role.
-ROLES = ("admin", "qa", "auditor", "annotator")
+PROJECT_STATUSES = ("draft", "pending_approval", "active", "paused", "completed", "rejected")
+# Staff/annotator roles:
+#   admin            = full control (money, projects, team, settings)
+#   project_manager  = runs assigned projects (tasks, exports, draft
+#                      quizzes, client links, team view); cannot touch
+#                      payouts, secrets, staff, quiz gate state, or
+#                      approve/reject submissions
+#   qa               = submission review + quality scoring
+#   auditor          = arbitration + audit trail
+#   annotator        = the workspace (claim + do + submit work)
+# Drives ck_users_role.
+ROLES = ("admin", "project_manager", "qa", "auditor", "annotator")
+# Staff roles that log into the management side of the app (not the
+# annotator workspace) — used by the post-login dashboard router and
+# the navbar rendering so new staff links auto-appear.
+STAFF_ROLES = ("admin", "project_manager", "qa", "auditor")
+# Feedback thread lifecycle:
+#   new        = submitted, waiting on admin
+#   reviewed   = admin has seen it, working on it
+#   resolved   = closed (reply delivered)
+FEEDBACK_STATUSES = ("new", "reviewed", "resolved")
 PAYMENT_STATUSES = ("pending", "paid", "failed")
 # SFT builder lifecycle: draft (being rewritten) -> ready (export
 # candidate) -> exported (terminal + frozen; provenance must match the
@@ -351,7 +367,12 @@ class Project(db.Model):
     name = db.Column(db.String(200), nullable=False)
     client_name = db.Column(db.String(200), nullable=False)
     task_type = db.Column(db.String(50), nullable=False)
-    pay_per_task = db.Column(db.Numeric(10, 2), nullable=False)  # USD
+    pay_per_task = db.Column(db.Numeric(10, 2), nullable=True)  # USD; NULL until admin approves
+    # Proposed rate set by a PM at create time. Admin can revise this
+    # when approving; once approved pay_per_task is set and this is NULLed.
+    proposed_pay_per_task = db.Column(db.Numeric(10, 2), nullable=True)
+    # Optional note admin sends when rejecting a pending project (free text).
+    approval_note = db.Column(db.Text, nullable=True)
     # Optional due date shown to admins and annotators (UTC day).
     deadline = db.Column(db.Date, nullable=True)
     # Consensus depth: how many annotators independently work each task
@@ -368,16 +389,24 @@ class Project(db.Model):
     # (not a child table): at most a handful of short labels per
     # project, read-only config for the annotator form.
     rubric_dimensions = db.Column(db.Text, nullable=True)
+    # Default stays "active" so admin + existing tests create live
+    # projects transparently; PM proposals explicitly set status='draft'
+    # and pass through pending_approval before going live.
     status = db.Column(
         db.String(20), nullable=False, default="active", index=True
     )
     created_by = db.Column(
         db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
     )
+    approved_by = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    approved_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
 
     # project.creator -> User; user.projects_created -> list[Project]
-    creator = db.relationship("User", backref="projects_created")
+    creator = db.relationship("User", foreign_keys=[created_by], backref="projects_created")
+    approver = db.relationship("User", foreign_keys=[approved_by])
 
     __table_args__ = (
         # Consensus depth is a closed set: 1, 2 or 3 blind
@@ -390,10 +419,15 @@ class Project(db.Model):
             _in_constraint("status", PROJECT_STATUSES),
             name="ck_projects_status",
         ),
-        # > 0 (not >= 0): a task that pays nothing is a data-entry error;
-        # the create/edit form enforces the same rule.
+        # pay_per_task may be NULL while the project is in draft / pending
+        # approval / rejected; once live it must be > 0.
         db.CheckConstraint(
-            "pay_per_task > 0", name="ck_projects_pay_per_task"
+            "pay_per_task IS NULL OR pay_per_task > 0",
+            name="ck_projects_pay_per_task",
+        ),
+        db.CheckConstraint(
+            "proposed_pay_per_task IS NULL OR proposed_pay_per_task > 0",
+            name="ck_projects_proposed_pay",
         ),
     )
 
@@ -915,7 +949,7 @@ class MediaAsset(db.Model):
 
     __table_args__ = (
         db.CheckConstraint(
-            "kind IN ('image', 'audio')", name="ck_media_kind"
+            "kind IN ('image', 'audio', 'document', 'other')", name="ck_media_kind"
         ),
         db.CheckConstraint(
             "byte_size > 0", name="ck_media_size"
@@ -928,6 +962,7 @@ class MediaAsset(db.Model):
             "sha256",
             unique=True,
         ),
+        db.Index("ix_media_project_kind", "project_id", "kind"),
     )
 
     def __repr__(self) -> str:
@@ -1187,6 +1222,174 @@ class Notification(db.Model):
             f"<Notification id={self.id} user={self.user_id} "
             f"kind={self.kind!r} read={self.read_at is not None}>"
         )
+
+
+class ProjectAssignment(db.Model):
+    """Grants a project_manager (or QA/auditor) access to a specific project.
+
+    Admin assigns PMs explicitly (per the agreed PM-scope model): a PM
+    sees only projects where they have an assignment row. The same table
+    is reserved for future project-scoped QA/auditor grants too (a QA
+    reviewer restricted to one vertical, etc.).
+    """
+
+    __tablename__ = "project_assignments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(
+        db.Integer, db.ForeignKey("projects.id"), nullable=False, index=True
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    # role snapshot: redundant with users.role but guards against role
+    # changes leaving stale assignment entries with no effect.
+    role_in_project = db.Column(
+        db.String(20),
+        nullable=False,
+        default="project_manager",
+        server_default="project_manager",
+    )
+    assigned_by = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False
+    )
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+
+    project = db.relationship("Project", backref="assignments")
+    user = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        backref=db.backref("project_assignments", cascade="all, delete-orphan"),
+    )
+    assigner = db.relationship("User", foreign_keys=[assigned_by])
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "project_id", "user_id", name="uq_assignments_project_user"
+        ),
+        db.Index("ix_assignments_user_role", "user_id", "role_in_project"),
+        db.Index("ix_assignments_project_role", "project_id", "role_in_project"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ProjectAssignment project={self.project_id} user={self.user_id} "
+            f"role={self.role_in_project!r}>"
+        )
+
+
+class SiteSetting(db.Model):
+    """Editable operational setting stored in the DB.
+
+    Secrets (SECRET_KEY, SMTP, Paystack, DB URL, BANK_ENC_KEY) stay in
+    Render environment variables and never appear here. Every other
+    operational knob — USD→NGN rate, pagination, rate limits, claim
+    caps — lives here as a key/value row so admin can tweak them from
+    /admin/settings without redeploying. Value is text; callers cast
+    (Decimal/int/bool) after reading.
+    """
+
+    __tablename__ = "site_settings"
+
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    def __repr__(self) -> str:
+        return f"<SiteSetting {self.key}={self.value!r}>"
+
+
+class FeedbackThread(db.Model):
+    """A staff/annotator feedback thread or admin broadcast.
+
+    Scope model (option C, in-app only):
+      - Any authenticated user can open a thread (kind='feedback');
+        admin sees all open threads in /admin/messages and can reply.
+      - Admin can post a broadcast (kind='broadcast'); every active
+        user sees it on their dashboard bell and messages page.
+    No peer-to-peer DMs; no email delivery.
+    """
+
+    __tablename__ = "feedback_threads"
+
+    id = db.Column(db.Integer, primary_key=True)
+    # 'feedback'  = user -> admin suggestion/question
+    # 'broadcast' = admin -> everyone announcement
+    kind = db.Column(
+        db.String(20), nullable=False, default="feedback", server_default="feedback"
+    )
+    subject = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    author_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    # For feedback threads: new / reviewed / resolved. Broadcasts are
+    # always 'new' at author time and don't transition.
+    status = db.Column(
+        db.String(20), nullable=False, default="new", server_default="new", index=True
+    )
+    # For broadcasts: when set, the notification bell shows it until
+    # read; feedback threads are also shown to their author.
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now, index=True
+    )
+    resolved_at = db.Column(db.DateTime, nullable=True)
+
+    author = db.relationship("User", backref="authored_feedback")
+    replies = db.relationship(
+        "FeedbackReply",
+        backref="thread",
+        cascade="all, delete-orphan",
+        order_by="FeedbackReply.created_at",
+    )
+
+    __table_args__ = (
+        db.CheckConstraint(
+            _in_constraint("kind", ("feedback", "broadcast")),
+            name="ck_feedback_kind",
+        ),
+        db.CheckConstraint(
+            _in_constraint("status", FEEDBACK_STATUSES),
+            name="ck_feedback_status",
+        ),
+        db.Index("ix_feedback_threads_kind_created", "kind", "created_at"),
+        db.Index("ix_feedback_threads_author_created", "author_id", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<FeedbackThread id={self.id} kind={self.kind!r} "
+            f"status={self.status!r} subject={self.subject!r}>"
+        )
+
+
+class FeedbackReply(db.Model):
+    """One reply inside a feedback thread (admin or author)."""
+
+    __tablename__ = "feedback_replies"
+
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(
+        db.Integer,
+        db.ForeignKey("feedback_threads.id"),
+        nullable=False,
+        index=True,
+    )
+    author_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False
+    )
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now, index=True
+    )
+
+    author = db.relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<FeedbackReply thread={self.thread_id} by={self.author_id}>"
 
 
 class BackgroundJob(db.Model):

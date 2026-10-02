@@ -265,4 +265,40 @@
     </form>
   </div>
 </div>
+{# ===== Project Managers (Phase 11) ===== #}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white d-flex align-items-center">
+    <i class="bi bi-person-badge me-1" aria-hidden="true"></i>Project managers
+  </div>
+  <div class="card-body">
+    {% if pm_assignments %}
+    <ul class="list-group list-group-flush small mb-3">
+      {% for a in pm_assignments %}
+      <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+        <span>{{ a.user.name }} <span class="text-muted">{{ a.user.email }}</span></span>
+        <form method="post" action="{{ url_for('admin.unassign_pm', project_id=project.id) }}">
+          <input type="hidden" name="assignment_id" value="{{ a.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-danger">Remove</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted small">No PM assigned yet. Only you can administer this project.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.assign_pm', project_id=project.id) }}" class="row g-2 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-sm-8">
+        <label class="form-label small mb-1">Add a Project Manager</label>
+        <select class="form-select form-select-sm" name="pm_id">
+          <option value="">Pick an active PM…</option>
+          {% for u in available_pms %}<option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-4"><button class="btn btn-sm btn-primary w-100">Assign</button></div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}

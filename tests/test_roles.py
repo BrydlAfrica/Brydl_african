@@ -69,8 +69,8 @@ shutil.rmtree("backups", ignore_errors=True)
 
 # ---- Section 1: role vocabulary ----
 print("== Section 1: role vocabulary ==")
-expect(ROLES == ("admin", "qa", "auditor", "annotator"),
-       "ROLES tuple: admin/qa/auditor/annotator")
+expect(ROLES == ("admin", "project_manager", "qa", "auditor", "annotator"),
+       "ROLES tuple: admin/project_manager/qa/auditor/annotator")
 with app.app_context():
     con = db.session.connection()
     ddl = str(con.exec_driver_sql(

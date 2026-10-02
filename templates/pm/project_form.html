@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}New Project · {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">New project proposal</h1>
+<p class="text-muted">Submit for admin approval; they'll confirm pay rate before going live.</p>
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form method="post" action="{{ form_action }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">{{ form.name.label }}</label>{{ form.name(class="form-control", placeholder="e.g. Fintech English-Pidgin v1") }}
+          {% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-md-6"><label class="form-label">{{ form.client_name.label }}</label>{{ form.client_name(class="form-control") }}
+          {% for e in form.client_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-md-4"><label class="form-label">{{ form.task_type.label }}</label>{{ form.task_type(class="form-select") }}</div>
+        <div class="col-md-4"><label class="form-label">{{ form.proposed_pay_per_task.label }}</label>{{ form.proposed_pay_per_task(class="form-control", placeholder="0.08", step="0.01") }}
+          <small class="text-muted">{{ form.proposed_pay_per_task.description }}</small>
+          {% for e in form.proposed_pay_per_task.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-md-4"><label class="form-label">{{ form.required_annotations.label }}</label>{{ form.required_annotations(class="form-select") }}</div>
+        <div class="col-md-4"><label class="form-label">{{ form.deadline.label }}</label>{{ form.deadline(class="form-control", type="date") }}</div>
+        <div class="col-12"><label class="form-label">{{ form.instructions.label }}</label>{{ form.instructions(class="form-control", rows="6") }}
+          {% for e in form.instructions.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        <div class="col-12"><label class="form-label">{{ form.rubric_dimensions.label }}</label>{{ form.rubric_dimensions(class="form-control", rows="3", placeholder="Fluency\nAccuracy\nTone") }}</div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <a href="{{ url_for('pm.projects') }}" class="btn btn-link">Cancel</a>
+        {{ form.submit(class="btn btn-primary") }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

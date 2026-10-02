@@ -31,6 +31,8 @@ from routes.annotator import annotator_bp
 from routes.public import public_bp
 from routes.api import api_bp
 from routes.client_portal import client_bp
+from routes.pm import pm_bp
+from routes.staff import staff_bp
 from client_portal import redact_client_path
 from routes import usd_to_ngn
 from routes.auth import auth_bp
@@ -97,9 +99,11 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(auth_bp)  # /login, /logout at the root
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(annotator_bp, url_prefix="/annotator")
-    app.register_blueprint(client_bp)  # /client/<token> portal
-    app.register_blueprint(public_bp)  # / landing page
-    app.register_blueprint(api_bp)  # /api/v1 machine API (Bearer)
+    app.register_blueprint(pm_bp)        # /pm/ — Project Manager workspace
+    app.register_blueprint(staff_bp)     # /profile, /feedback, /notifications (shared)
+    app.register_blueprint(client_bp)    # /client/<token> portal
+    app.register_blueprint(public_bp)    # / landing page
+    app.register_blueprint(api_bp)       # /api/v1 machine API (Bearer)
 
     # Ops CLI: `flask --app app backup create|list|verify|restore`.
     app.cli.add_command(backup_cli)
@@ -155,8 +159,14 @@ def create_app(config_class: type = Config) -> Flask:
     def _teardown_request(exc):
         """Restore the request-id context (thread reuse safety)."""
         token = getattr(g, "request_id_token", None)
-        if token is not None:
-            reset_request_id(token)
+        if token is not None and not getattr(g, "_request_id_reset", False):
+            try:
+                reset_request_id(token)
+            except (RuntimeError, ValueError):
+                # Token may have already been reset in test-client thread
+                # reuse; swallow to avoid leaking noise into logs.
+                pass
+            g._request_id_reset = True
 
     # --- Flask-Login session loading ---------------------------------------
     @login_manager.user_loader
@@ -393,12 +403,33 @@ def create_app(config_class: type = Config) -> Flask:
     @app.context_processor
     def inject_globals() -> dict:
         """Expose shared variables to every Jinja2 template."""
+        from models import Notification, SiteSetting
+        from sqlalchemy import func, select
+
+        unread = 0
+        site_name = "Brydl Dashboard"
+        if current_user.is_authenticated:
+            try:
+                unread = db.session.scalar(
+                    select(func.count(Notification.id)).where(
+                        Notification.user_id == current_user.id,
+                        Notification.read_at.is_(None),
+                    )
+                ) or 0
+                try:
+                    s = db.session.get(SiteSetting, "site_name")
+                    if s and s.value:
+                        site_name = s.value
+                except Exception:
+                    pass
+            except Exception:
+                # Context processor must never crash the page.
+                unread = 0
         return {
-            # Flask-Login already injects current_user; kept explicit here
-            # so templates can rely on it even if that changes.
             "current_user": current_user,
-            "app_name": "Brydl Dashboard",
+            "app_name": site_name,
             "usd_to_ngn": usd_to_ngn,
+            "unread_notifications": unread,
         }
 
     return app

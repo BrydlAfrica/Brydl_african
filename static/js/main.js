@@ -467,3 +467,32 @@ document.addEventListener("keydown", function (event) {
     }
   });
 })();
+
+/* 7. "Select all" checkbox (bulk task pickers). The master checkbox carries
+   class brydl-select-all + data-target-name; clicking it toggles every
+   checkbox with that name in the same form. No inline onchange needed. */
+document.addEventListener("change", function (event) {
+  var master = event.target;
+  if (!(master instanceof HTMLInputElement) ||
+      master.type !== "checkbox" ||
+      !master.classList.contains("brydl-select-all")) return;
+  var name = master.getAttribute("data-target-name");
+  if (!name) return;
+  var form = master.form;
+  if (!form) return;
+  var targets = form.querySelectorAll('input[type="checkbox"][name="' + name + '"]:not(:disabled)');
+  for (var i = 0; i < targets.length; i++) targets[i].checked = master.checked;
+});
+
+/* 8. Prevent double-submits: any form with class brydl-disable-on-submit
+   disables its submit button the first time it's submitted. */
+document.addEventListener("submit", function (event) {
+  var form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  if (!form.classList.contains("brydl-disable-on-submit")) return;
+  var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+  if (btn) {
+    btn.disabled = true;
+    setTimeout(function () { btn.disabled = false; }, 5000);
+  }
+});

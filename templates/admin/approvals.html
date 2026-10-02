@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_pagination.html" import pager %}
+{% block title %}Approvals · {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Pending approvals</h1>
+<p class="text-muted">Projects submitted by Project Managers waiting for sign-off{% if pending and pending.total is defined %} · {{ pending.total }} waiting{% endif %}.</p>
+<div class="card border-0 shadow-sm">
+  {% set items = pending.items if pending.items is defined else pending %}
+  {% if not items %}<div class="card-body text-muted">Nothing waiting — inbox zero.</div>{% endif %}
+  {% for p in items %}
+  <div class="card-body border-top{% if loop.first %} border-top-0{% endif %}">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+      <div>
+        <h5 class="mb-0">{{ p.name }} <span class="badge bg-light text-dark border">{{ p.task_type.replace('_',' ')|title }}</span></h5>
+        <small class="text-muted">{{ p.client_name }} · proposed by <strong>{{ p.creator.name if p.creator else '—' }}</strong> · {{ p.created_at.strftime('%Y-%m-%d') }}</small>
+      </div>
+    </div>
+    <p style="white-space:pre-wrap;" class="small text-muted">{{ p.instructions|truncate(400) }}</p>
+    <div class="row g-2 align-items-end">
+      <form method="post" action="{{ url_for('admin.approve_project', project_id=p.id) }}" class="col-md-6 d-flex gap-2 flex-wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="flex-grow-1">
+          <label class="form-label small">Pay per task (USD)</label>
+          <input class="form-control form-control-sm" name="pay_per_task" step="0.01" type="number" value="{{ '%.2f'|format(p.proposed_pay_per_task or 0) }}">
+        </div>
+        <button class="btn btn-success btn-sm"><i class="bi bi-check2-circle me-1"></i>Approve &amp; activate</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.reject_project', project_id=p.id) }}" class="col-md-6 d-flex gap-2 flex-wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="flex-grow-1"><label class="form-label small">Reason (returned to PM)</label><input class="form-control form-control-sm" name="note" placeholder="e.g. Pay rate too high; adjust to $0.06"></div>
+        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle me-1"></i>Return with note</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% if pending and pending.pages is defined %}{{ pager(pending, 'admin.approvals') }}{% endif %}
+{% endblock %}

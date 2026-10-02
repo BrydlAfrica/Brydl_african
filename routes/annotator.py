@@ -1278,23 +1278,22 @@ def claim_task():
 @annotator_bp.route("/notifications", endpoint="notifications")
 @annotator_required
 def notifications():
-    """Show the annotator's notification feed and mark it read.
-
-    Newest first, capped at 50 entries; opening the page clears the
-    unread badge (a single conditional UPDATE). A database problem
-    renders an empty feed with a flash, never a 500.
+    """Show the annotator's notification feed (paginated) and mark it read.
 
     Returns:
         The rendered notifications template.
     """
     items: list = []
+    pagination = None
     try:
-        rows = db.session.scalars(
+        page = max(request.args.get("page", 1, type=int) or 1, 1)
+        pagination = db.paginate(
             select(Notification)
             .where(Notification.user_id == current_user.id)
-            .order_by(Notification.created_at.desc(), Notification.id.desc())
-            .limit(50)
-        ).all()
+            .order_by(Notification.created_at.desc(), Notification.id.desc()),
+            page=page, per_page=20, error_out=False,
+        )
+        items = list(pagination.items)
         db.session.execute(
             update(Notification)
             .where(
@@ -1304,12 +1303,12 @@ def notifications():
             .values(read_at=utc_now())
         )
         db.session.commit()
-        items = rows
     except Exception:
         db.session.rollback()
         current_app.logger.exception("Notification feed failed.")
         flash("Could not load notifications. Please try again.", "danger")
-    return render_template("annotator/notifications.html", items=items)
+    return render_template("annotator/notifications.html",
+                           items=items, pagination=pagination)
 
 
 @annotator_bp.route("/history")

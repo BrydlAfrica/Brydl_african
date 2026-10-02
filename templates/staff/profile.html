@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Profile · {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Profile</h1>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm"><div class="card-header bg-white"><h5 class="mb-0">Personal details</h5></div>
+      <div class="card-body">
+        <p><strong>Email:</strong> {{ current_user.email }} <small class="text-muted">(ask admin to change)</small></p>
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3"><label class="form-label">Display name</label>{{ form.name(class="form-control") }}
+            {% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          {{ form.submit(class="btn btn-primary") }}
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm"><div class="card-header bg-white"><h5 class="mb-0">Change password</h5></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('staff.profile') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2"><label class="form-label small">{{ pw_form.current_password.label }}</label>{{ pw_form.current_password(class="form-control") }}</div>
+          <div class="mb-2"><label class="form-label small">{{ pw_form.new_password.label }}</label>{{ pw_form.new_password(class="form-control") }}</div>
+          <div class="mb-3"><label class="form-label small">{{ pw_form.confirm_password.label }}</label>{{ pw_form.confirm_password(class="form-control") }}
+            {% for e in pw_form.confirm_password.errors + pw_form.new_password.errors + pw_form.current_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          {{ pw_form.submit(class="btn btn-outline-primary") }}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

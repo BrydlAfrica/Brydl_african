@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}PM Dashboard · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+  <h1 class="h3 mb-0">Project Manager</h1>
+  <span class="badge role-badge bg-success text-white">PM</span>
+</div>
+<p class="text-muted">Welcome, {{ current_user.name }}. Here are your projects.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ projects|length }}</div><div class="text-muted small">My projects</div></div>
+    <i class="bi bi-kanban stat-icon"></i></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ active_count }}</div><div class="text-muted small">Live</div></div>
+    <i class="bi bi-play-circle stat-icon"></i></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ pending_approval }}</div><div class="text-muted small">Awaiting approval</div></div>
+    <i class="bi bi-hourglass-split stat-icon"></i></div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ total_approved }}/{{ total_tasks }}</div><div class="text-muted small">Approved tasks</div></div>
+    <i class="bi bi-check2-circle stat-icon"></i></div></div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">My projects</h5>
+        <a href="{{ url_for('pm.new_project') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>New project</a>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for p in projects %}
+        <a href="{{ url_for('pm.project_detail', project_id=p.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ p.name }} <small class="text-muted">· {{ p.client_name }}</small></div>
+            <small class="text-muted">{{ p.task_type.replace('_', ' ')|title }}</small>
+          </div>
+          {% set badge_cls = {'draft':'bg-secondary','pending_approval':'bg-warning text-dark','active':'bg-success','paused':'bg-secondary','completed':'bg-info text-dark','rejected':'bg-danger text-white'}[p.status] %}
+          <span class="badge {{ badge_cls }}">{{ p.status|replace('_',' ')|title }}</span>
+        </a>
+        {% else %}
+        <div class="list-group-item text-muted">No projects yet. Create one and submit for admin approval.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0">Quick links</h5></div>
+      <div class="list-group list-group-flush">
+        <a href="{{ url_for('pm.projects') }}" class="list-group-item list-group-item-action"><i class="bi bi-kanban me-2"></i>All projects</a>
+        <a href="{{ url_for('staff.feedback_inbox') }}" class="list-group-item list-group-item-action"><i class="bi bi-chat-dots me-2"></i>Messages / feedback</a>
+        <a href="{{ url_for('staff.profile') }}" class="list-group-item list-group-item-action"><i class="bi bi-person me-2"></i>Profile</a>
+      </div>
+    </div>
+    {% if my_feedback %}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white"><h5 class="mb-0">Recent messages</h5></div>
+      <div class="list-group list-group-flush">
+        {% for t in my_feedback %}
+        <a href="{{ url_for('staff.feedback_thread', thread_id=t.id) }}" class="list-group-item list-group-item-action small">
+          <div class="d-flex justify-content-between">
+            <span class="fw-semibold">{{ t.subject|truncate(50) }}</span>
+            <span class="badge bg-light text-dark border">{{ t.status }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

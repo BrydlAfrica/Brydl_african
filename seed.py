@@ -26,7 +26,7 @@ from app import create_app
 from audit import log_event
 from extensions import db
 import quizzes
-from models import Project, Task, User, QualificationQuiz
+from models import Project, Task, User, QualificationQuiz, utc_now
 
 ADMIN_EMAIL = "admin@brydl.com"
 ADMIN_PASSWORD = "admin123"
@@ -169,6 +169,9 @@ def main() -> None:
                 pay_per_task=SAMPLE_PROJECT["pay_per_task"],
                 instructions=SAMPLE_PROJECT["instructions"],
                 created_by=admin.id,
+                approved_by=admin.id,
+                approved_at=utc_now(),
+                status="active",
             )
             db.session.add(project)
             db.session.flush()

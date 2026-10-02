@@ -90,7 +90,15 @@ import client_portal as portal_tokens
 import api_keys
 import quizzes as quiz_engine
 from models import ClientAccessToken, MediaAsset
-from models import ApiToken, QualificationQuiz, QuizAttempt
+from models import (
+    ApiToken,
+
+    FeedbackThread,
+    ProjectAssignment,
+    QualificationQuiz,
+    QuizAttempt,
+    SiteSetting,
+)
 
 from consensus import refresh_group
 from rendering import content_view
@@ -679,6 +687,8 @@ def new_project():
             client_name=form.client_name.data.strip(),
             task_type=form.task_type.data,
             # Round at the write boundary: money is 2-decimal USD.
+            # Admin-created projects go straight live: PM proposals
+            # move through draft→pending_approval→active instead.
             pay_per_task=money(form.pay_per_task.data),
             instructions=form.instructions.data.strip(),
             rubric_dimensions=(
@@ -687,6 +697,9 @@ def new_project():
             deadline=form.deadline.data,
             required_annotations=form.required_annotations.data,
             created_by=current_user.id,
+            approved_by=current_user.id,
+            approved_at=utc_now(),
+            status="active",
         )
         try:
             db.session.add(project)
@@ -3312,6 +3325,7 @@ class UserCreateForm(FlaskForm):
         "Role",
         choices=[
             ("annotator", "Annotator"),
+            ("project_manager", "Project Manager"),
             ("qa", "QA reviewer"),
             ("auditor", "Auditor"),
             ("admin", "Admin"),
@@ -3826,6 +3840,20 @@ def export_project(project_id: int):
             .where(ClientAccessToken.project_id == project.id)
             .order_by(ClientAccessToken.created_at.desc())
         ).all()
+        # Current PMs assigned to this project + list of assignable PMs.
+        pm_assignments = db.session.scalars(
+            select(ProjectAssignment)
+            .where(
+                ProjectAssignment.project_id == project.id,
+                ProjectAssignment.role_in_project == "project_manager",
+            )
+        ).all()
+        available_pms = db.session.scalars(
+            select(User).where(
+                User.role == "project_manager",
+                User.is_active.is_(True),
+            ).order_by(User.name)
+        ).all()
         return render_template(
             "admin/project_export.html",
             project=project,
@@ -3837,6 +3865,8 @@ def export_project(project_id: int):
                 .order_by(ApiToken.id.desc())
             ).all(),
             api_key_form=ApiKeyForm(),
+            pm_assignments=pm_assignments,
+            available_pms=available_pms,
         )
 
     try:
@@ -5932,3 +5962,302 @@ def revoke_api_key(token_id: int):
     return redirect(
         url_for("admin.export_project", project_id=token_row.project_id)
     )
+
+
+# ======================================================================
+
+
+# ======================================================================
+
+
+# ======================================================================
+# Phase 11+ — PM approvals, site settings, PM assignments, broadcasts.
+# ======================================================================
+
+
+@admin_bp.route("/approvals")
+@admin_required
+def approvals():
+    """Pending project-approval queue from PMs."""
+    page = request.args.get("page", 1, type=int)
+    pending = db.paginate(
+        select(Project)
+        .options(joinedload(Project.creator))
+        .where(Project.status == "pending_approval")
+        .order_by(Project.created_at.asc()),
+        page=page, per_page=20, error_out=False,
+    )
+    return render_template("admin/approvals.html", pending=pending)
+
+
+@admin_bp.route("/approvals/<int:project_id>/approve", methods=["POST"])
+@admin_required
+def approve_project(project_id: int):
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please reload and try again.", "warning")
+        return redirect(url_for("admin.approvals"))
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+    if project.status != "pending_approval":
+        flash("That project is not awaiting approval.", "warning")
+        return redirect(url_for("admin.approvals"))
+    rate_raw = (request.form.get("pay_per_task") or "").strip()
+    try:
+        from decimal import Decimal as D
+        rate = money(D(rate_raw)) if rate_raw else money(project.proposed_pay_per_task or 0)
+    except Exception:
+        rate = money(project.proposed_pay_per_task or 0)
+    if rate <= 0:
+        flash("Set a pay rate greater than $0.00 before approving.", "danger")
+        return redirect(url_for("admin.approvals"))
+    project.pay_per_task = rate
+    project.proposed_pay_per_task = None
+    project.approved_by = current_user.id
+    project.approved_at = utc_now()
+    project.status = "active"
+    project.approval_note = None
+    notify(
+        project.creator,
+        "project.approved",
+        payload={"project_id": project.id, "name": project.name, "pay_per_task": str(rate)},
+    )
+    log_event(
+        "admin.project.approve",
+        actor=current_user,
+        entity_type="project",
+        entity_id=project.id,
+        detail={"pay_per_task": str(rate)},
+    )
+    db.session.commit()
+    flash(f'Project "{project.name}" approved and is now live.', "success")
+    return redirect(url_for("admin.approvals"))
+
+
+@admin_bp.route("/approvals/<int:project_id>/reject", methods=["POST"])
+@admin_required
+def reject_project(project_id: int):
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please reload and try again.", "warning")
+        return redirect(url_for("admin.approvals"))
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+    note = (request.form.get("note") or "").strip()
+    if not note:
+        flash("Include a reason so the PM knows what to fix.", "danger")
+        return redirect(url_for("admin.approvals"))
+    project.status = "rejected"
+    project.approval_note = note[:1000]
+    project.proposed_pay_per_task = None
+    notify(
+        project.creator,
+        "project.rejected",
+        payload={"project_id": project.id, "name": project.name, "note": note[:300]},
+    )
+    log_event(
+        "admin.project.reject",
+        actor=current_user,
+        entity_type="project",
+        entity_id=project.id,
+        detail={"note": note[:300]},
+    )
+    db.session.commit()
+    flash("Project returned to PM with feedback.", "info")
+    return redirect(url_for("admin.approvals"))
+
+
+@admin_bp.route("/projects/<int:project_id>/assign-pm", methods=["POST"])
+@admin_required
+def assign_pm(project_id: int):
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please reload and try again.", "warning")
+        return redirect(url_for("admin.export_project", project_id=project_id))
+    pm_id = request.form.get("pm_id", type=int)
+    pm = db.session.get(User, pm_id) if pm_id else None
+    if pm is None or pm.role != "project_manager" or not pm.is_active:
+        flash("Choose an active Project Manager.", "danger")
+        return redirect(url_for("admin.export_project", project_id=project_id))
+    existing = db.session.scalar(
+        select(ProjectAssignment).where(
+            ProjectAssignment.project_id == project.id,
+            ProjectAssignment.user_id == pm.id,
+        )
+    )
+    if existing is None:
+        db.session.add(
+            ProjectAssignment(
+                project_id=project.id,
+                user_id=pm.id,
+                role_in_project="project_manager",
+                assigned_by=current_user.id,
+            )
+        )
+        notify(
+            pm,
+            "pm.assigned",
+            payload={"project_id": project.id, "name": project.name},
+        )
+        log_event(
+            "admin.pm.assign", actor=current_user,
+            entity_type="project", entity_id=project.id,
+            detail={"pm_id": pm.id},
+        )
+        db.session.commit()
+        flash(f"{pm.name} assigned to project.", "success")
+    else:
+        flash(f"{pm.name} is already assigned.", "info")
+    return redirect(url_for("admin.export_project", project_id=project_id))
+
+
+@admin_bp.route("/projects/<int:project_id>/unassign-pm", methods=["POST"])
+@admin_required
+def unassign_pm(project_id: int):
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please reload and try again.", "warning")
+        return redirect(url_for("admin.projects"))
+    assignment_id = request.form.get("assignment_id", type=int)
+    a = db.session.get(ProjectAssignment, assignment_id)
+    if a is None or a.project_id != project_id:
+        abort(404)
+    log_event(
+        "admin.pm.unassign", actor=current_user,
+        entity_type="project", entity_id=a.project_id,
+        detail={"pm_id": a.user_id},
+    )
+    db.session.delete(a)
+    db.session.commit()
+    flash("Project Manager removed.", "info")
+    return redirect(url_for("admin.export_project", project_id=project_id))
+
+
+# ----- Site settings -------------------------------------------------------
+_SETTING_KEYS = [
+    ("usd_to_ngn_rate", "USD → Naira rate", "decimal",
+     "Display conversion rate (does not change stored USD values).", "1600"),
+    ("site_name", "Site name", "string", "Brand label in the top nav.", "Brydl Dashboard"),
+    ("support_email", "Support email", "string",
+     "Email shown to staff for urgent contact.", "support@brydl.ng"),
+    ("pagination_per_page", "Rows per list page", "integer",
+     "Default list pagination.", "20"),
+    ("upload_batch_limit", "Max tasks per CSV upload", "integer",
+     "Cap on a single CSV paste / file upload.", "500"),
+    ("claim_daily_cap", "Daily self-claim cap", "integer",
+     "Max tasks an annotator may self-claim per UTC day.", "20"),
+    ("task_max_rejections", "Rejections before revision", "integer",
+     "Rejections before a task routes to admin/QA.", "3"),
+    ("preference_min_justification", "Min preference-justification chars",
+     "integer",
+     "Minimum characters for a preference-ranking reason.", "40"),
+    ("api_rate_limit_per_minute", "API calls/min per key", "integer",
+     "Per-key rate limit on /api/v1.", "60"),
+]
+
+
+def _coerce_setting(raw: str, kind: str):
+    if kind == "integer":
+        return int(str(raw).strip())
+    if kind == "decimal":
+        from decimal import Decimal as D
+        return D(str(raw).strip())
+    return str(raw)
+
+
+@admin_bp.route("/settings", methods=["GET", "POST"])
+@admin_required
+def site_settings():
+    if request.method == "POST":
+        try:
+            validate_csrf(request.form.get("csrf_token", ""))
+        except ValidationError:
+            flash("Security check failed. Please reload and try again.", "warning")
+            return redirect(url_for("admin.site_settings"))
+        for key, label, kind, desc, default in _SETTING_KEYS:
+            raw = (request.form.get(key) or "").strip()
+            if not raw:
+                raw = default
+            try:
+                _coerce_setting(raw, kind)
+            except Exception:
+                flash(f"Invalid value for {label}.", "danger")
+                return redirect(url_for("admin.site_settings"))
+            row = db.session.get(SiteSetting, key)
+            old = row.value if row else None
+            if row is None:
+                row = SiteSetting(key=key, value=raw, description=desc)
+                db.session.add(row)
+            else:
+                row.value = raw
+                row.description = desc
+            if old != raw:
+                log_event(
+                    "settings.update", actor=current_user,
+                    detail={"key": key, "old": old, "new": raw},
+                )
+        db.session.commit()
+        flash("Settings saved.", "success")
+        return redirect(url_for("admin.site_settings"))
+    rows = {}
+    for key, label, kind, desc, default in _SETTING_KEYS:
+        row = db.session.get(SiteSetting, key)
+        rows[key] = {
+            "label": label, "kind": kind, "desc": desc,
+            "value": (row.value if row else default), "default": default,
+        }
+    return render_template("admin/settings.html", rows=rows)
+
+
+# ----- Broadcasts ---------------------------------------------------------
+
+
+@admin_bp.route("/messages/broadcast", methods=["POST"])
+@admin_required
+def send_broadcast():
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please reload and try again.", "warning")
+        return redirect(url_for("staff.feedback_inbox"))
+    subject = (request.form.get("subject") or "").strip()[:200]
+    body = (request.form.get("body") or "").strip()[:4000]
+    if not subject or not body:
+        flash("Subject and body are required.", "danger")
+        return redirect(url_for("staff.feedback_inbox"))
+    thread = FeedbackThread(
+        kind="broadcast",
+        subject=subject,
+        body=body,
+        author_id=current_user.id,
+        status="new",
+    )
+    db.session.add(thread)
+    db.session.flush()
+    all_users = db.session.scalars(
+        select(User).where(User.is_active.is_(True))
+    ).all()
+    for u in all_users:
+        if u.id == current_user.id:
+            continue
+        notify(
+            u,
+            "broadcast.new",
+            payload={"thread_id": thread.id, "subject": subject},
+        )
+    log_event(
+        "broadcast.send", actor=current_user,
+        detail={"subject": subject, "recipients": len(all_users) - 1},
+    )
+    db.session.commit()
+    flash(f"Broadcast sent to {len(all_users) - 1} users.", "success")
+    return redirect(url_for("staff.feedback_inbox"))

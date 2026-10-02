@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.subject }} · {{ app_name }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('staff.feedback_inbox') }}">Messages</a></li><li class="breadcrumb-item active">{{ thread.subject|truncate(40) }}</li></ol></nav>
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div><h1 class="h4 mb-1">{{ thread.subject }}</h1>
+    <p class="text-muted mb-0">
+      {% if thread.kind == 'broadcast' %}<i class="bi bi-megaphone me-1"></i>Announcement from{% else %}From{% endif %}
+      {{ thread.author.name }} · {{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}
+      {% set cls={'new':'bg-warning text-dark','reviewed':'bg-info text-dark','resolved':'bg-success'}[thread.status] if thread.kind=='feedback' else 'bg-light text-dark' %}
+      <span class="badge {{ cls }}">{{ thread.status|title if thread.kind=='feedback' else 'Broadcast' }}</span>
+    </p>
+  </div>
+  {% if current_user.role == 'admin' and thread.kind == 'feedback' and thread.status != 'resolved' %}
+  <form method="post" action="{{ url_for('staff.feedback_resolve', thread_id=thread.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-success btn-sm"><i class="bi bi-check2-circle me-1"></i>Mark resolved</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <div class="mb-2 small text-muted">{{ thread.author.name }} · {{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+  <div style="white-space:pre-wrap;">{{ thread.body }}</div>
+</div></div>
+
+{% for r in thread.replies %}
+<div class="card border-0 shadow-sm mb-2 {% if r.author.role == 'admin' %}border-start border-3 border-primary{% endif %}"><div class="card-body py-2">
+  <div class="mb-1 small text-muted">
+    <strong>{{ r.author.name }}</strong>
+    <span class="badge {{ 'bg-warning text-dark' if r.author.role=='admin' else 'bg-secondary' }}">{{ r.author.role|upper }}</span>
+    · {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}
+  </div>
+  <div style="white-space:pre-wrap;">{{ r.body }}</div>
+</div></div>
+{% endfor %}
+
+<div class="card border-0 shadow-sm mt-3"><div class="card-body">
+  {% if thread.kind == 'broadcast' and current_user.role != 'admin' %}
+    <p class="text-muted small mb-0">Broadcasts are announcements from admin and cannot be replied to. To reach admin, open a new feedback thread.</p>
+  {% else %}
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-2">{{ form.body(class="form-control", rows="4", placeholder="Write a reply…") }}</div>
+    <button class="btn btn-primary">Send reply</button>
+  </form>
+  {% endif %}
+</div></div>
+{% endblock %}

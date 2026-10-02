@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_pagination.html" import pager %}
 
 {% block title %}Notifications · {{ app_name }}{% endblock %}
 
@@ -45,4 +46,5 @@
     {% endfor %}
   </div>
 </div>
+{% if pagination %}{{ pager(pagination, 'annotator.notifications') }}{% endif %}
 {% endblock %}

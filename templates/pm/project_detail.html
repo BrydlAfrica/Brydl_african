@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-1">
+      <li class="breadcrumb-item"><a href="{{ url_for('pm.projects') }}">My Projects</a></li>
+      <li class="breadcrumb-item active">{{ project.name }}</li>
+    </ol></nav>
+    <h1 class="h3 mb-0">{{ project.name }} <span class="badge bg-light text-dark border">{{ project.task_type.replace('_',' ')|title }}</span></h1>
+    <p class="text-muted mb-0">{{ project.client_name }} · {% if project.pay_per_task %}${{ "%.2f"|format(project.pay_per_task) }}/task{% elif project.proposed_pay_per_task %}<span class="text-warning">Proposed ${{ "%.2f"|format(project.proposed_pay_per_task) }}</span>{% else %}—{% endif %}</p>
+  </div>
+  {% set badge_cls = {'draft':'bg-secondary','pending_approval':'bg-warning text-dark','active':'bg-success','paused':'bg-secondary','completed':'bg-info text-dark','rejected':'bg-danger text-white'}[project.status] %}
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge {{ badge_cls }}">{{ project.status|replace('_',' ')|title }}</span>
+    {% if project.status in ('draft','rejected') %}
+      <form method="post" action="{{ url_for('pm.submit_for_approval', project_id=project.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-warning"><i class="bi bi-send me-1"></i>Submit for approval</button>
+      </form>
+    {% endif %}
+    {% if can_edit %}<a class="btn btn-outline-primary" href="{{ url_for('pm.edit_project', project_id=project.id) }}"><i class="bi bi-pencil me-1"></i>Edit</a>{% endif %}
+  </div>
+</div>
+
+{% if project.status == 'rejected' and project.approval_note %}
+<div class="alert alert-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i><strong>Admin feedback:</strong> {{ project.approval_note }}</div>
+{% elif project.status == 'pending_approval' %}
+<div class="alert alert-warning"><i class="bi bi-hourglass-split me-1"></i>Awaiting admin approval. You can't edit until they respond.</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2"><div class="h4 fw-bold mb-0">{{ stats.total }}</div><small class="text-muted">Tasks</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2"><div class="h4 fw-bold mb-0">{{ stats.pending }}</div><small class="text-muted">Pending</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2"><div class="h4 fw-bold mb-0">{{ stats.open }}</div><small class="text-muted">Open</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2"><div class="h4 fw-bold mb-0">{{ stats.submitted }}</div><small class="text-muted">Submitted</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2"><div class="h4 fw-bold mb-0">{{ stats.approved }}</div><small class="text-muted">Approved</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2"><div class="h4 fw-bold mb-0">{{ stats.pct }}%</div><small class="text-muted">Done</small></div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0">Project actions</h5></div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ url_for('pm.tasks', project_id=project.id) }}"><span><i class="bi bi-list-check me-2"></i>Tasks</span><i class="bi bi-chevron-right"></i></a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ url_for('pm.upload_tasks', project_id=project.id) }}"><span><i class="bi bi-upload me-2"></i>Upload tasks (paste / CSV)</span><i class="bi bi-chevron-right"></i></a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ url_for('pm.submissions', project_id=project.id) }}"><span><i class="bi bi-inbox me-2"></i>Submissions (read-only)</span><i class="bi bi-chevron-right"></i></a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ url_for('pm.quiz', project_id=project.id) }}"><span><i class="bi bi-patch-question me-2"></i>Qualification quiz (draft)</span><i class="bi bi-chevron-right"></i></a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ url_for('pm.media', project_id=project.id) }}"><span><i class="bi bi-folder-image me-2"></i>Media library</span><i class="bi bi-chevron-right"></i></a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ url_for('pm.team', project_id=project.id) }}"><span><i class="bi bi-people me-2"></i>Annotator team</span><i class="bi bi-chevron-right"></i></a>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white"><h5 class="mb-0">Export</h5></div>
+      <div class="card-body d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-primary" href="{{ url_for('pm.export', project_id=project.id, format='jsonl', include='approved') }}"><i class="bi bi-download me-1"></i>Approved JSONL</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('pm.export', project_id=project.id, format='csv', include='approved') }}"><i class="bi bi-filetype-csv me-1"></i>Approved CSV</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('pm.export', project_id=project.id, format='jsonl', include='all') }}">All tasks JSONL</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0">Project managers</h5></div>
+      <div class="card-body">
+        {% for u in pms %}<div><i class="bi bi-person me-1"></i>{{ u.name }} <small class="text-muted">{{ u.email }}</small></div>{% else %}<p class="text-muted small mb-0">No PM assigned yet.</p>{% endfor %}
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center"><h5 class="mb-0">Client delivery links</h5></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('pm.create_client_link', project_id=project.id) }}" class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="input-group input-group-sm">
+            <input class="form-control" name="label" placeholder="Link label (e.g. Client v1)">
+            <button class="btn btn-outline-primary">Create</button>
+          </div>
+        </form>
+        {% for t in client_tokens %}
+          <div class="border rounded p-2 small mb-1">
+            <div class="fw-semibold">{{ t.label or 'Delivery link' }}</div>
+            <div class="text-muted">Created {{ t.created_at.strftime('%Y-%m-%d') }} · ID {{ t.id }}</div>
+          </div>
+        {% else %}<p class="text-muted small mb-0">No client links yet.</p>{% endfor %}
+        <div class="text-muted small mt-1">The raw link is shown only once when created (treat like a password).</div>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white"><h5 class="mb-0">Instructions</h5></div>
+      <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap;font-family:inherit;">{{ project.instructions }}</pre></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

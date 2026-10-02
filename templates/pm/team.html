@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Team · {{ project.name }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Annotator team — {{ project.name }}</h1>
+<p class="text-muted">Request exemption from admin; PM cannot grant exemptions directly.</p>
+<div class="card border-0 shadow-sm"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+  <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Submitted</th><th>Approved</th><th>QA pass</th><th>Quiz</th><th></th></tr></thead>
+  <tbody>
+  {% for r in annotators %}
+    <tr><td>{{ r.user.name }}</td><td class="text-muted small">{{ r.user.email }}</td>
+      <td>{{ r.submitted }}</td><td>{{ r.approved }}</td><td>{{ r.avg }}%</td>
+      <td>{% set qs = quiz_status.get(r.user.id) %}
+        {% if quiz is none %}<span class="badge bg-light text-dark border">No quiz</span>
+        {% elif qs == 'passed' %}<span class="badge bg-success">Passed</span>
+        {% elif qs == 'failed' %}<span class="badge bg-danger">Failed</span>
+        {% elif qs == 'exempt' %}<span class="badge bg-info text-dark">Exempt</span>
+        {% else %}<span class="badge bg-secondary">Not taken</span>{% endif %}</td>
+      <td><form method="post" action="{{ url_for('pm.request_exemption', project_id=project.id) }}" class="d-flex gap-1 brydl-disable-on-submit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="annotator_id" value="{{ r.user.id }}">
+        <input class="form-control form-control-sm" name="reason" placeholder="Reason…" style="min-width:180px;">
+        <button class="btn btn-sm btn-outline-primary">Request exemption</button>
+      </form></td>
+    </tr>
+  {% else %}<tr><td colspan="7" class="text-center text-muted py-3">No annotators have touched this project yet.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

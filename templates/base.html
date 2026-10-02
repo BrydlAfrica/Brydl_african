@@ -50,7 +50,6 @@
         {% if current_user.is_authenticated %}
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           {% if current_user.role == 'admin' %}
-          {# Plain paths, not url_for(): links to not-yet-built features must not crash template rendering. #}
           <li class="nav-item">{{ nav_link('/admin/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/admin/projects', 'bi-kanban', 'Projects') }}</li>
           <li class="nav-item">{{ nav_link('/admin/tasks', 'bi-list-check', 'Tasks') }}</li>
@@ -58,17 +57,25 @@
           <li class="nav-item">{{ nav_link('/admin/sft', 'bi-collection', 'SFT Data') }}</li>
           <li class="nav-item">{{ nav_link('/admin/payments', 'bi-cash-coin', 'Payments') }}</li>
           <li class="nav-item">{{ nav_link('/admin/users', 'bi-people-fill', 'Team') }}</li>
+          <li class="nav-item">{{ nav_link('/admin/approvals', 'bi-clipboard2-check', 'Approvals') }}</li>
           <li class="nav-item">{{ nav_link('/admin/quality', 'bi-patch-check', 'Quality') }}</li>
           <li class="nav-item">{{ nav_link('/admin/review/conflicts', 'bi-diagram-3', 'Conflicts') }}</li>
           <li class="nav-item">{{ nav_link('/admin/audit', 'bi-journal-text', 'Audit') }}</li>
+          <li class="nav-item">{{ nav_link('/admin/settings', 'bi-gear', 'Settings') }}</li>
+          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
+          {% elif current_user.role == 'project_manager' %}
+          <li class="nav-item">{{ nav_link('/pm/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
+          <li class="nav-item">{{ nav_link('/pm/projects', 'bi-kanban', 'My Projects') }}</li>
+          <li class="nav-item">{{ nav_link('/pm/projects/new', 'bi-plus-circle', 'New Project') }}</li>
+          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
           {% elif current_user.role == 'qa' %}
-          {# QA site: the review queue is the workspace. #}
           <li class="nav-item">{{ nav_link('/admin/review', 'bi-clipboard-check', 'QA Review') }}</li>
           <li class="nav-item">{{ nav_link('/admin/quality', 'bi-patch-check', 'Quality') }}</li>
+          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
           {% elif current_user.role == 'auditor' %}
-          {# Auditor site: arbitration + the audit trail. #}
           <li class="nav-item">{{ nav_link('/admin/review/conflicts', 'bi-diagram-3', 'Arbitration') }}</li>
           <li class="nav-item">{{ nav_link('/admin/audit', 'bi-journal-text', 'Audit Trail') }}</li>
+          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
           {% else %}
           <li class="nav-item">{{ nav_link('/annotator/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/annotator/tasks', 'bi-list-check', 'My Tasks') }}</li>
@@ -76,6 +83,17 @@
           <li class="nav-item">{{ nav_link('/annotator/profile', 'bi-person', 'Profile') }}</li>
           <li class="nav-item">
             <a class="nav-link position-relative" href="/annotator/notifications" aria-label="Notifications">
+              <i class="bi bi-bell me-1" aria-hidden="true"></i>Bell
+              {% if unread_notifications %}
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread_notifications }}</span>
+              {% endif %}
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Feedback</a></li>
+          {% endif %}
+          {% if current_user.role != 'annotator' %}
+          <li class="nav-item">
+            <a class="nav-link position-relative" href="/notifications" aria-label="Notifications">
               <i class="bi bi-bell me-1" aria-hidden="true"></i>Bell
               {% if unread_notifications %}
               <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread_notifications }}</span>
@@ -90,6 +108,8 @@
               <i class="bi bi-person-circle" aria-hidden="true"></i>{{ current_user.name }}
               {% if current_user.role == 'admin' %}
               <span class="badge role-badge bg-warning text-dark">ADMIN</span>
+              {% elif current_user.role == 'project_manager' %}
+              <span class="badge role-badge bg-success text-white">PM</span>
               {% elif current_user.role == 'qa' %}
               <span class="badge role-badge bg-info text-dark">QA</span>
               {% elif current_user.role == 'auditor' %}
@@ -99,6 +119,9 @@
               {% endif %}
             </span>
           </li>
+          {% if current_user.role != 'annotator' %}
+          <li class="nav-item"><a class="nav-link text-white-50" href="/profile" title="Profile"><i class="bi bi-person" aria-hidden="true"></i></a></li>
+          {% endif %}
           <li class="nav-item">
             {# Logout is POST + CSRF: a plain GET link could be triggered by link previews or cross-site tags. #}
             <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">

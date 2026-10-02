@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Site Settings · {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Site Settings</h1>
+<p class="text-muted">Operational knobs — secrets (SMTP, Paystack, DB URL, SECRET_KEY) stay in Render env vars and are never shown here.</p>
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="row g-3">
+{% for key, meta in rows.items() %}
+  <div class="col-md-6">
+    <label class="form-label">{{ meta.label }}</label>
+    <input class="form-control" name="{{ key }}" value="{{ meta.value }}" {% if meta.kind in ('integer','decimal') %}type="number" step="{% if meta.kind=='decimal' %}0.01{% else %}1{% endif %}"{% endif %}>
+    <small class="text-muted">{{ meta.desc }} <span class="text-muted">(default: {{ meta.default }})</span></small>
+  </div>
+{% endfor %}
+</div>
+<button class="btn btn-primary mt-3"><i class="bi bi-save me-1"></i>Save settings</button>
+</form>
+</div></div>
+{% endblock %}
