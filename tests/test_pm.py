@@ -1,29 +1,35 @@
 """Project Manager role, scoping, approval flow, feedback, site settings."""
 from __future__ import annotations
+from app import create_app
+from models import (
+    FeedbackReply, FeedbackThread, Notification, Project, ProjectAssignment,
+    SiteSetting, Task, User,
+)
+from extensions import db
 
-import os, re, sys
+import os
+import re
+import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 os.environ["BRYDL_DISABLE_JOBS"] = "1"
 
 FAILURES = []
+
+
 def expect(cond: bool, msg: str):
     if not cond:
-        FAILURES.append(msg); print("  FAIL:", msg)
+        FAILURES.append(msg)
+        print("  FAIL:", msg)
     else:
         print("   ok:", msg)
 
-from app import create_app
-from extensions import db
-from models import (
-    FeedbackReply, FeedbackThread, Notification, Project, ProjectAssignment,
-    SiteSetting, Task, User,
-)
 
 app = create_app()
 with app.app_context():
-    db.drop_all(); db.create_all()
+    db.drop_all()
+    db.create_all()
     admin = User(name="Admin", email="admin@brydl.com", role="admin")
     admin.set_password("admin123")
     pm = User(name="PM Aisha", email="pm@brydl.com", role="project_manager", terms_version="1.0")
@@ -33,36 +39,45 @@ with app.app_context():
     ann = User(name="Tunde A", email="ann@brydl.com", role="annotator", terms_version="1.0")
     ann.set_password("ann123!")
     other_proj = Project(name="Existing", client_name="OldCo", task_type="classification",
-                        pay_per_task=0.25, instructions="x", created_by=admin.id,
-                        approved_by=admin.id, approved_at=__import__("models").utc_now(),
-                        status="active")
+                         pay_per_task=0.25, instructions="x", created_by=admin.id,
+                         approved_by=admin.id, approved_at=__import__("models").utc_now(),
+                         status="active")
     db.session.add_all([admin, pm, qa, ann])
     db.session.commit()
     pm_id, admin_id, ann_id = pm.id, admin.id, ann.id
     other_proj = Project(name="Existing", client_name="OldCo", task_type="classification",
-                        pay_per_task=0.25, instructions="x", created_by=admin_id,
-                        approved_by=admin_id, approved_at=__import__("models").utc_now(),
-                        status="active")
-    db.session.add(other_proj); db.session.commit()
+                         pay_per_task=0.25, instructions="x", created_by=admin_id,
+                         approved_by=admin_id, approved_at=__import__("models").utc_now(),
+                         status="active")
+    db.session.add(other_proj)
+    db.session.commit()
     other_id = other_proj.id
+
 
 def csrf(html: str) -> str:
     m = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html)
     return m.group(1) if m else ""
+
+
 def login(cl, email, pw):
     p = cl.get("/login").get_data(as_text=True)
     return cl.post("/login", data={"csrf_token": csrf(p), "email": email, "password": pw}, follow_redirects=True)
+
+
 def gcsrf(cl, path):
     return csrf(cl.get(path).get_data(as_text=True))
 
-admin_cl = app.test_client(); pm_cl = app.test_client()
-ann_cl = app.test_client(); qa_cl = app.test_client()
+
+admin_cl = app.test_client()
+pm_cl = app.test_client()
+ann_cl = app.test_client()
+qa_cl = app.test_client()
 
 print("== login flows ==")
-expect(login(admin_cl,"admin@brydl.com","admin123").status_code == 200, "admin login")
-expect(login(pm_cl,"pm@brydl.com","pm12345!").status_code == 200, "pm login")
-expect(login(ann_cl,"ann@brydl.com","ann123!").status_code == 200, "ann login")
-expect(login(qa_cl,"qa@brydl.com","qa12345!").status_code == 200, "qa login")
+expect(login(admin_cl, "admin@brydl.com", "admin123").status_code == 200, "admin login")
+expect(login(pm_cl, "pm@brydl.com", "pm12345!").status_code == 200, "pm login")
+expect(login(ann_cl, "ann@brydl.com", "ann123!").status_code == 200, "ann login")
+expect(login(qa_cl, "qa@brydl.com", "qa12345!").status_code == 200, "qa login")
 
 print("== role walls ==")
 expect(pm_cl.get("/admin/", follow_redirects=False).status_code == 403, "pm blocked from /admin/")
@@ -71,7 +86,8 @@ expect(ann_cl.get("/pm/", follow_redirects=False).status_code == 403, "annotator
 expect(qa_cl.get("/pm/", follow_redirects=False).status_code == 403, "qa blocked from /pm/")
 
 print("== PM proposal + approval flow ==")
-r = pm_cl.get("/pm/projects/new"); expect(r.status_code == 200, "new project form")
+r = pm_cl.get("/pm/projects/new")
+expect(r.status_code == 200, "new project form")
 r = pm_cl.post("/pm/projects/new", data={
     "csrf_token": csrf(r.get_data(as_text=True)),
     "name": "Pidgin v2", "client_name": "ClientX", "task_type": "translation",
@@ -94,8 +110,8 @@ with app.app_context():
 r = admin_cl.get("/admin/approvals")
 expect(b"Pidgin v2" in r.data, "admin sees pending project")
 admin_cl.post(f"/admin/approvals/{proj_id}/approve",
-             data={"csrf_token": csrf(r.get_data(as_text=True)), "pay_per_task": "0.07"},
-             follow_redirects=True)
+              data={"csrf_token": csrf(r.get_data(as_text=True)), "pay_per_task": "0.07"},
+              follow_redirects=True)
 with app.app_context():
     db.session.expire_all()
     p = db.session.get(Project, proj_id)
@@ -121,8 +137,8 @@ print("== PM scoping ==")
 expect(pm_cl.get(f"/pm/projects/{other_id}", follow_redirects=False).status_code in (403, 302),
        "PM blocked from unassigned project")
 admin_cl.post(f"/admin/projects/{other_id}/assign-pm",
-             data={"csrf_token": gcsrf(admin_cl, f"/admin/projects/{other_id}/export"),
-                   "pm_id": pm_id}, follow_redirects=True)
+              data={"csrf_token": gcsrf(admin_cl, f"/admin/projects/{other_id}/export"),
+                    "pm_id": pm_id}, follow_redirects=True)
 expect(pm_cl.get(f"/pm/projects/{other_id}", follow_redirects=False).status_code == 200,
        "PM can access project after assignment")
 
@@ -179,6 +195,7 @@ expect(ann_cl.get("/feedback").status_code == 200, "annotator feedback")
 print()
 if FAILURES:
     print(f"PM TESTS FAILED ({len(FAILURES)}):")
-    for f in FAILURES: print(" -", f)
+    for f in FAILURES:
+        print(" -", f)
     sys.exit(1)
 print("ALL PM TESTS PASSED")

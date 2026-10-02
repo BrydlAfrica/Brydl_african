@@ -132,10 +132,15 @@ def _allowed_to_view_thread(thread: FeedbackThread) -> bool:
 def profile():
     """Self-serve profile: name + password. Email is admin-only to change
     (security: email = login identifier). Bank details live on the
-    annotator-only /annotator/profile page."""
+    annotator-only /annotator/profile page.
+
+    Two separate forms on the same page; the submit button's presence
+    disambiguates which one to validate.
+    """
     form = ProfileForm(obj=current_user)
-    pw_form = PasswordChangeForm()
-    if form.submit.data and form.validate_on_submit():
+    pw_form = PasswordChangeForm(formdata=None)
+    submitted = request.form.get("form_name")
+    if submitted == "profile" and form.validate_on_submit():
         current_user.name = form.name.data.strip()
         log_event(
             "profile.update",
@@ -146,18 +151,20 @@ def profile():
         db.session.commit()
         flash("Profile saved.", "success")
         return redirect(url_for("staff.profile"))
-    if pw_form.submit.data and pw_form.validate_on_submit():
-        current_user.set_password(pw_form.new_password.data)
-        current_user.auth_version = (current_user.auth_version or 0) + 1
-        log_event(
-            "auth.password.change",
-            actor=current_user,
-            entity_type="user",
-            entity_id=current_user.id,
-        )
-        db.session.commit()
-        flash("Password changed. You'll need to sign in again on other devices.", "success")
-        return redirect(url_for("staff.profile"))
+    if submitted == "password":
+        pw_form = PasswordChangeForm()
+        if pw_form.validate_on_submit():
+            current_user.set_password(pw_form.new_password.data)
+            current_user.auth_version = (current_user.auth_version or 0) + 1
+            log_event(
+                "auth.password.change",
+                actor=current_user,
+                entity_type="user",
+                entity_id=current_user.id,
+            )
+            db.session.commit()
+            flash("Password changed. You'll need to sign in again on other devices.", "success")
+            return redirect(url_for("staff.profile"))
     return render_template(
         "staff/profile.html",
         form=form,

@@ -9,6 +9,7 @@
         <p><strong>Email:</strong> {{ current_user.email }} <small class="text-muted">(ask admin to change)</small></p>
         <form method="post">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="form_name" value="profile">
           <div class="mb-3"><label class="form-label">Display name</label>{{ form.name(class="form-control") }}
             {% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
           {{ form.submit(class="btn btn-primary") }}
@@ -21,10 +22,13 @@
       <div class="card-body">
         <form method="post" action="{{ url_for('staff.profile') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="mb-2"><label class="form-label small">{{ pw_form.current_password.label }}</label>{{ pw_form.current_password(class="form-control") }}</div>
-          <div class="mb-2"><label class="form-label small">{{ pw_form.new_password.label }}</label>{{ pw_form.new_password(class="form-control") }}</div>
+          <input type="hidden" name="form_name" value="password">
+          <div class="mb-2"><label class="form-label small">{{ pw_form.current_password.label }}</label>{{ pw_form.current_password(class="form-control") }}
+            {% for e in pw_form.current_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+          <div class="mb-2"><label class="form-label small">{{ pw_form.new_password.label }}</label>{{ pw_form.new_password(class="form-control") }}
+            {% for e in pw_form.new_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
           <div class="mb-3"><label class="form-label small">{{ pw_form.confirm_password.label }}</label>{{ pw_form.confirm_password(class="form-control") }}
-            {% for e in pw_form.confirm_password.errors + pw_form.new_password.errors + pw_form.current_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+            {% for e in pw_form.confirm_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
           {{ pw_form.submit(class="btn btn-outline-primary") }}
         </form>
       </div>

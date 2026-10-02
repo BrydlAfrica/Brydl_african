@@ -6188,10 +6188,25 @@ def site_settings():
             if not raw:
                 raw = default
             try:
-                _coerce_setting(raw, kind)
+                val = _coerce_setting(raw, kind)
             except Exception:
                 flash(f"Invalid value for {label}.", "danger")
                 return redirect(url_for("admin.site_settings"))
+            # Bounds-check numeric knobs so they can't set DoS-inducing values.
+            if kind == "integer":
+                if val < 1 or val > 100000:
+                    flash(f"{label} must be between 1 and 100000.", "danger")
+                    return redirect(url_for("admin.site_settings"))
+            if kind == "decimal":
+                from decimal import Decimal as D
+                if val <= D("0") or val > D("1000000"):
+                    flash(f"{label} must be positive and below 1,000,000.", "danger")
+                    return redirect(url_for("admin.site_settings"))
+            if kind == "string" and key.endswith("_email"):
+                import re as _re
+                if not _re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", raw):
+                    flash(f"{label} must be a valid email address.", "danger")
+                    return redirect(url_for("admin.site_settings"))
             row = db.session.get(SiteSetting, key)
             old = row.value if row else None
             if row is None:
