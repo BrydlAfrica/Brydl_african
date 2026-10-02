@@ -29,6 +29,7 @@ from flask_login import current_user
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import validate_csrf, ValidationError
 from sqlalchemy import func, select
+from sqlalchemy.orm import joinedload
 from wtforms import (
     DateField,
     HiddenField,
@@ -337,26 +338,129 @@ def _parse_task_lines(lines: str, project: Project) -> tuple[list[Task], list[st
 @pm_bp.route("/")
 @pm_required
 def dashboard():
-    """PM dashboard — my projects, headline numbers, open feedback."""
-    projects_q = _pm_projects_query()
-    projects = db.session.scalars(projects_q.order_by(Project.created_at.desc())).all()
-    active_count = sum(1 for p in projects if p.status == "active")
-    pending_approval = sum(1 for p in projects if p.status == "pending_approval")
-    total_tasks = 0
-    total_approved = 0
-    if projects:
-        proj_ids = [p.id for p in projects]
-        total_tasks = db.session.scalar(
-            select(func.count(Task.id)).where(Task.project_id.in_(proj_ids))
-        ) or 0
-        total_approved = db.session.scalar(
-            select(func.count(Task.id)).where(
-                Task.project_id.in_(proj_ids), Task.status == "approved"
-            )
-        ) or 0
-    # recent feedback authored by me
-    from models import FeedbackThread
+    """PM dashboard — my projects, headline numbers, open feedback, action items.
 
+    Aggregates are computed in a single grouped query per status so there is
+    no N+1 and the page stays snappy even with 50+ assigned projects.
+    """
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    projects_pagination = db.paginate(
+        _pm_projects_query()
+        .options(joinedload(Project.creator))
+        .order_by(Project.created_at.desc()),
+        page=page,
+        per_page=PM_PER_PAGE,
+        error_out=False,
+    )
+    project_ids = [p.id for p in projects_pagination.items]
+    project_rows = list(projects_pagination.items)
+
+    # ---- Aggregate counts (single queries, never N+1) ----
+    active_count = sum(1 for p in project_rows if p.status == "active")
+    pending_approval = sum(1 for p in project_rows if p.status == "pending_approval")
+    rejected_count = sum(1 for p in project_rows if p.status == "rejected")
+    paused_count = sum(1 for p in project_rows if p.status == "paused")
+
+    # Per-project task-status breakdown, plus annotator assignment count.
+    per_project_stats: dict[int, dict] = {}
+    if project_ids:
+        status_rows = db.session.execute(
+            select(Task.project_id, Task.status, func.count(Task.id))
+            .where(Task.project_id.in_(project_ids))
+            .group_by(Task.project_id, Task.status)
+        ).all()
+        for pid_, status_, cnt in status_rows:
+            s = per_project_stats.setdefault(pid_, {
+                "total": 0, "pending": 0, "assigned": 0, "submitted": 0,
+                "approved": 0, "rejected": 0, "needs_review": 0,
+            })
+            s[status_] = s.get(status_, 0) + cnt
+            s["total"] += cnt
+        ann_counts = db.session.execute(
+            select(ProjectAssignment.project_id, func.count(ProjectAssignment.id))
+            .where(
+                ProjectAssignment.project_id.in_(project_ids),
+                ProjectAssignment.role_in_project != "project_manager",
+            )
+            .group_by(ProjectAssignment.project_id)
+        ).all()
+        ann_map = {pid_: cnt for pid_, cnt in ann_counts}
+        for pid_ in project_ids:
+            per_project_stats.setdefault(pid_, {
+                "total": 0, "pending": 0, "assigned": 0, "submitted": 0,
+                "approved": 0, "rejected": 0, "needs_review": 0,
+            })["ann_count"] = ann_map.get(pid_, 0)
+        # Earned-so-far: sum of pay_per_task * approved_tasks (display estimate).
+        # Stays in Python Decimal; never converted to float.
+        for p in project_rows:
+            s = per_project_stats.get(p.id, {})
+            approved_n = s.get("approved", 0)
+            rate = p.pay_per_task or 0
+            s["earned_usd"] = money(rate) * approved_n if approved_n else money(0)
+            pct = 0
+            if s.get("total", 0):
+                pct = int(round(100 * s.get("approved", 0) / s["total"]))
+            s["pct_complete"] = min(pct, 100)
+    else:
+        for p in project_rows:
+            per_project_stats[p.id] = {
+                "total": 0, "pending": 0, "assigned": 0, "submitted": 0,
+                "approved": 0, "rejected": 0, "needs_review": 0,
+                "ann_count": 0, "earned_usd": money(0), "pct_complete": 0,
+            }
+
+    # Totals across ALL assigned projects (not just current page) — used for
+    # the KPI tiles at the top. Two aggregate queries; never N+1.
+    all_pids: list[int] = []
+    proj_pay: dict[int, object] = {}
+    for p in db.session.scalars(_pm_projects_query()).all():
+        all_pids.append(p.id)
+        proj_pay[p.id] = money(p.pay_per_task or 0)
+    totals = {"total_tasks": 0, "total_approved": 0, "total_pending": 0,
+              "total_submitted": 0, "total_rejected": 0, "total_earned": money(0)}
+    if all_pids:
+        t_rows = db.session.execute(
+            select(Task.project_id, Task.status, func.count(Task.id))
+            .where(Task.project_id.in_(all_pids))
+            .group_by(Task.project_id, Task.status)
+        ).all()
+        for pid_, status_, cnt in t_rows:
+            totals["total_tasks"] += cnt
+            if status_ == "approved":
+                totals["total_approved"] += cnt
+                totals["total_earned"] += proj_pay.get(pid_, money(0)) * cnt
+            elif status_ == "pending":
+                totals["total_pending"] += cnt
+            elif status_ == "submitted":
+                totals["total_submitted"] += cnt
+            elif status_ == "rejected":
+                totals["total_rejected"] += cnt
+
+    # ---- Awaiting action widget ----
+    action_items: list[dict] = []
+    for p in project_rows:
+        if p.status == "rejected":
+            action_items.append({
+                "kind": "rejected", "project": p,
+                "label": "Returned with note",
+                "url": url_for("pm.project_detail", project_id=p.id),
+            })
+        elif p.status == "pending_approval":
+            action_items.append({
+                "kind": "pending", "project": p,
+                "label": "Awaiting admin approval",
+                "url": url_for("pm.project_detail", project_id=p.id),
+            })
+        s = per_project_stats.get(p.id, {})
+        if s.get("rejected", 0) > 0:
+            action_items.append({
+                "kind": "rework", "project": p,
+                "label": f"{s['rejected']} task(s) need revision",
+                "url": url_for("pm.tasks", project_id=p.id, status="rejected"),
+            })
+    action_items = action_items[:8]
+
+    from models import FeedbackThread
     my_feedback = db.session.scalars(
         select(FeedbackThread)
         .where(FeedbackThread.author_id == current_user.id)
@@ -371,12 +475,16 @@ def dashboard():
     ) or 0
     return render_template(
         "pm/dashboard.html",
-        projects=projects,
+        projects=project_rows,
+        pagination=projects_pagination,
+        stats=per_project_stats,
+        totals=totals,
         active_count=active_count,
         pending_approval=pending_approval,
-        total_tasks=total_tasks,
-        total_approved=total_approved,
+        rejected_count=rejected_count,
+        paused_count=paused_count,
         my_feedback=my_feedback,
+        action_items=action_items,
         unread_notifications=unread_bell,
     )
 

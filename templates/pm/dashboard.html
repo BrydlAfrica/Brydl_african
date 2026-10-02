@@ -1,50 +1,124 @@
 {% extends "base.html" %}
+{% from "_pagination.html" import pager %}
 {% block title %}PM Dashboard · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
   <h1 class="h3 mb-0">Project Manager</h1>
   <span class="badge role-badge bg-success text-white">PM</span>
 </div>
-<p class="text-muted">Welcome, {{ current_user.name }}. Here are your projects.</p>
+<p class="text-muted">Welcome, {{ current_user.name }}. Here's your portfolio.</p>
 
+{# ---- KPI tiles (across all assigned projects) ---- #}
 <div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
-    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ projects|length }}</div><div class="text-muted small">My projects</div></div>
-    <i class="bi bi-kanban stat-icon"></i></div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
-    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ active_count }}</div><div class="text-muted small">Live</div></div>
-    <i class="bi bi-play-circle stat-icon"></i></div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
-    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ pending_approval }}</div><div class="text-muted small">Awaiting approval</div></div>
-    <i class="bi bi-hourglass-split stat-icon"></i></div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
-    <div class="d-flex justify-content-between"><div><div class="h3 fw-bold mb-0">{{ total_approved }}/{{ total_tasks }}</div><div class="text-muted small">Approved tasks</div></div>
-    <i class="bi bi-check2-circle stat-icon"></i></div></div></div></div>
+  <div class="col-6 col-md-4 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">{{ pagination.total }}</div><div class="text-muted small">My projects</div></div>
+    <i class="bi bi-kanban stat-icon"></i></div>
+    <div class="small text-muted mt-1">
+      <span class="text-success">{{ active_count }} live</span> ·
+      <span class="text-warning">{{ pending_approval }} pending</span> ·
+      {% if rejected_count %}<span class="text-danger">{{ rejected_count }} returned</span>{% else %}<span>0 returned</span>{% endif %}
+    </div></div></div></div>
+  <div class="col-6 col-md-4 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">{{ totals.total_approved }}/{{ totals.total_tasks }}</div><div class="text-muted small">Approved / total tasks</div></div>
+    <i class="bi bi-check2-circle stat-icon text-success"></i></div>
+    {% set pct_all = (100 * totals.total_approved // totals.total_tasks) if totals.total_tasks else 0 %}
+    <div class="progress mt-2" style="height:6px"><div class="progress-bar bg-success" style="width:{{ pct_all }}%"></div></div>
+  </div></div></div>
+  <div class="col-6 col-md-4 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">${{ '%.2f'|format(totals.total_earned) }}</div><div class="text-muted small">Earned so far</div></div>
+    <i class="bi bi-cash-coin stat-icon text-primary"></i></div>
+    <div class="small text-muted mt-1">approved tasks × pay rate (USD)</div>
+  </div></div></div>
+  <div class="col-6 col-md-4 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">{{ totals.total_pending }}</div><div class="text-muted small">Unassigned tasks</div></div>
+    <i class="bi bi-inbox stat-icon text-secondary"></i></div>
+    <div class="small text-muted mt-1">{{ totals.total_submitted }} awaiting QA · {{ totals.total_rejected }} rework</div>
+  </div></div></div>
+  <div class="col-6 col-md-4 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+    <div class="d-flex justify-content-between"><div><div class="h4 fw-bold mb-0">{{ unread_notifications }}</div><div class="text-muted small">Unread messages</div></div>
+    <i class="bi bi-bell stat-icon text-warning"></i></div>
+    <a href="{{ url_for('staff.feedback_inbox') }}" class="small stretched-link">Open inbox →</a>
+  </div></div></div>
 </div>
 
 <div class="row g-3">
+  {# ---- Action items ---- #}
+  {% if action_items %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm border-start border-4 border-warning">
+      <div class="card-body py-2">
+        <h6 class="mb-2"><i class="bi bi-exclamation-triangle text-warning me-1"></i>Awaiting your action</h6>
+        <ul class="list-unstyled mb-0 small">
+          {% for a in action_items %}
+          <li class="py-1">
+            {% if a.kind == 'rejected' %}<span class="badge bg-danger me-1">Returned</span>
+            {% elif a.kind == 'pending' %}<span class="badge bg-warning text-dark me-1">Pending</span>
+            {% elif a.kind == 'rework' %}<span class="badge bg-outline-danger text-danger border me-1">Rework</span>
+            {% endif %}
+            <a href="{{ a.url }}"><strong>{{ a.project.name }}</strong></a> — {{ a.label }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---- Project list (paginated, per-project stats) ---- #}
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0">My projects</h5>
         <a href="{{ url_for('pm.new_project') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>New project</a>
       </div>
+      {% if projects %}
       <div class="list-group list-group-flush">
         {% for p in projects %}
-        <a href="{{ url_for('pm.project_detail', project_id=p.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-          <div>
-            <div class="fw-semibold">{{ p.name }} <small class="text-muted">· {{ p.client_name }}</small></div>
-            <small class="text-muted">{{ p.task_type.replace('_', ' ')|title }}</small>
+        {% set s = stats[p.id] %}
+        <a href="{{ url_for('pm.project_detail', project_id=p.id) }}" class="list-group-item list-group-item-action">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+            <div>
+              <div class="fw-semibold">{{ p.name }} <small class="text-muted">· {{ p.client_name }}</small></div>
+              <small class="text-muted">{{ p.task_type.replace('_',' ')|title }} · {{ s.ann_count }} annotator{{ '' if s.ann_count == 1 else 's' }}</small>
+            </div>
+            {% set badge_cls = {'draft':'bg-secondary','pending_approval':'bg-warning text-dark','active':'bg-success','paused':'bg-secondary','completed':'bg-info text-dark','rejected':'bg-danger text-white'}[p.status] %}
+            <span class="badge {{ badge_cls }} align-self-start">{{ p.status|replace('_',' ')|title }}</span>
           </div>
-          {% set badge_cls = {'draft':'bg-secondary','pending_approval':'bg-warning text-dark','active':'bg-success','paused':'bg-secondary','completed':'bg-info text-dark','rejected':'bg-danger text-white'}[p.status] %}
-          <span class="badge {{ badge_cls }}">{{ p.status|replace('_',' ')|title }}</span>
+          <div class="row gx-3 small text-muted align-items-center">
+            <div class="col-sm-7">
+              <div class="progress mt-1" style="height:5px" title="{{ s.approved }}/{{ s.total }} approved">
+                <div class="progress-bar bg-success" style="width:{{ s.pct_complete }}%"></div>
+              </div>
+              <div class="mt-1">
+                {{ s.approved }}/{{ s.total }} approved · {{ s.pending }} to assign ·
+                {% if s.rejected %}<span class="text-danger">{{ s.rejected }} rework</span>{% else %}0 rework{% endif %}
+              </div>
+            </div>
+            <div class="col-sm-5 text-sm-end">
+              {% if p.status == 'active' and p.pay_per_task %}
+                <span class="text-success fw-semibold">${{ '%.2f'|format(s.earned_usd) }}</span> earned
+                <span class="text-muted"> · </span>
+                <span>${{ '%.4f'|format(p.pay_per_task) }}/task</span>
+              {% elif p.status == 'pending_approval' %}
+                <span class="text-warning">proposed ${{ '%.4f'|format(p.proposed_pay_per_task or 0) }}</span>
+              {% else %}
+                <span class="text-muted">not yet live</span>
+              {% endif %}
+            </div>
+          </div>
         </a>
-        {% else %}
-        <div class="list-group-item text-muted">No projects yet. Create one and submit for admin approval.</div>
         {% endfor %}
       </div>
+      {% if pagination and pagination.pages > 1 %}
+      <div class="card-footer bg-white py-2">{{ pager(pagination, 'pm.dashboard') }}</div>
+      {% endif %}
+      {% else %}
+      <div class="card-body text-muted">No projects yet. Create one and submit for admin approval.</div>
+      {% endif %}
     </div>
   </div>
+
+  {# ---- Right rail ---- #}
   <div class="col-lg-4">
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-white"><h5 class="mb-0">Quick links</h5></div>

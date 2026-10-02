@@ -124,6 +124,42 @@ with app.app_context():
         ProjectAssignment.project_id == proj_id, ProjectAssignment.user_id == pm_id))
         is not None, "PM auto-assigned to own project")
 
+print("== PM dashboard renders with metrics tiles")
+r = pm_cl.get("/pm/"); expect(r.status_code == 200, "PM dashboard 200")
+expect(b"My projects" in r.data or b"My Projects" in r.data, "projects section present")
+expect(b"Earned" in r.data, "earned tile present")
+expect(b"Awaiting" in r.data or b"Pending approval" in r.data or b"pending" in r.data.lower(), "pending stat present")
+r2 = pm_cl.get("/pm/?page=2"); expect(r2.status_code == 200, "dashboard page 2 renders")
+
+print("== PM dashboard query count stays bounded with 8 projects")
+from sqlalchemy import event
+import models as M
+with app.app_context():
+    for i in range(7):
+        prj = M.Project(
+            name=f"Project {i}", client_name="Cx", task_type="classification",
+            pay_per_task=0.05, instructions="x",
+            created_by=pm_id, approved_by=pm_id,
+            approved_at=M.utc_now(), status="active",
+        )
+        db.session.add(prj); db.session.flush()
+        db.session.add(ProjectAssignment(
+            project_id=prj.id, user_id=pm_id,
+            role_in_project="project_manager", assigned_by=pm_id,
+        ))
+        for _ in range(5):
+            db.session.add(M.Task(project_id=prj.id, input_data="x", status="pending"))
+    db.session.commit()
+qc = {"n": 0}
+def _count(conn, cur, stmt, params, context, executemany): qc["n"] += 1
+with app.app_context():
+    event.listen(db.engine, "before_cursor_execute", _count)
+r = pm_cl.get("/pm/")
+with app.app_context():
+    event.remove(db.engine, "before_cursor_execute", _count)
+expect(r.status_code == 200, "dashboard renders with 8 projects")
+expect(qc["n"] < 25, f"query count bounded ({qc['n']} queries)")
+
 print("== PM uploads tasks ==")
 r = pm_cl.post(f"/pm/projects/{proj_id}/upload", data={
     "csrf_token": gcsrf(pm_cl, f"/pm/projects/{proj_id}/upload"),
