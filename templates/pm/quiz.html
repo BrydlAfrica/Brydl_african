@@ -1,20 +1,201 @@
 {% extends "base.html" %}
 {% block title %}Quiz · {{ project.name }}{% endblock %}
 {% block content %}
-<h1 class="h3 mb-1">Qualification quiz — {{ project.name }}</h1>
-{% if quiz and quiz.status == 'active' %}<div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>Quiz is active. Only admin can edit/retire it.</div>{% else %}<p class="text-muted">Draft the quiz here; ask admin to activate it.</p>{% endif %}
-<div class="card border-0 shadow-sm"><div class="card-body">
-<form method="post">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Qualification quiz — {{ project.name }}</h1>
+    <div class="text-muted small">
+      PMs draft quizzes here; only admins can activate or retire them.
+    </div>
+  </div>
+  {% if quiz %}
+  <div>
+    {% if quiz.status == 'active' %}
+    <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+    <span class="badge text-bg-light">Pass score: {{ quiz.pass_score }}%</span>
+    <span class="badge text-bg-light">Max attempts: {{ quiz.max_attempts }}</span>
+    {% elif quiz.status == 'retired' %}
+    <span class="badge text-bg-secondary">Retired</span>
+    {% else %}
+    <span class="badge text-bg-warning"><i class="bi bi-pencil me-1"></i>Draft</span>
+    <span class="badge text-bg-light">Pass score: {{ quiz.pass_score }}%</span>
+    <span class="badge text-bg-light">Max attempts: {{ quiz.max_attempts }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if quiz and quiz.status == 'active' %}
+<div class="alert alert-info mb-3">
+  <i class="bi bi-info-circle me-1"></i>
+  Quiz is <strong>active</strong>. Annotators must pass it (or be exempted)
+  before they can claim tasks. Draft editing is locked; ask an admin to
+  retire this quiz if the questions need to change.
+</div>
+{% elif quiz and quiz.status == 'retired' %}
+<div class="alert alert-secondary mb-3">
+  <i class="bi bi-archive me-1"></i>
+  This quiz is retired. Roster below is frozen for historical record.
+</div>
+{% else %}
+<div class="alert alert-light border mb-3">
+  <i class="bi bi-lightbulb me-1"></i>
+  Save a draft, preview it below, then ask an admin to activate it so
+  annotators can take it from the quiz page.
+</div>
+{% endif %}
+
 <div class="row g-3">
-  <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title" required value="{{ quiz.title if quiz else '' }}"></div>
-  <div class="col-md-3"><label class="form-label">Pass score (%)</label><input class="form-control" type="number" min="1" max="100" name="pass_score" value="{{ quiz.pass_score if quiz else 80 }}"></div>
-  <div class="col-md-3"><label class="form-label">Max attempts</label><input class="form-control" type="number" min="1" max="20" name="max_attempts" value="{{ quiz.max_attempts if quiz else 3 }}"></div>
-  <div class="col-12"><label class="form-label">Questions (JSON)</label>
-    <textarea class="form-control font-monospace" name="questions_json" rows="12" placeholder='[{"q":"...","choices":["A","B","C"],"answer":0}]'>{{ quiz.questions_json if quiz else '[]' }}</textarea>
-    <small class="text-muted">Array of {q, choices[], answer}. Save a draft; admin activates the gate.</small>
+  {# ---- Draft editor (disabled when active/retired) ---- #}
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-pencil-square me-1"></i>{% if quiz and quiz.status == 'active' %}Locked (active){% else %}Draft editor{% endif %}
+      </div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Title</label>
+              <input class="form-control" name="title" required
+                     value="{{ quiz.title if quiz else '' }}"
+                     {% if quiz and quiz.status != 'draft' %}disabled{% endif %}
+                     maxlength="200">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Pass score (%)</label>
+              <input class="form-control" type="number" min="1" max="100" name="pass_score"
+                     value="{{ quiz.pass_score if quiz else 80 }}"
+                     {% if quiz and quiz.status != 'draft' %}disabled{% endif %}>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Max attempts</label>
+              <input class="form-control" type="number" min="1" max="20" name="max_attempts"
+                     value="{{ quiz.max_attempts if quiz else 3 }}"
+                     {% if quiz and quiz.status != 'draft' %}disabled{% endif %}>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Questions (JSON)</label>
+              <textarea class="form-control font-monospace" name="questions_json" rows="10"
+                        placeholder='[{"q":"...","choices":["A","B","C"],"answer":0}]'
+                        {% if quiz and quiz.status != 'draft' %}disabled{% endif %}>{{ quiz.questions_json if quiz else '[]' }}</textarea>
+              <small class="text-muted">
+                Array of <code>{q, choices[], answer}</code> where <code>answer</code> is
+                the 0-based index of the correct choice.
+              </small>
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3"
+                  {% if quiz and quiz.status != 'draft' %}disabled{% endif %}>
+            <i class="bi bi-save me-1"></i>Save draft
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# ---- Question preview ---- #}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-eye me-1"></i>Preview
+        {% if preview_questions %}<span class="text-muted fw-normal small">· {{ preview_questions|length }} question(s)</span>{% endif %}
+      </div>
+      <div class="card-body">
+        {% if not preview_questions %}
+          <p class="text-muted mb-0">No previewable questions yet. Save the draft first.</p>
+        {% else %}
+          <ol class="mb-0">
+            {% for q in preview_questions %}
+            <li class="mb-3">
+              <div class="fw-semibold">{{ q.q }}</div>
+              <ul class="list-unstyled small text-muted mt-1 mb-0">
+                {% for c in q.choices %}
+                <li>
+                  {% if q.answer is not none and loop.index0 == q.answer %}
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  {% else %}<i class="bi bi-circle me-1"></i>{% endif %}{{ c }}
+                </li>
+                {% endfor %}
+              </ul>
+            </li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- Roster + attempts ---- #}
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-people-fill me-1"></i>Qualified roster
+        {% if roster %}<span class="badge text-bg-light ms-1">{{ roster|length }}</span>{% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr><th>Annotator</th><th>How</th><th class="text-nowrap">When</th></tr>
+          </thead>
+          <tbody>
+            {% if not roster %}
+            <tr><td colspan="3" class="text-muted text-center py-3">
+              No one has qualified yet.{% if not quiz or quiz.status != 'active' %} Activate the quiz first.{% endif %}
+            </td></tr>
+            {% else %}
+            {% for r in roster %}
+            <tr>
+              <td>{{ r.annotator }}</td>
+              <td>
+                {% if r.how == 'exempt' %}<span class="badge text-bg-info">exempt</span>
+                {% else %}<span class="badge text-bg-success">passed {{ r.score }}%</span>{% endif %}
+              </td>
+              <td class="text-muted text-nowrap">{{ r.when.strftime('%d %b %H:%M') if r.when else '—' }}</td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      {% if roster %}
+      <div class="card-footer bg-white small text-muted">
+        Exemptions and revokes are admin actions.
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-clock-history me-1"></i>Recent attempts
+        {% if attempts %}<span class="text-muted fw-normal small">· latest {{ attempts|length }}</span>{% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr><th>Annotator</th><th>Status</th><th>Score</th><th class="text-nowrap">When</th></tr>
+          </thead>
+          <tbody>
+            {% if not attempts %}
+            <tr><td colspan="4" class="text-muted text-center py-3">No attempts yet.</td></tr>
+            {% else %}
+            {% for a in attempts %}
+            <tr>
+              <td>{{ a.annotator }}</td>
+              <td>
+                {% if a.status == 'passed' %}<span class="badge text-bg-success">passed</span>
+                {% elif a.status == 'failed' %}<span class="badge text-bg-danger">failed</span>
+                {% elif a.status == 'exempt' %}<span class="badge text-bg-info">exempt</span>
+                {% else %}<span class="badge text-bg-secondary">{{ a.status }}</span>{% endif %}
+              </td>
+              <td>{% if a.score is not none %}{{ a.score }}%{% else %}—{% endif %}</td>
+              <td class="text-muted text-nowrap">{{ a.when.strftime('%d %b %H:%M') if a.when else '—' }}</td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
-<button class="btn btn-primary mt-3" {% if quiz and quiz.status=='active' %}disabled{% endif %}>Save draft</button>
-</form></div></div>
 {% endblock %}

@@ -1055,12 +1055,13 @@ def create_client_link(project_id: int):
 @pm_bp.route("/projects/<int:project_id>/quiz", methods=["GET", "POST"])
 @pm_required
 def quiz(project_id: int):
-    try:
-        validate_csrf(request.form.get("csrf_token", ""))
-    except ValidationError:
-        flash("Security check failed. Please reload and try again.", "warning")
-        return redirect(request.referrer or url_for("pm.dashboard"))
     project = _load_pm_project(project_id)
+    if request.method == "POST":
+        try:
+            validate_csrf(request.form.get("csrf_token", ""))
+        except ValidationError:
+            flash("Security check failed. Please reload and try again.", "warning")
+            return redirect(request.referrer or url_for("pm.dashboard"))
     quiz_row = db.session.scalar(
         select(QualificationQuiz).where(QualificationQuiz.project_id == project.id)
     )
@@ -1111,10 +1112,70 @@ def quiz(project_id: int):
                 db.session.commit()
                 flash("Quiz draft saved. Ask admin to activate it.", "success")
                 return redirect(url_for("pm.quiz", project_id=project.id))
+    # Parse questions for preview (best-effort; fall back to empty on bad JSON).
+    preview_questions: list[dict] = []
+    if quiz_row is not None:
+        try:
+            import json as _json
+            parsed = _json.loads(quiz_row.questions_json or "[]")
+            if isinstance(parsed, list):
+                preview_questions = [
+                    q for q in parsed
+                    if isinstance(q, dict) and "q" in q and "choices" in q
+                ]
+        except Exception:
+            preview_questions = []
+
+    # Qualified roster (read-only for PMs) — annotators who passed or were
+    # exempted, newest first by their qualifying attempt.
+    roster: list[dict] = []
+    if quiz_row is not None:
+        rows = db.session.execute(
+            select(QuizAttempt, User.name)
+            .join(User, User.id == QuizAttempt.annotator_id)
+            .where(
+                QuizAttempt.quiz_id == quiz_row.id,
+                QuizAttempt.status.in_(("passed", "exempt")),
+            )
+            .order_by(QuizAttempt.id.desc())
+        ).all()
+        seen: set[int] = set()
+        for attempt, name in rows:
+            if attempt.annotator_id in seen:
+                continue
+            seen.add(attempt.annotator_id)
+            roster.append({
+                "annotator": name,
+                "how": ("exempt" if attempt.status == "exempt" else "passed"),
+                "score": attempt.score_percent,
+                "when": attempt.created_at,
+            })
+
+    # Recent attempts (read-only) so PMs can see who's trying/struggling.
+    attempts: list[dict] = []
+    if quiz_row is not None:
+        rows = db.session.execute(
+            select(QuizAttempt, User.name)
+            .join(User, User.id == QuizAttempt.annotator_id)
+            .where(QuizAttempt.quiz_id == quiz_row.id)
+            .order_by(QuizAttempt.id.desc())
+            .limit(25)
+        ).all()
+        for attempt, name in rows:
+            attempts.append({
+                "annotator": name,
+                "status": attempt.status,
+                "score": attempt.score_percent,
+                "when": attempt.created_at,
+            })
+
     return render_template(
         "pm/quiz.html",
         project=project,
         quiz=quiz_row,
+        preview_questions=preview_questions,
+        roster=roster,
+        attempts=attempts,
     )
 
 
