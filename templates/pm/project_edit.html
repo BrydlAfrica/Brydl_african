@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_money.html" import ngn with context %}
 {% block title %}Edit {{ project.name }} · {{ app_name }}{% endblock %}
 {% block content %}
 <h1 class="h3 mb-1">Edit project</h1>
@@ -13,7 +14,7 @@
     <div class="col-md-4"><label class="form-label">{{ form.deadline.label }}</label>{{ form.deadline(class="form-control", type="date") }}</div>
     <div class="col-md-4">
       <label class="form-label">Pay per task</label>
-      <input class="form-control" disabled value="{% if project.pay_per_task %}${{ '%.2f'|format(project.pay_per_task) }}{% else %}pending{% endif %}">
+      <input class="form-control" disabled value="{% if project.pay_per_task %}${{ '%.2f'|format(project.pay_per_task) }}/task {{ ngn(project.pay_per_task) }}{% else %}pending{% endif %}">
     </div>
     <div class="col-12"><label class="form-label">{{ form.instructions.label }}</label>{{ form.instructions(class="form-control", rows="6") }}</div>
     <div class="col-12"><label class="form-label">{{ form.rubric_dimensions.label }}</label>{{ form.rubric_dimensions(class="form-control", rows="3") }}</div>

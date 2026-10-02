@@ -114,7 +114,7 @@
       <div class="card-body">
         <pre class="mb-0 small" style="white-space: pre-wrap;">{{ output_display }}</pre>
         {% if rubric_view %}
-        <table class="table table-sm table-striped mt-3 mb-0 small">
+        <div class="table-responsive"><table class="table table-sm table-striped mt-3 mb-0 small">
           <thead>
             <tr><th>Rubric</th><th class="text-center">A</th><th class="text-center">B</th></tr>
           </thead>
@@ -127,7 +127,7 @@
             </tr>
             {% endfor %}
           </tbody>
-        </table>
+        </table></div>
         {% endif %}
       </div>
     </div>
