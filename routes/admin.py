@@ -2506,6 +2506,21 @@ def consensus_conflicts():
     status_filter = (request.args.get("status") or "").strip()
     allowed = ("pending", "agreed", "conflict", "resolved")
 
+    # KPI counts for the header — single grouped query, no per-tab hit.
+    counts = {
+        "pending": 0, "agreed": 0, "conflict": 0, "resolved": 0,
+    }
+    try:
+        for st, n in db.session.execute(
+            select(ConsensusGroup.status, func.count(ConsensusGroup.id))
+            .group_by(ConsensusGroup.status)
+        ).all():
+            if st in counts:
+                counts[st] = int(n or 0)
+    except Exception:
+        current_app.logger.exception("Consensus counts failed.")
+    counts["needs_attention"] = counts["pending"] + counts["conflict"]
+
     stmt = (
         select(ConsensusGroup)
         .options(db.joinedload(ConsensusGroup.project))
@@ -2580,7 +2595,7 @@ def consensus_conflicts():
 
     return render_template(
         "admin/conflicts.html", rows=rows, pagination=pagination,
-        status_filter=status_filter,
+        status_filter=status_filter, counts=counts,
     )
 
 
@@ -2673,70 +2688,93 @@ def arbitrate(group_id: int):
     GET renders the sibling verdicts side by side. POST (CSRF) records
     the binding decision — decided_choice, optional note, auditor and
     timestamp — freezes the group as resolved and audits the ruling.
-    Resolved groups are immutable (re-arbitration is refused).
+    Resolved groups render a read-only summary so auditors can review
+    prior rulings.
 
     Args:
         group_id: Primary key of the ConsensusGroup.
 
     Returns:
-        The arbitration page (GET/failed POST) or a redirect to the
-        conflicts list after a successful ruling. 404 for unknown ids.
+        The arbitration page (GET/failed POST/read-only) or a redirect
+        to the next pending conflict (or the list) after a successful
+        ruling. 404 for unknown ids.
     """
     group = db.session.get(ConsensusGroup, group_id)
     if group is None:
         abort(404)
 
-    if group.status == "resolved":
+    # Resolved rounds redirect back to the list with a flash by default
+    # (the binding ruling is immutable and shouldn't be re-arbitrated).
+    # Appending ?view=1 renders a read-only summary for audit purposes.
+    if (group.status == "resolved"
+            and request.args.get("view") != "1"
+            and request.method == "GET"):
         flash("This round was already resolved — the ruling is"
               " binding.", "info")
         return redirect(url_for("admin.consensus_conflicts"))
 
+    def _decoded_resolver_name() -> str:
+        if not group.resolved_by:
+            return ""
+        u = db.session.get(User, group.resolved_by)
+        return u.name if u else f"user #{group.resolved_by}"
+
     # Sibling verdicts: latest submission per task with annotator name,
     # canonical choice and justification — the arbitration evidence.
-    task_ids = [t.id for t in group.tasks]
-    subs_by_task: dict[int, list] = {}
-    annotators: dict[int, str] = {}
-    if task_ids:
-        for sub in db.session.scalars(
-            select(Submission)
-            .where(Submission.task_id.in_(task_ids))
-            .order_by(Submission.id.asc())
-        ).all():
-            subs_by_task.setdefault(sub.task_id, []).append(sub)
-        annotator_ids = {
-            s.annotator_id
-            for subs in subs_by_task.values() for s in subs
-        }
-        if annotator_ids:
-            annotators = dict(db.session.execute(
-                select(User.id, User.name).where(
-                    User.id.in_(annotator_ids)
-                )
-            ).all())
-    verdicts = []
-    for t in group.tasks:
-        subs = subs_by_task.get(t.id, [])
-        latest = subs[-1] if subs else None
-        key = None
-        if latest is not None:
-            try:
-                doc = json.loads(latest.output_data or "")
-                key = doc.get("chosen") or doc.get("label")
-            except ValueError:
-                key = None
-        verdicts.append({
-            "task_id": t.id,
-            "annotator": annotators.get(
-                latest.annotator_id, "?"
-            ) if latest else None,
-            "choice": key,
-            "justification": (
-                _preference_justification(latest) if latest else None
-            ),
-            "rubric": _rubric_view(latest, group.project),
-            "status": latest.status if latest else None,
-        })
+    def _build_verdicts():
+        task_ids = [t.id for t in group.tasks]
+        subs_by_task: dict[int, list] = {}
+        annotators: dict[int, str] = {}
+        if task_ids:
+            for sub in db.session.scalars(
+                select(Submission)
+                .where(Submission.task_id.in_(task_ids))
+                .order_by(Submission.id.asc())
+            ).all():
+                subs_by_task.setdefault(sub.task_id, []).append(sub)
+            annotator_ids = {
+                s.annotator_id
+                for subs in subs_by_task.values() for s in subs
+            }
+            if annotator_ids:
+                annotators = dict(db.session.execute(
+                    select(User.id, User.name).where(
+                        User.id.in_(annotator_ids)
+                    )
+                ).all())
+        out = []
+        choices: list[str] = []
+        for t in group.tasks:
+            subs = subs_by_task.get(t.id, [])
+            latest = subs[-1] if subs else None
+            key = None
+            if latest is not None:
+                try:
+                    doc = json.loads(latest.output_data or "")
+                    key = (doc.get("chosen") or doc.get("label"))
+                    if isinstance(key, str):
+                        key = key.strip()
+                except ValueError:
+                    key = None
+            if key:
+                choices.append(key.lower())
+            out.append({
+                "task_id": t.id,
+                "annotator": annotators.get(
+                    latest.annotator_id, "?"
+                ) if latest else None,
+                "choice": key,
+                "justification": (
+                    _preference_justification(latest) if latest else None
+                ),
+                "rubric": _rubric_view(latest, group.project),
+                "status": latest.status if latest else None,
+            })
+        # agreement: all the same non-empty choice
+        unique = {c for c in choices if c}
+        return out, (len(unique) <= 1 and len(choices) >= 2)
 
+    verdicts, in_agreement = _build_verdicts()
     prompt_view = content_view(
         group.tasks[0].input_data if group.tasks else ""
     )
@@ -2747,11 +2785,25 @@ def arbitrate(group_id: int):
         url_for("admin.media_serve", asset_id=round_media["media_id"])
         if round_media is not None else None
     )
-    if request.method == "GET":
+    resolver_name = _decoded_resolver_name()
+    # Locate the next pending/conflict round so we can advance the
+    # auditor straight to it after a ruling (less clicking).
+    next_group_id = db.session.scalar(
+        select(ConsensusGroup.id)
+        .where(ConsensusGroup.status.in_(("pending", "conflict")))
+        .where(ConsensusGroup.id != group.id)
+        .order_by(ConsensusGroup.id.asc())
+    )
+
+    if request.method == "GET" or group.status == "resolved":
         return render_template(
             "admin/arbitrate.html", group=group, verdicts=verdicts,
             prompt_view=prompt_view,
             media_doc=round_media, media_url=round_media_url,
+            in_agreement=in_agreement,
+            resolver_name=resolver_name,
+            next_group_id=next_group_id,
+            read_only=(group.status == "resolved"),
         )
 
     try:
@@ -2769,13 +2821,19 @@ def arbitrate(group_id: int):
             return render_template(
                 "admin/arbitrate.html", group=group,
                 verdicts=verdicts, prompt_view=prompt_view,
+                media_doc=round_media, media_url=round_media_url,
+                in_agreement=in_agreement, resolver_name=resolver_name,
+                next_group_id=next_group_id, read_only=False,
             )
         decided = decided.lower()
     elif not decided:
         flash("Write the ruling for this round.", "danger")
         return render_template(
             "admin/arbitrate.html", group=group,
-            verdicts=verdicts,
+            verdicts=verdicts, prompt_view=prompt_view,
+            media_doc=round_media, media_url=round_media_url,
+            in_agreement=in_agreement, resolver_name=resolver_name,
+            next_group_id=next_group_id, read_only=False,
         )
 
     group.status = "resolved"
@@ -2804,6 +2862,10 @@ def arbitrate(group_id: int):
             "Arbitration failed for group %s.", group.id
         )
         flash("Could not save the ruling. Please try again.", "danger")
+        return redirect(url_for("admin.arbitrate", group_id=group.id))
+    if next_group_id:
+        return redirect(url_for("admin.arbitrate",
+                                group_id=next_group_id))
     return redirect(url_for("admin.consensus_conflicts"))
 
 

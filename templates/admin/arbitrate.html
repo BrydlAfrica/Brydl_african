@@ -1,20 +1,59 @@
 {% extends "base.html" %}
-{% block title %}Arbitrate round #{{ group.id }} — Brydl Admin{% endblock %}
+{% block title %}{% if read_only %}Ruling{% else %}Arbitrate{% endif %} round #{{ group.id }} — {{ app_name }}{% endblock %}
 {% block content %}
-<h1 class="h3 mb-1">
-  <i class="bi bi-gavel me-2" aria-hidden="true"></i>Arbitrate round #{{ group.id }}
-</h1>
-<p class="text-muted">
-  {{ group.project.name }} · {{ group.required_count }} annotators ·
-  currently <strong>{{ group.status }}</strong>. Your ruling is
-  binding and cannot be changed.
-</p>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">
+      <i class="bi bi-gavel me-2" aria-hidden="true"></i>
+      {% if read_only %}Ruling{% else %}Arbitrate{% endif %} round #{{ group.id }}
+    </h1>
+    <p class="text-muted mb-0">
+      {{ group.project.name }} · {{ group.required_count }} annotators ·
+      currently <strong>{{ group.status }}</strong>
+      {% if group.status == 'resolved' and resolver_name %}
+        · resolved by <strong>{{ resolver_name }}</strong>
+        {% if group.resolved_at %} on {{ group.resolved_at.strftime('%d %b %Y %H:%M') }}{% endif %}
+      {% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if next_group_id and not read_only %}
+    <a class="btn btn-sm btn-outline-secondary"
+       href="{{ url_for('admin.arbitrate', group_id=next_group_id) }}">
+      Skip <i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% elif read_only and next_group_id %}
+    <a class="btn btn-sm btn-primary"
+       href="{{ url_for('admin.arbitrate', group_id=next_group_id) }}">
+      Next pending <i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% endif %}
+    <a class="btn btn-sm btn-outline-secondary"
+       href="{{ url_for('admin.consensus_conflicts') }}">
+      <i class="bi bi-arrow-left me-1"></i>All rounds
+    </a>
+  </div>
+</div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for category, message in messages %}
   <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
   {% endfor %}
 {% endwith %}
+
+{% if read_only %}
+<div class="alert alert-secondary">
+  <i class="bi bi-lock me-1"></i>
+  This round is <strong>resolved</strong>. The ruling below is binding
+  and cannot be changed. Shown here for auditor reference.
+</div>
+{% elif in_agreement and verdicts|length >= 2 %}
+<div class="alert alert-success">
+  <i class="bi bi-check-circle me-1"></i>
+  All submitted annotators picked the <strong>same</strong> answer.
+  You may still record a binding ruling if the consensus is wrong.
+</div>
+{% endif %}
 
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-white fw-semibold">The prompt</div>
@@ -49,53 +88,71 @@
   {% endif %}
 </div>
 
-<form method="post">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="row g-3 mb-4">
-    {% for v in verdicts %}
-    <div class="col-md-6">
-      <div class="card h-100 border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold">
-          Task #{{ v.task_id }} · {{ v.annotator or 'not yet answered' }}
-          {% if v.status %}<span class="badge bg-light text-dark border ms-1">{{ v.status }}</span>{% endif %}
+<div class="row g-3 mb-4">
+  {% for v in verdicts %}
+  <div class="col-md-6">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span>Task #{{ v.task_id }} · {{ v.annotator or 'not yet answered' }}</span>
+        {% if v.status %}<span class="badge bg-light text-dark border ms-1">{{ v.status }}</span>{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="mb-2">
+          Choice: <strong>{{ v.choice if v.choice else '—' }}</strong>
         </div>
-        <div class="card-body">
-          <div class="mb-2">
-            Choice: <strong>{{ v.choice if v.choice else '—' }}</strong>
-          </div>
-          {% if v.justification %}
-          <div class="small text-muted" style="white-space: pre-wrap;">&ldquo;{{ v.justification }}&rdquo;</div>
-          {% else %}
-          <div class="small text-muted fst-italic">No justification recorded.</div>
-          {% endif %}
-          {% if v.rubric %}
-          <div class="mt-2 pt-2 border-top small">
-            {% for dim, scores in v.rubric.items() %}
-            <span class="badge bg-light text-dark border me-1">{{ dim }}: A {{ scores.a }} · B {{ scores.b }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
+        {% if v.justification %}
+        <div class="small text-muted" style="white-space: pre-wrap;">&ldquo;{{ v.justification }}&rdquo;</div>
+        {% else %}
+        <div class="small text-muted fst-italic">No justification recorded.</div>
+        {% endif %}
+        {% if v.rubric %}
+        <div class="mt-2 pt-2 border-top small">
+          {% for dim, scores in v.rubric.items() %}
+          <span class="badge bg-light text-dark border me-1 mb-1">{{ dim }}: A {{ scores.a }} · B {{ scores.b }}</span>
+          {% endfor %}
         </div>
+        {% endif %}
       </div>
     </div>
-    {% endfor %}
   </div>
+  {% endfor %}
+</div>
 
-  <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white fw-semibold">
-      <i class="bi bi-gavel me-1" aria-hidden="true"></i>Your ruling
-    </div>
-    <div class="card-body">
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-gavel me-1" aria-hidden="true"></i>
+    {% if read_only %}Binding ruling{% else %}Your ruling{% endif %}
+  </div>
+  <div class="card-body">
+    {% if read_only %}
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Canonical answer</dt>
+        <dd class="col-sm-9"><strong>{{ group.decided_choice or '—' }}</strong></dd>
+        <dt class="col-sm-3">Ruling note</dt>
+        <dd class="col-sm-9">
+          {% if group.decided_note %}<div class="small" style="white-space: pre-wrap;">{{ group.decided_note }}</div>
+          {% else %}<span class="text-muted fst-italic">(no note)</span>{% endif %}
+        </dd>
+        <dt class="col-sm-3">Resolved by</dt>
+        <dd class="col-sm-9">{{ resolver_name or '—' }}
+          {% if group.resolved_at %} · {{ group.resolved_at.strftime('%d %b %Y %H:%M UTC') }}{% endif %}
+        </dd>
+      </dl>
+    {% else %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% if group.project.task_type == 'preference' %}
       <fieldset class="mb-3">
         <legend class="form-label fs-6 fw-semibold">Canonical answer</legend>
         <div class="d-flex gap-3">
           <div class="form-check">
-            <input class="form-check-input" type="radio" name="decided_choice" id="dc-a" value="a" required>
+            <input class="form-check-input" type="radio" name="decided_choice" id="dc-a" value="a" required
+                   {% if group.decided_choice == 'a' %}checked{% endif %}>
             <label class="form-check-label" for="dc-a">Response A</label>
           </div>
           <div class="form-check">
-            <input class="form-check-input" type="radio" name="decided_choice" id="dc-b" value="b" required>
+            <input class="form-check-input" type="radio" name="decided_choice" id="dc-b" value="b" required
+                   {% if group.decided_choice == 'b' %}checked{% endif %}>
             <label class="form-check-label" for="dc-b">Response B</label>
           </div>
         </div>
@@ -104,19 +161,33 @@
       <div class="mb-3">
         <label class="form-label fw-semibold" for="dc-free">Canonical answer</label>
         <input class="form-control" id="dc-free" name="decided_choice" maxlength="100" required
+               value="{{ group.decided_choice or '' }}"
                placeholder="The binding label / answer for this round">
       </div>
       {% endif %}
       <div class="mb-3">
         <label class="form-label fw-semibold" for="dc-note">Ruling note (optional)</label>
         <textarea class="form-control" id="dc-note" name="decided_note" rows="3" maxlength="2000"
-                  placeholder="Why this ruling wins — kept with the round for the client deliverable."></textarea>
+                  placeholder="Why this ruling wins — kept with the round for the client deliverable and future audit trail.">{{ group.decided_note or '' }}</textarea>
       </div>
-      <button type="submit" class="btn btn-primary">
-        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Record binding ruling
-      </button>
-      <a class="btn btn-outline-secondary" href="{{ url_for('admin.consensus_conflicts') }}">Cancel</a>
-    </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Record binding ruling
+        </button>
+        {% if next_group_id %}
+        <a class="btn btn-outline-primary"
+           href="{{ url_for('admin.arbitrate', group_id=next_group_id) }}">
+          Skip & next <i class="bi bi-chevron-right ms-1"></i>
+        </a>
+        {% endif %}
+        <a class="btn btn-outline-secondary" href="{{ url_for('admin.consensus_conflicts') }}">Cancel</a>
+      </div>
+      <div class="form-text mt-2">
+        <i class="bi bi-shield-lock me-1"></i>
+        Recorded rulings are immutable and audited under your name.
+      </div>
+    </form>
+    {% endif %}
   </div>
-</form>
+</div>
 {% endblock %}
