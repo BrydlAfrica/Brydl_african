@@ -434,6 +434,44 @@ def create_app(config_class: type = Config) -> Flask:
             "unread_notifications": unread,
         }
 
+    # --- Optional error tracking (Sentry) ----------------------------------
+    # Set SENTRY_DSN in the environment to enable. No SDK import when the
+    # DSN is absent so local/offline installs never hit the network. The
+    # Flask integration registers its own before-request/error handlers;
+    # send_default_pii=False keeps user emails/IDs off the wire unless you
+    # explicitly opt in from the Sentry dashboard later.
+    _sentry_dsn = os.environ.get("SENTRY_DSN", "").strip()
+    if _sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.flask import FlaskIntegration
+
+            sentry_sdk.init(
+                dsn=_sentry_dsn,
+                integrations=[FlaskIntegration()],
+                traces_sample_rate=float(
+                    os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")
+                ),
+                profiles_sample_rate=float(
+                    os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0")
+                ),
+                send_default_pii=False,
+                environment=os.environ.get(
+                    "SENTRY_ENVIRONMENT",
+                    "production" if app.config.get("FLASK_ENV") == "production"
+                    else "development",
+                ),
+                release=os.environ.get("RELEASE_SHA", "dev"),
+            )
+            app.logger.info("Sentry error tracking enabled.")
+        except ImportError:
+            app.logger.warning(
+                "SENTRY_DSN is set but sentry-sdk is not installed; "
+                "run `pip install sentry-sdk[flask]` to enable."
+            )
+        except Exception:
+            app.logger.exception("Failed to initialise Sentry.")
+
     return app
 
 

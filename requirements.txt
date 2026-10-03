@@ -28,3 +28,8 @@ cryptography==50.0.1
 markdown==3.10.3
 nh3==0.3.7
 pygments==2.21.0
+
+# Optional error tracking (Phase 13-J). Installed in the base image so a
+# single SENTRY_DSN env var is enough to turn monitoring on; no import
+# cost when the DSN is unset.
+sentry-sdk[flask]==2.19.2

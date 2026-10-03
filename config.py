@@ -353,6 +353,11 @@ class Config:
     # render it as maxlength={{ config.MAX_TEXTAREA_CHARS }}.
     MAX_TEXTAREA_CHARS = MAX_TEXTAREA_CHARS
 
+    # Environment name ("development" unless set; render.yaml sets
+    # "production"). Drives the Sentry environment tag and prod-only
+    # guards like the schema drift loud failure.
+    FLASK_ENV = os.environ.get("FLASK_ENV", "development").strip()
+
     # --- Security -------------------------------------------------------
     SECRET_KEY = _load_secret_key()
 

@@ -417,8 +417,9 @@ for line in open(os.path.join(ROOT, "requirements.txt"),
 pin_mismatches = []
 for pin in pins:
     name, _, expected = pin.partition("==")
+    pkg = name.split("[")[0].strip()  # strip extras like sentry-sdk[flask]
     try:
-        installed = importlib.metadata.version(name)
+        installed = importlib.metadata.version(pkg)
     except importlib.metadata.PackageNotFoundError:
         installed = "<missing>"
     if installed != expected:
