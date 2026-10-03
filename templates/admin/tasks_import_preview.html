@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_money.html" import ngn with context %}
 
 {% block title %}Import preview · {{ app_name }}{% endblock %}
 
@@ -11,9 +12,17 @@
       into <strong>{{ project.name }}</strong>
     </p>
   </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('admin.tasks', import_open=1) }}">
-    <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancel
-  </a>
+  <div class="d-flex gap-2">
+    {% if attention %}
+    <button type="button" class="btn btn-sm btn-outline-danger"
+            id="downloadErrorsBtn">
+      <i class="bi bi-download me-1"></i>Download error report
+    </button>
+    {% endif %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin.tasks', import_open=1) }}">
+      <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancel
+    </a>
+  </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -37,8 +46,8 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="card border-0 shadow-sm"><div class="card-body py-3">
-      <div class="h4 mb-0">{{ existing_count }}</div>
-      <div class="text-muted small">Tasks already in project</div>
+      <div class="h4 mb-0">${{ "%.2f"|format(cost_usd|float) }} {{ ngn(cost_usd) }}</div>
+      <div class="text-muted small">Estimated payout ({{ annotations_per }} annotator/task)</div>
     </div></div>
   </div>
 </div>
@@ -49,9 +58,15 @@
   Fix the flagged rows right here (edit the text, then tick the row) or
   leave them unticked to skip them. Everything is re-validated when you
   save — nothing enters the project until it passes the same checks as
-  the upload form.
+  the upload form. You can download a CSV error report to share with the
+  data provider.
 </div>
 {% endif %}
+
+{# Hidden form that posts back to the same page params to download an
+   error CSV — generated client-side from the table for simplicity
+   (the server already rendered reasons per row). #}
+<form id="errorReportForm"></form>
 
 <form method="post" action="{{ url_for('admin.import_confirm') }}" novalidate>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -114,4 +129,52 @@
     </div>
   </div>
 </form>
+
+<script>
+(function(){
+  function brydlDownloadErrors(ev){
+    if (ev) ev.preventDefault();
+    var rows = [];
+    var trs = document.querySelectorAll('table tbody tr');
+    trs.forEach(function(tr){
+      var badge = tr.querySelector('.badge');
+      if (!badge || badge.textContent.trim() !== 'Problem') return;
+      var tds = tr.querySelectorAll('td');
+      if (tds.length < 5) return;
+      var rowNo = tds[0].textContent.trim();
+      var textArea = tr.querySelector('textarea');
+      var goldInput = tr.querySelector('input[name^="row_gold_"]');
+      var reasonDiv = tds[4].querySelector('.text-muted');
+      rows.push([
+        rowNo,
+        (textArea ? textArea.value : '').replace(/\r?\n/g,' '),
+        (goldInput ? goldInput.value : ''),
+        (reasonDiv ? reasonDiv.textContent.trim() : '')
+      ]);
+    });
+    var csv = 'row_no,task_text,gold_answer,error\n';
+    rows.forEach(function(r){
+      csv += r.map(function(v){
+        var s = String(v == null ? '' : v);
+        if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g,'""') + '"';
+        return s;
+      }).join(',') + '\n';
+    });
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var ts = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = 'import-errors-' + ts + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+    return false;
+  }
+  var form = document.getElementById('errorReportForm');
+  if (form) form.addEventListener('submit', brydlDownloadErrors);
+  var btn = document.getElementById('downloadErrorsBtn');
+  if (btn) btn.addEventListener('click', function(){
+    if (form) { var ev = new Event('submit', {cancelable:true}); form.dispatchEvent(ev); }
+  });
+})();
+</script>
 {% endblock %}

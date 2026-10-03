@@ -1212,8 +1212,17 @@ def import_tasks():
 
     _flag_duplicate_rows(rows, project.id)
     ready = sum(1 for row in rows if row["ok"])
+    attention = len(rows) - ready
     existing_count = db.session.scalar(
         select(func.count(Task.id)).where(Task.project_id == project.id)
+    )
+    # Cost estimate: ready rows × pay_per_task × annotations per task
+    # (default 1 when consensus not configured). Stays Decimal; template
+    # casts to float at render time like every other money value.
+    annotations_per = int(getattr(project, "annotations_per_task", 0) or 1)
+    annotations_per = max(annotations_per, 1)
+    cost_usd = (
+        money(0) + (project.pay_per_task or money(0)) * ready * annotations_per
     )
     return render_template(
         "admin/tasks_import_preview.html",
@@ -1221,8 +1230,10 @@ def import_tasks():
         project=project,
         filename=filename[:120],
         ready=ready,
-        attention=len(rows) - ready,
+        attention=attention,
         existing_count=existing_count,
+        cost_usd=cost_usd,
+        annotations_per=annotations_per,
     )
 
 
