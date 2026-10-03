@@ -64,9 +64,15 @@ def notify(
             kind,
             user.id,
         )
-    if subject and current_app.config.get("SMTP_HOST"):
-        # Phase 10: when the job queue runs, the SMTP leg moves off
-        # the request path (the in-app row above is already durable).
+    # Mirror email: only sent when SMTP is configured AND the recipient
+    # has explicitly opted in. Password-reset mail bypasses this flag
+    # (it's transactional and goes through send_password_reset_email
+    # directly, not via notify()).
+    if (
+        subject
+        and current_app.config.get("SMTP_HOST")
+        and bool(getattr(user, "email_notifications_opt_in", False))
+    ):
         if current_app.config.get("JOBS_ENABLED") and os.environ.get(
                 "BRYDL_DISABLE_JOBS", "") != "1":
             try:

@@ -1743,6 +1743,51 @@ def bank_details():
     return redirect(url_for("annotator.profile"))
 
 
+@annotator_bp.route("/profile/notifications", methods=["POST"])
+@annotator_required
+def notification_prefs():
+    """Persist the user's email-notification opt-in (Phase 13-H).
+
+    Transactional mail (password reset, security notices) always
+    sends; this toggle only controls mirroring of in-app bell-feed
+    notifications. CSRF-guarded; POST-only. Any authenticated user
+    (annotator, PM, QA, auditor, admin) can update their own toggle
+    here — the profile page is the same across roles.
+
+    Returns:
+        Redirect back to the profile page with a success flash.
+    """
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("annotator.profile"))
+    opt_in = request.form.get("email_opt_in") == "1"
+    try:
+        current_user.email_notifications_opt_in = opt_in
+        log_event(
+            "prefs.email_notifications",
+            actor=current_user,
+            entity_type="user",
+            entity_id=current_user.id,
+            detail={"enabled": opt_in},
+            commit=True,
+        )
+        flash(
+            "Email notifications "
+            + ("enabled" if opt_in else "turned off") + ".",
+            "success",
+        )
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Could not save notification preferences for %s.",
+            current_user.id,
+        )
+        flash("Could not save preferences. Try again.", "danger")
+    return redirect(url_for("annotator.profile"))
+
+
 # ===== Qualification quiz (Phase 9) ===================================
 
 def _quiz_form_class(questions: list[dict]) -> type[FlaskForm]:

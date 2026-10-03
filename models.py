@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
 from flask_login import UserMixin
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import TERMS_VERSION
@@ -183,6 +183,12 @@ class User(UserMixin, db.Model):
     terms_accepted_at = db.Column(db.DateTime, nullable=True)
     # UI colour theme ("light"/"dark"); None renders as light.
     theme = db.Column(db.String(10), nullable=False, default="light")
+    # Opt-in mirror of in-app notifications to the user's email.
+    # Default False — transactional mail (password reset) is always
+    # sent; bell-feed notifications only email when the user opts in.
+    email_notifications_opt_in = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=text("0")
+    )
     # Self-service password reset: the SHA-256 hash of a one-off token
     # (never the token itself) plus its UTC expiry. Nullable = no reset
     # in flight; cleared the moment the token is consumed, so every

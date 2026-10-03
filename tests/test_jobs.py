@@ -8,20 +8,7 @@ waiting / unconfigured) against a stubbed gateway, stale-runner
 healing, the notification email leg moving off the request path,
 and the runner kill switches (JOBS_ENABLED / BRYDL_DISABLE_JOBS).
 """
-import json
-import os
-import os as _os
-ROOT = _os.environ.get("BRYDL_ROOT") or _os.path.abspath(
-    _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
-import re
-import shutil
-import sys
-from datetime import timedelta
-
-import jobs
-import paystack as paystack_gateway
-from app import create_app
-from extensions import db
+from app import create_app as _create
 from models import (
     AuditLog,
     BackgroundJob,
@@ -32,6 +19,20 @@ from models import (
     User,
     utc_now,
 )
+from extensions import db
+from app import create_app
+import paystack as paystack_gateway
+import jobs
+from datetime import timedelta
+import sys
+import shutil
+import re
+import json
+import os
+import os as _os
+ROOT = _os.environ.get("BRYDL_ROOT") or _os.path.abspath(
+    _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
+
 
 app = create_app()
 
@@ -68,7 +69,7 @@ with app.app_context():
                  role="admin")
     admin.set_password("admin-pass-1")
     ann = User(name="Ann Work", email="jobs-ann@brydl.ng",
-               role="annotator")
+               role="annotator", email_notifications_opt_in=True)
     ann.set_password("ann-pass-1")
     db.session.add_all([admin, ann])
     db.session.commit()
@@ -319,7 +320,6 @@ with app.app_context():
 os.environ["BRYDL_DISABLE_JOBS"] = "1"
 _os.makedirs(ROOT + "/instance", exist_ok=True)
 _os.chdir(ROOT)
-from app import create_app as _create
 
 fresh = _create()
 os.environ["BRYDL_DISABLE_JOBS"] = ""

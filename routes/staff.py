@@ -11,6 +11,7 @@ have.
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     redirect,
     render_template,
@@ -171,6 +172,49 @@ def profile():
         pw_form=pw_form,
         unread_notifications=_unread_bell_count(current_user.id),
     )
+
+
+@staff_bp.route("/profile/notifications", methods=["POST"])
+@login_required
+def notification_prefs():
+    """Persist the user's email-notification opt-in (Phase 13-H).
+
+    Mirrors annotator.notification_prefs for staff roles (PM/QA/auditor/
+    admin). Transactional mail always sends; this only controls the
+    in-app bell-feed mirror.
+
+    Returns:
+        Redirect back to the staff profile page.
+    """
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("staff.profile"))
+    opt_in = request.form.get("email_opt_in") == "1"
+    try:
+        current_user.email_notifications_opt_in = opt_in
+        log_event(
+            "prefs.email_notifications",
+            actor=current_user,
+            entity_type="user",
+            entity_id=current_user.id,
+            detail={"enabled": opt_in},
+            commit=True,
+        )
+        flash(
+            "Email notifications "
+            + ("enabled" if opt_in else "turned off") + ".",
+            "success",
+        )
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Could not save notification preferences for %s.",
+            current_user.id,
+        )
+        flash("Could not save preferences. Try again.", "danger")
+    return redirect(url_for("staff.profile"))
 
 
 # ---------- Notifications (bell) ------------------------------------------
