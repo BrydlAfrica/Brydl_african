@@ -410,6 +410,27 @@ class Project(db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
 
+    # --- RedLab (v14 / dynamic red-teaming) pricing/quota ---------------
+    # Per-session base pay (USD, Decimal) and per-breach bounty for
+    # the dynamic_red_team task type. Quota caps total sessions per
+    # project (0 = unlimited). All additive; non-RedLab projects
+    # leave these at 0.
+    redteam_base_pay = db.Column(
+        db.Numeric(10, 2),
+        nullable=False,
+        default=0,
+        server_default=text("0.00"),
+    )
+    redteam_breach_bounty = db.Column(
+        db.Numeric(10, 2),
+        nullable=False,
+        default=0,
+        server_default=text("0.00"),
+    )
+    redteam_session_quota = db.Column(
+        db.Integer, nullable=False, default=0, server_default=text("0")
+    )
+
     # project.creator -> User; user.projects_created -> list[Project]
     creator = db.relationship("User", foreign_keys=[created_by], backref="projects_created")
     approver = db.relationship("User", foreign_keys=[approved_by])
@@ -1015,6 +1036,28 @@ class Submission(db.Model):
     # submission is provably covered by exactly one payment.
     payment_id = db.Column(
         db.Integer, db.ForeignKey("payments.id"), nullable=True, index=True
+    )
+
+    # --- RedLab (v14 / dynamic red-teaming) linkage -----------------------
+    # Populated when a red-team chat (redlab.sessions row) concludes
+    # and is linked to this submission for QA review and payout.
+    # redlab_session_id is the redlab.sessions.id (UUID hex string);
+    # UNIQUE so one session can only ever resolve to one submission.
+    redlab_session_id = db.Column(
+        db.String(32), nullable=True, unique=True
+    )
+    # Annotator-facing red-team workflow state on this submission:
+    # 'none' (not a red-team task), 'active', 'concluded',
+    # 'flagged', 'qa_pending'.
+    redteam_state = db.Column(
+        db.String(32),
+        nullable=False,
+        default="none",
+        server_default=text("'none'"),
+        index=True,
+    )
+    redteam_breach_count = db.Column(
+        db.Integer, nullable=False, default=0, server_default=text("0")
     )
 
     # submission.task -> Task; task.submissions -> list[Submission]

@@ -84,6 +84,17 @@ def create_app(config_class: type = Config) -> Flask:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     # --- Extensions -----------------------------------------------------
+    # Register RedLab (v14) model metadata so db.create_all() and
+    # Alembic autogenerate both see the redlab schema's tables.
+    # redlab.models imports no Flask route/template/business logic
+    # (enforced by import-linter in Phase 9); it only declares
+    # SQLAlchemy model classes against the shared db instance.
+    try:
+        import redlab.models  # noqa: F401
+    except ImportError:
+        # Acceptable if RedLab deps aren't installed (degraded mode);
+        # tables simply won't be created until requirements are met.
+        pass
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
