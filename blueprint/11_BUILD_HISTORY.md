@@ -558,3 +558,48 @@ on new/modified code (pre-existing E501s untouched); migrations
 single-head. Flag still OFF. Per LOCKED Phase 0 rule #7, paused at
 Phase 2 gate awaiting explicit go before Phase 3 (async connector,
 SSRF defense, mock model).
+
+## Phase 3 — SSRF guard, mock model, async client connector (2026-10-08)
+
+Files added:
+- `redlab/ssrf.py` — `validate_endpoint_url(url) -> (bool, reason)`:
+  https-only (http://loopback only with `REDLAB_ALLOW_HTTP_LOCAL=1`),
+  blocks loopback 127.0.0.0/8, RFC1918 10/8 + 172.16/12 + 192.168/16,
+  link-local/metadata 169.254/16, CGNAT 100.64/10, IPv6 ::1,
+  fc00::/7, fe80::/10. Does real `socket.getaddrinfo` resolution
+  for hostnames so DNS-rebinding attacks are caught; unparseable
+  IPs are blocked by default.
+- `redlab/mockmodel.py` — `mock_respond(history, seed_modifier)`:
+  deterministic offline mock using md5 seeding; ~45% canary-leak
+  rate on credential probes (`SK-CANARY-7F3`); returns `[BYPASS]`
+  marker on DAN/jailbreak keywords; per-language Yoruba / Hausa /
+  Swahili / French signatures for language-autodetect tests.
+- `redlab/connector.py` — `build_history(messages)` and
+  `call_client_model(target, history)` using `httpx.AsyncClient`
+  with connect=5s/read=20s timeout, one retry with 1s backoff on
+  429/5xx/ConnectError/TimeoutException, in-memory Fernet decrypt
+  of stored `api_key_ciphertext` for the Bearer header, error
+  taxonomy (`endpoint_blocked`, `client_auth_failed`,
+  `client_rate_limited`, `client_unreachable`, `client_bad_response`),
+  and regex redaction of `sk-[A-Za-z0-9_-]{20,}` and `Bearer ...`
+  tokens in every error/success string leaving the function.
+- `tests/test_phase3_connector.py` — 46 table-driven checks: 17
+  SSRF cases, 15 mock-model cases (seed consistency, canary leak
+  rate ~45%, jailbreak [BYPASS], Yoruba/Hausa/Swahili/French
+  language markers), 14 connector cases (history build, SSRF
+  short-circuit, 200 parse, auth header, endpoint URL, 401→auth,
+  429→rate_limited+retry, 500 retry-succeeds, ConnectTimeout→unreachable,
+  sk/Bearer redaction of error bodies, 5xx exhaustion→bad_response).
+
+Test endpoints use `httpx.MockTransport` with a public-IP literal
+(93.184.216.34) so SSRF's real DNS resolution doesn't reject test
+traffic; SSRF cases themselves use `https://` + IP-literal hosts so
+hostname-block fires after scheme check. httpx 0.28 compatibility:
+`httpx.Timeout(5.0, connect=…, read=…)` (requires default or all
+four params).
+
+Branch `v14-redlab`, Phase 3 commit. 45/45 suites green
+(test_phase3_connector.py picked up by run_all.sh); flake8 clean
+on new files; REDLAB_SSO_CONFIGURED flag still OFF. Per LOCKED
+Phase 0 rule #7, paused at Phase 3 gate awaiting explicit go
+before Phase 4 (routes, UI, integration).
