@@ -33,3 +33,15 @@ pygments==2.21.0
 # single SENTRY_DSN env var is enough to turn monitoring on; no import
 # cost when the DSN is unset.
 sentry-sdk[flask]==2.19.2
+
+# --- RedLab (v14 / Dynamic Red-Teaming as a Service) -----------------------
+# FastAPI / Starlette ASGI host wraps Flask via a2wsgi.WSGIMiddleware; all
+# /redlab/v1/* routes live in the redlab/ package. FastAPI is optional at
+# import time — when REDLAB_ENABLED is not "true" the app boots as pure
+# Flask and /redlab/* returns 404.
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+httpx==0.28.1
+pydantic==2.11.3
+a2wsgi==1.10.8
+import-linter==2.2

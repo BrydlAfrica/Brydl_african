@@ -58,17 +58,22 @@ def db_counts():
 
 
 print("== 1. deployment files ==")
+# v14+: gunicorn serves the ASGI entry point (FastAPI-at-/redlab
+# composed with Flask-at-/ via a2wsgi) using uvicorn workers, 2
+# workers for free-tier CPU, threadpool raised in asgi.py startup.
 procfile = open(f"{PROJ}/Procfile").read()
-expect(procfile.strip() == 'web: gunicorn --threads 4 "app:create_app()"',
-       "Procfile start command (threaded worker)")
+expect("gunicorn" in procfile and "uvicorn.workers.UvicornWorker" in procfile
+       and "asgi:app" in procfile,
+       "Procfile starts gunicorn + UvicornWorker against asgi:app")
 runtime = open(f"{PROJ}/runtime.txt").read()
 expect(runtime.strip() == "python-3.11.6", "runtime.txt pins python-3.11.6")
 render = open(f"{PROJ}/render.yaml").read()
 for needle in ("brydl-dashboard", "plan: free",
                "buildCommand: pip install -r requirements.txt",
-               'startCommand: gunicorn --threads 4 "app:create_app()"',
+               "uvicorn.workers.UvicornWorker", "--workers 2", "asgi:app",
+               "healthCheckPath: /redlab/healthz",
                "PYTHON_VERSION", "SECRET_KEY", "generateValue: true",
-               "FLASK_ENV", "production", "healthCheckPath"):
+               "FLASK_ENV", "production"):
     expect(needle in render, f"render.yaml contains {needle!r}")
 gitignore = open(f"{PROJ}/.gitignore").read()
 for needle in ("instance/", "__pycache__/", "*.py[cod]", ".env", "venv/",

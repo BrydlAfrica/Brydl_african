@@ -456,3 +456,60 @@ they look the way they do.
   NDPR page. Tier 3: media tasks, consensus, live FX, avatars.
 - RLHF direction agreed (preference comparison → consensus/arbitration
   → trusted rendering → SFT editing → rubric dims) — awaiting start.
+
+## 2026-10-08 — v13.1 Hausa special-character toolbar
+
+Annotator-requested UX patch (Abdul Muhammad): a clickable Hausa
+special-character toolbar is injected above every annotator textarea
+(ɗ ƙ ɓ ƴ ʼ Ɗ Ƙ Ɓ Ƴ). Clicking a char inserts it at the caret, falls
+back to append when nothing is focused. Zero inline handlers (strict
+CSP preserved); scoped `.special-char-bar` / `.char-btn` CSS.
+Brydl logo asset added at `static/img/brydl-logo.jpg` (navy Africa
+outline + binary + "Brydl" wordmark). 42/42 suites, flake8 clean,
+zero migrations (JS/CSS-only). Tagged `v13.1` on `dc9f25f`.
+
+## 2026-10-08 — v14 RedLab Phase 1: ASGI host + healthcheck
+
+Second product line (dynamic AI red-teaming as a service) scaffolded
+alongside data labeling. Single-repo / single-deploy architecture:
+FastAPI wraps Flask via a2wsgi.WSGIMiddleware in a new root `asgi.py`
+so RedLab's async /redlab/* routes and Flask's sync routes coexist on
+one gunicorn + UvicornWorker process. Phase 1 scope:
+
+- New deps: `fastapi==0.115.12`, `uvicorn[standard]==0.34.2`,
+  `httpx==0.28.1`, `pydantic==2.11.3`, `a2wsgi==1.10.8`,
+  `import-linter==2.2` (cryptography 50.0.1 already present).
+- `redlab/` package: `__init__.py` (import contract), `flags.py`
+  (`is_redlab_enabled()` — case-insensitive exact match on `"true"`),
+  `app.py` (FastAPI sub-app with `/healthz`, JSON-500 error boundary
+  middleware stamping X-Request-ID, gated `/v1/*` mount that returns
+  `{"error":"redlab_disabled"}` while flag OFF and `{"error":"not_found"}`
+  when ON but no route registered).
+- Root `asgi.py` composer: mounts `/redlab` → redlab.app, `/` → Flask
+  via WSGIMiddleware. Startup event raises AnyIO's to-thread limiter
+  to 60 tokens so Flask handlers under the WSGI→ASGI bridge can absorb
+  ~50 concurrent annotators × 2 workers on the free tier. Falls back
+  to pure-Flask WSGI (degraded mode) if FastAPI/a2wsgi are missing.
+- `render.yaml` + `Procfile` updated: `gunicorn -k
+  uvicorn.workers.UvicornWorker --workers 2 asgi:app`; health check
+  switched to `/redlab/healthz` (returns 200 in both flag states so
+  the platform keeps serving during the dark rollout).
+- Feature flag `REDLAB_ENABLED=false` DEFAULT — the entire /redlab/v1
+  namespace is dark until Phase 9. Existing Flask behavior is
+  byte-identical in the OFF state.
+- Tests: `tests/test_phase1_asgi.py` with 31 assertions (deps, flag
+  strictness, healthz in both states, 5 HTTP methods gated at /v1,
+  Flask routes via WSGI bridge including auth-redirect and static
+  404, JSON-500 error boundary with message-not-leaking sanity,
+  threadpool ≥ 60, flag-on 404s return JSON not HTML). Updated
+  `tests/test_deploy.py` and `tests/test_scalability.py` to reflect
+  the new ASGI start command instead of the old `--threads 4
+  "app:create_app()"`.
+- Design doc at `docs/v14-REDLAB-DESIGN.md`.
+- 43/43 suites green (42 prior + test_phase1_asgi.py); flake8 clean
+  across redlab/, asgi.py, and touched tests. No migrations (no
+  schema changes in Phase 1).
+
+Branch `v14-redlab`. Per LOCKED Phase 0 rule #7, work pauses here for
+explicit operator confirmation before Phase 2 (migration #18,
+redlab.models, redlab.crypto).
