@@ -513,3 +513,48 @@ one gunicorn + UvicornWorker process. Phase 1 scope:
 Branch `v14-redlab`. Per LOCKED Phase 0 rule #7, work pauses here for
 explicit operator confirmation before Phase 2 (migration #18,
 redlab.models, redlab.crypto).
+
+## 2026-10-08 — v14 RedLab Phase 2: Migration #18 + models + Fernet crypto
+
+- `redlab/crypto.py`: Fernet (AES-128-CBC+HMAC) helpers encrypting client
+  LLM API keys at rest. `REDLAB_FERNET_KEY` env var with SECRET_KEY-derived
+  dev fallback; `SecretDecryptionError` never leaks key material in
+  exception text; `mask_key_fingerprint("sk-abc...0001")` →
+  `"sk...0001"` for UI display.
+- `redlab/models.py`: four tables with UUID-hex PKs in Postgres schema
+  `redlab` (default schema on SQLite where schemas aren't supported):
+  Target (endpoint + Fernet key + key_fingerprint + ssrf_validated_at),
+  Session (target_id/annotator_ref/project_ref, status open|concluded,
+  turn_count/breach_count counters, submission_ref UNIQUE for the
+  Phase-5 conclude link), Message (session_id FK ON DELETE CASCADE,
+  turn_index UNIQUE per session, role user|assistant|system, client_turn_id
+  idempotency key, is_unsafe_flag, redacted), ProcessedEvent (event_id
+  PK dedup table for Phase 5 events).
+- Additive columns on public tables (declared directly in models.py):
+  `submissions.redlab_session_id` (UNIQUE nullable),
+  `submissions.redteam_state` (default 'none'),
+  `submissions.redteam_breach_count` (default 0);
+  `projects.redteam_base_pay`, `redteam_breach_bounty` (Numeric(10,2)
+  default 0.00), `redteam_session_quota` (int default 0).
+- Migration #18 (`a1b2c3d4e5f6`): creates schema `redlab` (Postgres),
+  four tables (FKs, CHECKs, UniqueConstraints, server_defaults using
+  sa.text("0")/("1")/("0.00") for SQLite/Postgres parity), six
+  additive columns via batch_alter_table (SQLite-portable); downgrade
+  drops in reverse order and `DROP SCHEMA redlab CASCADE` on Postgres.
+- app.py imports redlab.models inside create_app so SQLAlchemy metadata
+  is registered (for create_all/Alembic autogenerate). redlab.models
+  imports zero Flask routes/templates/business logic — import-linter
+  will enforce this contract in Phase 9.
+- tests/test_phase2_models.py: 48 checks across three subprocess-isolated
+  sections — crypto roundtrips + error-leak safety + fingerprint;
+  migration upgrade/downgrade on temp SQLite; CRUD exercising defaults,
+  UNIQUE/(session_id,turn_index), ProcessedEvent dedup, cascade delete,
+  and stored-ciphertext roundtrip.
+- tests/test_migrations.py normaliser extended to strip named UNIQUE/CHECK
+  constraint prefixes that batch_alter_table emits.
+
+Branch `v14-redlab`, commit d7c233c. 44/44 suites green; flake8 clean
+on new/modified code (pre-existing E501s untouched); migrations
+single-head. Flag still OFF. Per LOCKED Phase 0 rule #7, paused at
+Phase 2 gate awaiting explicit go before Phase 3 (async connector,
+SSRF defense, mock model).
