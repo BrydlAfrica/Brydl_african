@@ -337,4 +337,97 @@
 
   </div>
 </div>
+
+{# ---- African-language special-character helper toolbar (Phase 14) ---- #}
+{# Click a character to insert it into the currently focused textarea / #}
+{# text input (annotator form). Hausa Latin chars per annotator feedback; #}
+{# other Nigerian languages share most of these. Add more to the CHARS array #}
+{# below (e.g. Yoruba ẹ ọ ṣ á é í ó ú; Igbo ị ọ ụ ñ etc.) when requested. #}
+<script>
+(function(){
+  // Ordered by frequency in Hausa text. Add more entries here as needed.
+  var CHARS = [
+    {c:"ɗ", label:"ɗ", title:"d with hook (Hausa)"},
+    {c:"ƙ", label:"ƙ", title:"k with hook (Hausa)"},
+    {c:"ɓ", label:"ɓ", title:"b with hook (Hausa)"},
+    {c:"ƴ", label:"ƴ", title:"y with hook (Hausa)"},
+    {c:"ʼ", label:"ʼ", title:"glottal stop / apostrophe (Hausa)"},
+    {c:"Ɗ", label:"Ɗ", title:"ɗ uppercase"},
+    {c:"Ƙ", label:"Ƙ", title:"ƙ uppercase"},
+    {c:"Ɓ", label:"Ɓ", title:"ɓ uppercase"},
+    {c:"Ƴ", label:"Ƴ", title:"ƴ uppercase"},
+  ];
+  var focused = null;
+  var targets = document.querySelectorAll(
+    'form textarea.form-control, form input.form-control[type="text"]'
+  );
+  if (!targets.length) return;
+  // Track whichever text field currently has focus inside the task form.
+  targets.forEach(function(el){
+    el.addEventListener('focus', function(){ focused = el; });
+  });
+  // Build the toolbar and insert it directly above the form's submit row
+  // so it is always visible while typing.
+  var form = targets[0].form;
+  if (!form) return;
+  var bar = document.createElement('div');
+  bar.className = 'special-char-bar mb-2';
+  bar.setAttribute('aria-label', 'Special characters');
+  bar.innerHTML =
+    '<div class="d-flex flex-wrap align-items-center gap-1 mb-1">' +
+    '<small class="text-muted me-2"><i class="bi bi-keyboard me-1"></i>' +
+    'Hausa special chars — click to insert at cursor:</small>' +
+    '</div><div class="d-flex flex-wrap gap-1" role="toolbar"></div>';
+  var row = bar.querySelector('.d-flex.gap-1[role=toolbar]');
+  CHARS.forEach(function(ch){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm btn-outline-secondary char-btn';
+    b.setAttribute('title', ch.title);
+    b.setAttribute('aria-label', 'Insert ' + ch.title);
+    b.textContent = ch.label;
+    b.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var target = focused;
+      // Fall back to the first textarea if nothing is focused yet.
+      if (!target || !form.contains(target)) {
+        target = targets[0];
+      }
+      target.focus();
+      var start = target.selectionStart != null ? target.selectionStart : target.value.length;
+      var end = target.selectionEnd != null ? target.selectionEnd : target.value.length;
+      var val = target.value;
+      target.value = val.slice(0, start) + ch.c + val.slice(end);
+      var caret = start + ch.c.length;
+      try {
+        target.setSelectionRange(caret, caret);
+      } catch(e){}
+      target.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+    row.appendChild(b);
+  });
+  // Insert the toolbar right before the submit button's parent div.
+  var submitRow = form.querySelector('.d-flex.flex-wrap.gap-2.align-items-center');
+  if (submitRow && submitRow.parentNode) {
+    submitRow.parentNode.insertBefore(bar, submitRow);
+  } else {
+    form.appendChild(bar);
+  }
+})();
+</script>
+<style>
+.special-char-bar .char-btn {
+  font-family: "Segoe UI", "Noto Sans", "Arial Unicode MS", sans-serif;
+  min-width: 2.25rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+.special-char-bar .char-btn:hover,
+.special-char-bar .char-btn:focus {
+  background-color: #e8f0fe;
+  border-color: #0d6efd;
+  color: #0d6efd;
+}
+</style>
 {% endblock %}
