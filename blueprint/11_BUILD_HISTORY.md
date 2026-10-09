@@ -603,3 +603,68 @@ Branch `v14-redlab`, Phase 3 commit. 45/45 suites green
 on new files; REDLAB_SSO_CONFIGURED flag still OFF. Per LOCKED
 Phase 0 rule #7, paused at Phase 3 gate awaiting explicit go
 before Phase 4 (routes, UI, integration).
+
+## Phase 4 — Turn API & session-cookie auth (2026-10-09)
+
+Files added/changed:
+- `redlab/schemas.py` — Pydantic v2 request/response models: TurnRequest
+  (content ≤4000 chars, client_turn_id ≤64 chars), MessageOut,
+  SessionOut, TurnResponse, SessionResponse, FlagRequest, ErrorResponse.
+- `redlab/auth.py` — FastAPI Depends():
+  * `get_current_annotator`: reads Flask's signed `session` cookie
+    (itsdangerous URLSafeTimedSerializer, salt="cookie-session",
+    SECRET_KEY), validates signature + 30-day age, loads User via
+    Flask-SQLAlchemy (pushing an app context from the worker thread),
+    rejects inactive / non-redteam roles.
+  * `verify_csrf_header`: decodes the `X-CSRFToken` header using
+    flask-wtf's salt ("wtf-csrf-token", 1-hour TTL), hmac.compare_digest
+    against the raw `session["csrf_token"]`.
+  * Shared `_flask_app()` cached factory used by both auth and the
+    turn route so SQLAlchemy sessions resolve the same Flask app
+    across the FastAPI→thread boundary.
+- `redlab/app.py` — replaced the `/v1/*` gate with a real mounted
+  APIRouter:
+  * `POST /sessions/{sid}/turn` enforces session ownership, status=open,
+    40-turn cap, idempotency via `client_turn_id` (cached early-out
+    before the connector call AND a double-check under the write
+    lock against raced concurrent retries), per-message turn_index
+    (user at 2*N, assistant at 2*N+1) preserving the UNIQUE
+    (session_id,turn_index) constraint, atomic commit of user+
+    assistant rows + turn_count bump, zero-row write + rollback on
+    any connector failure, structured 502/503 mapping by error code.
+  * JSON exception handlers for RedLabAuthError / HTTPException that
+    always emit `{error, detail, request_id}`.
+  * `_flask_ctx()` re-entrant context manager so the async route can
+    run sync SQLAlchemy safely from AnyIO worker threads.
+- `tests/test_phase4_turn_api.py` — 50 checks across 6 sections:
+  auth (16 cases: no cookie/bad cookie/no CSRF/bad CSRF/inactive/
+  other-owner/unknown-sid/concluded), happy path (13: 200, body
+  shape, client_turn_id echoed, turn_count=1, connector-called-once,
+  2 DB rows with correct turn indices 0/1), turn cap (41st → 400,
+  connector not called, no new rows), idempotency (retry returns
+  cached ids/content, connector not called, turn_count/rows
+  unchanged), atomicity on failure (unreachable → 502, rate_limited
+  → 503, zero rows written, turn_count unchanged), oversize → 422.
+
+Lessons (recorded for future phases):
+- FastAPI routes mounted alongside Flask via WSGIMiddleware run on
+  AnyIO worker threads with no Flask request/app context; DB access
+  needs an explicit `app.app_context().push()` around every sync
+  block. A single cached `_flask_app()` factory is required so the
+  SQLAlchemy registry (bound to the first `db.init_app(app)`) is the
+  same instance used by both setup and requests — a second
+  `create_app()` call produces a separate engine whose DB is empty.
+- flask-wtf stores a RAW random token in `session["csrf_token"]`;
+  the client receives a SIGNED token (URLSafeTimedSerializer,
+  salt="wtf-csrf-token", 1-hour TTL). CSRF validation must decode
+  the signed header and compare against the raw session value, not
+  the other way round.
+- `Message.turn_index` is per-message (user at 2*N, assistant at
+  2*N+1); `Session.turn_count` counts completed pairs. Sharing an
+  index across both roles violates the UNIQUE (session_id,
+  turn_index) constraint.
+
+Branch `v14-redlab`, Phase 4 commit. 46/46 suites green
+(test_phase4_turn_api picked up by run_all.sh); flake8 clean on
+new/modified files. Per LOCKED Phase 0 rule #7, paused at Phase 4
+gate awaiting explicit go before Phase 5.
