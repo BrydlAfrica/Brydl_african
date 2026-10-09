@@ -109,11 +109,13 @@ import hashlib  # noqa: E402
 
 
 def _cookie_serializer():
+    from flask.sessions import session_json_serializer
     sk = flask_app.secret_key
-    if isinstance(sk, str):
-        sk = sk.encode("utf-8")
+    if isinstance(sk, (list, tuple)):
+        sk = sk[0]
     return URLSafeTimedSerializer(
         secret_key=sk, salt="cookie-session",
+        serializer=session_json_serializer,
         signer_kwargs={"key_derivation": "hmac",
                        "digest_method": hashlib.sha1},
     )
@@ -121,13 +123,9 @@ def _cookie_serializer():
 
 def _csrf_signer():
     sk = flask_app.secret_key
-    if isinstance(sk, str):
-        sk = sk.encode("utf-8")
-    return URLSafeTimedSerializer(
-        secret_key=sk, salt="wtf-csrf-token",
-        signer_kwargs={"key_derivation": "hmac",
-                       "digest_method": hashlib.sha1},
-    )
+    if isinstance(sk, (list, tuple)):
+        sk = sk[0]
+    return URLSafeTimedSerializer(secret_key=sk, salt="wtf-csrf-token")
 
 
 def make_cookie(user_id: int, raw_token: str):

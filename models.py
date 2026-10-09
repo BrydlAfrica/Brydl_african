@@ -46,7 +46,8 @@ logger = logging.getLogger(__name__)
 TASK_STATUSES = (
     "pending", "assigned", "in_progress", "submitted", "approved", "rejected",
 )
-SUBMISSION_STATUSES = ("submitted", "approved", "rejected", "revision")
+SUBMISSION_STATUSES = ("submitted", "approved", "rejected", "revision",
+                       "in_progress")
 PROJECT_STATUSES = ("draft", "pending_approval", "active", "paused", "completed", "rejected")
 # Staff/annotator roles:
 #   admin            = full control (money, projects, team, settings)
@@ -88,6 +89,7 @@ TASK_TYPES = (
     "preference",
     "audio_transcription",
     "image_labeling",
+    "dynamic_red_team",
 )
 
 # Tasks assigned to an annotator that still need work before submission.
@@ -1077,11 +1079,13 @@ class Submission(db.Model):
             name="ck_submissions_qa_score",
         ),
         # Review integrity: a final verdict (approved/rejected) must carry
-        # both the review timestamp and a score. 'revision' is exempt
-        # because its resubmission flow (update vs new row) is not
-        # decided yet.
+        # both the review timestamp and a score. 'revision' and
+        # 'in_progress' (live red-team chat, Phase 6) are exempt —
+        # 'revision' because its resubmission flow isn't decided yet,
+        # 'in_progress' because the annotator is still actively chatting
+        # and no QA verdict exists yet.
         db.CheckConstraint(
-            "status IN ('submitted', 'revision') OR"
+            "status IN ('submitted', 'revision', 'in_progress') OR"
             " (reviewed_at IS NOT NULL AND qa_score IS NOT NULL)",
             name="ck_submissions_review_integrity",
         ),

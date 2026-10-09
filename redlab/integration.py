@@ -94,13 +94,18 @@ def _on_session_concluded(envelope: dict) -> None:
         return
     sub = _lookup_submission_for_session(session_id)
     if sub is None:
-        # No submission linked yet (Phase 5-only deployments can
-        # conclude sessions before the Phase 6 claim hook wires them
-        # up). Nothing to update — no error, just skip.
         return
 
     breach_count = int(payload.get("breach_count") or 0)
     sub.redteam_breach_count = breach_count
+    # If the submission was still in_progress (chat just ended), flip
+    # it to submitted and stamp submitted_at so it appears in the QA
+    # review queue immediately. If it's already submitted/approved
+    # (e.g. an admin flow pre-closed it), leave status alone.
+    if sub.status == "in_progress":
+        from datetime import datetime as _dt
+        sub.status = "submitted"
+        sub.submitted_at = _dt.utcnow()
     sub.redteam_state = "qa_pending"
 
     # Idempotency: if we've already built a QA consensus group for
@@ -262,8 +267,68 @@ def link_session_to_submission(session_id: str, submission_id: int) -> None:
     db.session.commit()
 
 
+def create_session(
+    submission_id: int,
+    project_id: int,
+    annotator_id: int,
+    target_id: str,
+) -> "Session":  # noqa: F821 (forward ref, future-annotations)
+    """Create a redlab Session row (and bind it to ``submission_id``).
+
+    Idempotent: if a session already exists for this submission, return
+    the existing row unchanged. Also idempotent when the target's
+    Session already has ``submission_ref`` bound to a different
+    submission (raises ``ValueError`` — that's a data-integrity bug).
+
+    The caller is responsible for committing the transaction. The
+    function flushes the new session so its id is available without
+    committing (useful if the caller also needs to set
+    ``submission.redlab_session_id`` in the same unit).
+    """
+    from extensions import db
+    from models import Submission
+    from redlab.models import Session
+
+    sub = Submission.query.get(submission_id)
+    if sub is None:
+        raise ValueError(f"no submission {submission_id}")
+    if sub.redlab_session_id:
+        existing = Session.query.get(sub.redlab_session_id)
+        if existing is not None:
+            return existing
+
+    sess = Session(
+        annotator_ref=str(annotator_id),
+        project_ref=str(project_id),
+        target_id=target_id,
+        submission_ref=str(submission_id),
+        status="open",
+        turn_count=0,
+        breach_count=0,
+    )
+    db.session.add(sess)
+    db.session.flush()  # assign sess.id
+    sub.redlab_session_id = sess.id
+    if not sub.redteam_state or sub.redteam_state == "none":
+        sub.redteam_state = "active"
+    return sess
+
+
+def pick_active_target(project_id: int) -> Optional["Target"]:  # noqa: F821
+    """Return one active SSRF-validated Target for a project, or None."""
+    from redlab.models import Target
+    return (
+        Target.query
+        .filter(Target.project_ref == str(project_id),
+                Target.active.is_(True))
+        .order_by(Target.created_at.asc())
+        .first()
+    )
+
+
 __all__ = [
     "MIN_CONCLUDE_TURNS", "QA_REVIEWERS_PER_SESSION",
     "register_integration_handlers", "get_session_transcript",
-    "link_session_to_submission",
+    "link_session_to_submission", "create_session",
+    "pick_active_target",
 ]

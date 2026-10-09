@@ -211,8 +211,8 @@ try:
             v = _conn.execute(sa_text(
                 "SELECT version_num FROM alembic_version"
             )).fetchone()[0]
-        expect(v == "a1b2c3d4e5f6",
-               f"alembic_version at head a1b2c3d4e5f6 (got {v})")
+        expect(v == "b3c4d5e6f701",
+               f"alembic_version at head b3c4d5e6f701 (got {v})")
 
     # Test downgrade
     r = run_flask("db", "downgrade", "5a9e8b7c2d01")

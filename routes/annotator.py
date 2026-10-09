@@ -29,6 +29,7 @@ import json
 import re
 import time
 from datetime import timedelta
+from decimal import Decimal
 
 from flask import (
     Blueprint,
@@ -43,7 +44,7 @@ from flask import (
 )
 from flask_login import current_user, logout_user
 from flask_wtf import FlaskForm
-from flask_wtf.csrf import ValidationError, validate_csrf
+from flask_wtf.csrf import ValidationError, generate_csrf, validate_csrf
 from sqlalchemy import exists, func, select, update
 from sqlalchemy.orm import joinedload
 from wtforms import (
@@ -995,6 +996,122 @@ def task_page(task_id: int):
         abort(404)
 
     project = task.project
+
+    # ---------- Dynamic Red-Team (Phase 6) ---------------------------
+    # For red-team tasks, submission/Session are created lazily when
+    # the annotator opens the workspace, chat happens over the FastAPI
+    # turn endpoint, and conclude is performed by the in-page JS which
+    # hits /redlab/v1/sessions/{sid}/conclude (that path flips the
+    # submission to 'submitted' and fires session.concluded event).
+    if project.task_type == "dynamic_red_team":
+        try:
+            from redlab.integration import (
+                create_session, get_session_transcript, pick_active_target,
+            )
+        except ImportError:  # pragma: no cover - degraded
+            flash("RedLab dependencies not available.", "danger")
+            return redirect(url_for("annotator.dashboard"))
+
+        target = pick_active_target(project.id)
+        if target is None:
+            flash(
+                "No active LLM target is configured for this project yet; "
+                "ask a PM to enable one before red-teaming.",
+                "warning",
+            )
+            return redirect(url_for("annotator.dashboard"))
+
+        # Find an existing in_progress submission for this task/user,
+        # or create one (this is what "claim hooks" into — there's no
+        # separate claim path for red-team because they self-claim
+        # through the same /claim button).
+        sub = (
+            Submission.query.filter_by(
+                task_id=task.id, annotator_id=current_user.id,
+                status="in_progress",
+            ).first()
+        )
+        if sub is None:
+            sub = Submission(
+                task_id=task.id,
+                annotator_id=current_user.id,
+                status="in_progress",
+                submitted_at=None,
+                output_data=json.dumps(
+                    {"kind": "redteam_session"}, ensure_ascii=False
+                ),
+                redteam_state="active",
+            )
+            db.session.add(sub)
+            db.session.flush()
+            # Move task to in_progress if it's still 'assigned' so the
+            # annotator queue reflects that work has started.
+            if task.status == "assigned":
+                task.status = "in_progress"
+            db.session.commit()
+        try:
+            create_session(
+                submission_id=sub.id,
+                project_id=project.id,
+                annotator_id=current_user.id,
+                target_id=target.id,
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception(
+                "Failed to create RedLab session for task %s", task.id
+            )
+            flash(
+                "Could not start your red-team session. Please try again.",
+                "danger",
+            )
+            return redirect(url_for("annotator.dashboard"))
+
+        transcript = get_session_transcript(sub.redlab_session_id)
+        # If the session somehow got concluded before the annotator
+        # finished, bounce them back to the dashboard (the conclude
+        # handler should have redirected them already).
+        if (transcript["session"]
+                and transcript["session"]["status"] == "concluded"):
+            flash("This red-team session was already concluded.", "info")
+            return redirect(url_for("annotator.dashboard"))
+
+        # NGN conversion rate for display only — reuse the shared
+        # helper (reads admin settings, falls back to Config.USD_TO_NGN_RATE).
+        try:
+            from routes import usd_to_ngn as _usd_to_ngn  # noqa: WPS433
+            usd_to_ngn_rate = float(_usd_to_ngn(Decimal("1")))
+        except Exception:
+            usd_to_ngn_rate = 1600.0
+        base_usd = float(project.redteam_base_pay or 0)
+        bounty_usd = float(project.redteam_breach_bounty or 0)
+        # Rendered chat view — we use the input_data as the system
+        # prompt shown to the annotator at the top of the chat card
+        # (it's the red-team "goal" for this task).
+        rt_prompt_html = render_rich(task.input_data or "")
+        return render_template(
+            "annotator/task.html",
+            task=task, project=project, form=None,
+            task_type=project.task_type,
+            qa_notes=None, previous=None,
+            input_view={"type": "redteam", "html": rt_prompt_html},
+            max_chars=4000,
+            rubric_dims=[], scale_min=1, scale_max=5,
+            pref_input=None, pref_views=None, flipped=False,
+            rendered_prompt=None, media_labels=[],
+            min_justification=0,
+            redteam_session_id=sub.redlab_session_id,
+            redteam_csrf_token=generate_csrf(),
+            redteam_transcript=transcript,
+            redteam_base_usd=base_usd,
+            redteam_bounty_usd=bounty_usd,
+            redteam_usd_to_ngn=usd_to_ngn_rate,
+            redlab_enabled=True,
+            media_doc=None, media_url=None,
+        )
+
+    # ---------- Standard (non-redteam) task types -------------------
     rubric_dims = parse_dimensions(
         project.rubric_dimensions or ""
     )[0] if project.task_type == "preference" else []

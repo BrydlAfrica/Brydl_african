@@ -107,30 +107,27 @@ from redlab.auth import SESSION_COOKIE_NAME  # noqa: E402
 
 
 def _serializer():
-    sk = flask_app.secret_key
-    if isinstance(sk, bytes):
-        sk_bytes = sk
-    else:
-        sk_bytes = sk.encode("utf-8")
+    """Cookie serializer matching Flask's SecureCookieSessionInterface."""
+    from flask.sessions import session_json_serializer
     import hashlib
+    sk = flask_app.secret_key
+    if isinstance(sk, (list, tuple)):
+        sk = sk[0]
     return URLSafeTimedSerializer(
-        secret_key=sk_bytes, salt="cookie-session",
+        secret_key=sk, salt="cookie-session",
+        serializer=session_json_serializer,
         signer_kwargs={"key_derivation": "hmac",
                        "digest_method": hashlib.sha1},
     )
 
 
-# flask-wtf signs the per-session CSRF token with a separate timed
-# serializer (salt "wtf-csrf-token", key derived from SECRET_KEY).
+# flask-wtf CSRF tokens use default URLSafeTimedSerializer settings
+# (plain JSON, itsdangerous defaults — no signer_kwargs override).
 def _sign_csrf(token: str) -> str:
-    import hashlib
-    from itsdangerous import URLSafeTimedSerializer as USTS
     sk = flask_app.secret_key
-    if isinstance(sk, str):
-        sk = sk.encode("utf-8")
-    s = USTS(secret_key=sk, salt="wtf-csrf-token",
-             signer_kwargs={"key_derivation": "hmac",
-                            "digest_method": hashlib.sha1})
+    if isinstance(sk, (list, tuple)):
+        sk = sk[0]
+    s = URLSafeTimedSerializer(secret_key=sk, salt="wtf-csrf-token")
     return s.dumps(token)
 
 

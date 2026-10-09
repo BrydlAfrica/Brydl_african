@@ -84,27 +84,30 @@ def _flask_app():  # pragma: no cover - returns live Flask app
 
 @lru_cache(maxsize=1)
 def _serializer() -> URLSafeTimedSerializer:
-    """Return an itsdangerous serializer matching Flask's config.
+    """Return an itsdangerous serializer matching Flask's session config.
 
-    Flask's session interface uses ``URLSafeTimedSerializer`` with
-    salt ``"cookie-session"`` on the app's ``secret_key``. We mirror
-    that so we can verify cookies without going through Flask's
-    request stack.
+    Flask's SecureCookieSessionInterface uses URLSafeTimedSerializer
+    with salt ``"cookie-session"``, ``key_derivation="hmac"``,
+    ``digest_method=hashlib.sha1`` and ``session_json_serializer``
+    (a TaggedJSONSerializer that round-trips extra Python types).
+    We mirror that so we can verify cookies outside Flask's stack.
     """
+    import hashlib
+    from flask.sessions import session_json_serializer
     app = _flask_app()
+    # Flask passes secret_key (list|str|bytes) straight to
+    # itsdangerous, which accepts all three; do NOT encode str→bytes
+    # yourself — itsdangerous derives signing keys from the raw secret
+    # and doing so breaks key alignment for str keys.
     secret: Any = app.secret_key
-    # Fallback: if secret_key is a list/tuple (fallback chain), use
-    # the first one — Flask accepts multiple keys for rotation, but
-    # signing always uses [0].
     if isinstance(secret, (list, tuple)):
         secret = secret[0]
-    if isinstance(secret, str):
-        secret = secret.encode("utf-8")
     return URLSafeTimedSerializer(
         secret_key=secret,
         salt="cookie-session",
-        signer_kwargs={"key_derivation": "hmac", "digest_method": __import__(
-            "hashlib").sha1},
+        serializer=session_json_serializer,
+        signer_kwargs={"key_derivation": "hmac",
+                       "digest_method": hashlib.sha1},
     )
 
 
@@ -204,21 +207,18 @@ def _csrf_serializer() -> URLSafeTimedSerializer:
     """Build a URLSafeTimedSerializer matching flask-wtf's CSRF setup.
 
     flask-wtf uses salt ``"wtf-csrf-token"`` against ``SECRET_KEY``
-    and URLSafeTimedSerializer defaults (HMAC/SHA1) for both
-    :func:`flask_wtf.csrf.generate_csrf` and :func:`validate_csrf`.
+    with URLSafeTimedSerializer defaults (itsdangerous default
+    serializer is plain JSON, not Flask's TaggedJSONSerializer, and
+    the default digest is itsdangerous' ``default_digest_method``
+    which is SHA1 when no kwargs are passed — do NOT pass custom
+    signer_kwargs because that changes the signature and breaks
+    round-trip with tokens flask-wtf generates).
     """
-    import hashlib
     app = _flask_app()
     secret: Any = app.config.get("WTF_CSRF_SECRET_KEY") or app.secret_key
     if isinstance(secret, (list, tuple)):
         secret = secret[0]
-    if isinstance(secret, str):
-        secret = secret.encode("utf-8")
-    return URLSafeTimedSerializer(
-        secret_key=secret, salt="wtf-csrf-token",
-        signer_kwargs={"key_derivation": "hmac",
-                       "digest_method": hashlib.sha1},
-    )
+    return URLSafeTimedSerializer(secret_key=secret, salt="wtf-csrf-token")
 
 
 def verify_csrf_header(
