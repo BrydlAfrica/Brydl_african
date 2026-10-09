@@ -59,6 +59,7 @@ class SessionOut(BaseModel):
     annotator_ref: str
     project_ref: str
     target_id: str
+    conclude_note: Optional[str] = None
     created_at: datetime
     concluded_at: Optional[datetime] = None
 
@@ -84,6 +85,14 @@ class FlagRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     is_unsafe: bool
+
+
+class ConcludeRequest(BaseModel):
+    """Annotator ends the session with an optional note."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    note: Optional[str] = Field(default=None, max_length=2000)
 
 
 class ErrorResponse(BaseModel):

@@ -668,3 +668,65 @@ Branch `v14-redlab`, Phase 4 commit. 46/46 suites green
 (test_phase4_turn_api picked up by run_all.sh); flake8 clean on
 new/modified files. Per LOCKED Phase 0 rule #7, paused at Phase 4
 gate awaiting explicit go before Phase 5.
+
+## Phase 5 — Breach flagging, session conclude, in-process events (2026-10-09)
+
+Files added:
+- `redlab/events.py` — `emit_event(event_type, payload)` building an
+  envelope `{event_id (uuid4 hex), event_type, payload, created_at}`;
+  dedup against `redlab.processed_events`; synchronous dispatch to
+  handlers registered via `register_handler()`; handler exceptions
+  are logged and swallowed (fail-open for annotator-facing routes).
+- `redlab/integration.py` — the ONLY module Flask may import.
+  `register_integration_handlers()` wires two handlers (called from
+  `app.create_app` after `db.init_app`):
+  * `breach.flagged` → keeps `submissions.redteam_breach_count` in
+    sync; flips `redteam_state` to `'flagged'` on first breach.
+  * `session.concluded` → sets `submissions.redteam_state='qa_pending'`,
+    caches breach count, creates one `consensus_groups` row
+    (`required_count=2`) plus two sibling pending `tasks` rows whose
+    `input_data` carries a JSON envelope with `_redlab_qa: true`,
+    session_id, breach_count, conclude_note, and a transcript
+    excerpt. Uses an input_data marker for idempotency so a
+    re-conclude never creates duplicates.
+  Also exposes `get_session_transcript(session_id)` (chronological
+  messages + session metadata for QA render) and
+  `link_session_to_submission(session_id, submission_id)` (Phase 6
+  helper used by tests), plus `MIN_CONCLUDE_TURNS=3` and
+  `QA_REVIEWERS_PER_SESSION=2` constants.
+
+Routes added to `redlab/app.py`:
+- `POST /v1/messages/{mid}/flag` — auth + CSRF, owner check, role
+  must be 'assistant', session must be open; toggles
+  `is_unsafe_flag`, recomputes `session.breach_count` via COUNT
+  over assistant messages in the session (double-flushed so the
+  just-toggled row is counted), emits `breach.flagged`.
+- `POST /v1/sessions/{sid}/conclude` — auth + CSRF, owner check,
+  idempotent on already-concluded sessions (returns snapshot),
+  MIN_CONCLUDE_TURNS gate (400 if < 3), sets `status='concluded'`,
+  `concluded_at=utc_now()`, `conclude_note`, builds a transcript
+  excerpt, emits `session.concluded`, commits atomically.
+- Added a re-entrant `utc_now()` helper (matches
+  `redlab.models.utc_now` signature) and switched JSON exception
+  bodies to a consistent top-level `{error, detail, request_id}`
+  shape so clients don't have to sniff `detail` for the code.
+
+`redlab/schemas.py` extended with `ConcludeRequest`,
+`FlagRequest`, and `conclude_note` on `SessionOut`. `app.py` now
+imports and calls `redlab.integration.register_integration_handlers()`
+inside `create_app` (graceful ImportError fallback for degraded
+mode).
+
+- `tests/test_phase5_events.py` — 31 checks across 5 sections:
+  flag toggle (flag a0 → count 1, flag a1 → count 2, unflag →
+  count 1, flag user msg → 400), min-turns gate (2 turns → 400,
+  session stays open), conclude success (status=concluded,
+  concluded_at, conclude_note, submission→qa_pending,
+  redteam_breach_count cache, exactly 1 new ConsensusGroup with 2
+  pending unassigned QA tasks), idempotency (re-conclude returns 200
+  with no new ConsensusGroup / no new QA tasks), transcript helper
+  (8 messages in strict u/a/u/a order for 4 turns).
+
+Branch `v14-redlab`, Phase 5 commit. 47/47 suites green; flake8 clean
+on new/modified files. Per LOCKED Phase 0 rule #7, paused at Phase 5
+gate awaiting explicit go before Phase 6.

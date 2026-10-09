@@ -26,6 +26,7 @@ import logging
 import time
 import uuid
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Any, Iterator
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
@@ -34,14 +35,22 @@ from fastapi.responses import JSONResponse
 from redlab.auth import (
     RedLabAuthError, _flask_app, get_current_annotator, verify_csrf_header,
 )
-from redlab.flags import is_redlab_enabled
-from redlab.schemas import (
-    ErrorResponse, MessageOut, SessionOut, TurnRequest, TurnResponse,
-)
 from redlab.connector import (
     ERR_BAD_RESPONSE, ERR_CLIENT_AUTH, ERR_ENDPOINT_BLOCKED,
     ERR_RATE_LIMITED, ERR_UNREACHABLE, build_history, call_client_model,
 )
+from redlab.events import emit_event
+from redlab.flags import is_redlab_enabled
+from redlab.schemas import (
+    ConcludeRequest, ErrorResponse, FlagRequest, MessageOut, SessionOut,
+    TurnRequest, TurnResponse,
+)
+
+
+def utc_now() -> datetime:
+    """UTC timestamp without tzinfo (matches redlab.models.utc_now)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 logger = logging.getLogger(__name__)
 
@@ -382,10 +391,212 @@ def create_redlab_app() -> FastAPI:
                                                   if fresh_session else sess),
             )
 
+    # ---- Message flag endpoint ---------------------------------------
+    msg_router = APIRouter()
+
+    @msg_router.post(
+        "/messages/{mid}/flag",
+        responses={400: {"model": ErrorResponse},
+                   401: {"model": ErrorResponse},
+                   403: {"model": ErrorResponse},
+                   404: {"model": ErrorResponse}},
+    )
+    async def post_flag(
+        mid: str,
+        payload: FlagRequest,
+        request: Request,
+        current_user=Depends(get_current_annotator),
+        _csrf_ok: None = Depends(verify_csrf_header),
+    ):
+        """Toggle ``is_unsafe_flag`` on an assistant message.
+
+        Recomputes ``session.breach_count`` (count of assistant rows in
+        the session with ``is_unsafe_flag = TRUE``) and emits a
+        ``breach.flagged`` event so the Flask-side cache on the
+        submission is updated.
+        """
+        with _flask_ctx():
+            from extensions import db
+            from redlab.models import Message, Session
+
+            msg = db.session.get(Message, mid)
+            if msg is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "message_not_found",
+                            "detail": "no message with that id"},
+                )
+            sess = db.session.get(Session, msg.session_id)
+            if sess is None:  # pragma: no cover - FK integrity
+                db.session.rollback()
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "session_not_found"},
+                )
+            if str(sess.annotator_ref or "") != str(current_user.id):
+                db.session.close()
+                raise HTTPException(
+                    status_code=403,
+                    detail={"error": "session_not_yours"},
+                )
+            if msg.role != "assistant":
+                db.session.close()
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "flag_assistant_only",
+                        "detail": "only assistant messages may be flagged",
+                    },
+                )
+            if sess.status != "open":
+                db.session.close()
+                raise HTTPException(
+                    status_code=400,
+                    detail={"error": "session_concluded",
+                            "detail": "session is already concluded"},
+                )
+
+            msg.is_unsafe_flag = bool(payload.is_unsafe)
+            # Recompute breach count across this session.
+            breach_count = (
+                db.session.query(Message)
+                .filter(Message.session_id == sess.id,
+                        Message.role == "assistant",
+                        Message.is_unsafe_flag.is_(True))
+                .count()
+            )
+            # Include the just-toggled row (it's already flushed by
+            # the SET, but count() above may not reflect unflushed
+            # changes on every backend — adjust manually to be safe).
+            currently_set = bool(msg.is_unsafe_flag)
+            # Re-run count against the session to pick the new row up.
+            db.session.flush()
+            breach_count = (
+                db.session.query(Message)
+                .filter(Message.session_id == sess.id,
+                        Message.role == "assistant",
+                        Message.is_unsafe_flag.is_(True))
+                .count()
+            )
+            sess.breach_count = breach_count
+            db.session.commit()
+
+            emit_event("breach.flagged", {
+                "session_id": sess.id,
+                "message_id": msg.id,
+                "is_unsafe": currently_set,
+                "breach_count": breach_count,
+                "annotator_id": current_user.id,
+            })
+            db.session.commit()
+
+            db.session.refresh(msg)
+            fresh_session = db.session.get(Session, sess.id)
+            db.session.close()
+            sess_for_out = fresh_session if fresh_session else sess
+            return {
+                "message": MessageOut.model_validate(msg).model_dump(),
+                "session": SessionOut.model_validate(
+                    sess_for_out,
+                ).model_dump(),
+            }
+
+    # ---- Session conclude endpoint -----------------------------------
+    session_router = APIRouter()
+
+    @session_router.post(
+        "/sessions/{sid}/conclude",
+        responses={400: {"model": ErrorResponse},
+                   401: {"model": ErrorResponse},
+                   403: {"model": ErrorResponse},
+                   404: {"model": ErrorResponse}},
+    )
+    async def post_conclude(
+        sid: str,
+        payload: ConcludeRequest,
+        request: Request,
+        current_user=Depends(get_current_annotator),
+        _csrf_ok: None = Depends(verify_csrf_header),
+    ):
+        """Conclude a session. Minimum 3 turns; idempotent."""
+        from redlab.integration import MIN_CONCLUDE_TURNS
+        with _flask_ctx():
+            from extensions import db
+            from redlab.models import Message, Session
+
+            sess = db.session.get(Session, sid)
+            if sess is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "session_not_found"},
+                )
+            if str(sess.annotator_ref or "") != str(current_user.id):
+                db.session.close()
+                raise HTTPException(
+                    status_code=403,
+                    detail={"error": "session_not_yours"},
+                )
+            if sess.status == "concluded":
+                # Idempotent: return current snapshot.
+                db.session.close()
+                return {
+                    "session": SessionOut.model_validate(sess).model_dump(),
+                }
+            if sess.turn_count < MIN_CONCLUDE_TURNS:
+                db.session.close()
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "min_turns_required",
+                        "detail": (
+                            f"at least {MIN_CONCLUDE_TURNS} turns required"
+                        ),
+                    },
+                )
+
+            note = (payload.note or "").strip() or None
+            sess.status = "concluded"
+            sess.concluded_at = utc_now()
+            sess.conclude_note = note
+
+            # Build a short transcript excerpt to put in the event
+            # payload (QA queue record) — last assistant + user pair.
+            last_msgs = (
+                db.session.query(Message)
+                .filter(Message.session_id == sess.id)
+                .order_by(Message.turn_index.desc())
+                .limit(2)
+                .all()
+            )
+            excerpt_parts = []
+            for m in reversed(last_msgs):
+                excerpt_parts.append(f"{m.role}: {m.content[:200]}")
+            excerpt = "\n".join(excerpt_parts)
+
+            db.session.flush()
+            emit_event("session.concluded", {
+                "session_id": sess.id,
+                "breach_count": sess.breach_count,
+                "turn_count": sess.turn_count,
+                "conclude_note": note,
+                "transcript_excerpt": excerpt,
+                "annotator_id": current_user.id,
+            })
+            db.session.commit()
+
+            fresh = db.session.get(Session, sess.id)
+            db.session.close()
+            sess_for_out = fresh if fresh else sess
+            return {
+                "session": SessionOut.model_validate(sess_for_out).model_dump()
+            }
+
     def _mount_v1_routes() -> None:
         if not is_redlab_enabled():
             return
         v1_router.include_router(turn_router)
+        v1_router.include_router(msg_router)
+        v1_router.include_router(session_router)
 
     _mount_v1_routes()
 

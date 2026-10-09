@@ -96,6 +96,14 @@ def create_app(config_class: type = Config) -> Flask:
         # tables simply won't be created until requirements are met.
         pass
     db.init_app(app)
+    # Wire RedLab → Flask event handlers (submission cache updates,
+    # QA queue creation). Import lazily so missing deps degrade
+    # gracefully.
+    try:
+        from redlab.integration import register_integration_handlers
+        register_integration_handlers()
+    except ImportError:  # pragma: no cover - degraded mode
+        pass
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "info"
@@ -111,7 +119,8 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(annotator_bp, url_prefix="/annotator")
     app.register_blueprint(pm_bp)        # /pm/ — Project Manager workspace
-    app.register_blueprint(staff_bp)     # /profile, /feedback, /notifications (shared)
+    # /profile, /feedback, /notifications (shared)
+    app.register_blueprint(staff_bp)
     app.register_blueprint(client_bp)    # /client/<token> portal
     app.register_blueprint(public_bp)    # / landing page
     app.register_blueprint(api_bp)       # /api/v1 machine API (Bearer)
