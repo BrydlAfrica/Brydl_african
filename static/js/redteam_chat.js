@@ -286,6 +286,26 @@
     conclude(noteEl.value || "");
   });
 
+  // Seed attack prompt buttons + dismissal
+  var seedBtns = root.querySelectorAll(".rt-seed-btn");
+  for (var si = 0; si < seedBtns.length; si++) {
+    seedBtns[si].addEventListener("click", function (ev) {
+      var btn = ev.currentTarget;
+      var promptText = btn.getAttribute("data-prompt");
+      if (promptText) {
+        input.value = promptText;
+        input.focus();
+      }
+    });
+  }
+  var seedsDismiss = document.getElementById("rt-seeds-dismiss");
+  if (seedsDismiss) {
+    seedsDismiss.addEventListener("click", function () {
+      var drawer = document.getElementById("rt-seeds-drawer");
+      if (drawer) { drawer.classList.add("d-none"); }
+    });
+  }
+
   // Load any saved draft.
   var saved = loadDraft();
   if (saved && saved.content) {

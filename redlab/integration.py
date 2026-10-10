@@ -297,6 +297,19 @@ def create_session(
         if existing is not None:
             return existing
 
+    from models import Project
+    proj = Project.query.get(project_id)
+    if proj and proj.redteam_session_quota and proj.redteam_session_quota > 0:
+        used = (
+            Session.query
+            .filter_by(project_ref=str(project_id))
+            .count()
+        )
+        if used >= proj.redteam_session_quota:
+            raise ValueError(
+                f"Project quota of {proj.redteam_session_quota} sessions reached."
+            )
+
     sess = Session(
         annotator_ref=str(annotator_id),
         project_ref=str(project_id),

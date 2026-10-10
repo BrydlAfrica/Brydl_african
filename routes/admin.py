@@ -499,6 +499,9 @@ def dashboard():
         "unread_feedback": 0,
         "submissions_7d": 0,
         "usd_to_ngn": None,
+        "redteam_sessions_used": 0,
+        "redteam_breaches": 0,
+        "redteam_session_quota": 0,
     }
     review_queue = []
     recent_activity = []
@@ -613,6 +616,32 @@ def dashboard():
                 stats["usd_to_ngn"] = Decimal(str(rate_row.value))
             except (TypeError, ValueError, InvalidOperation):
                 stats["usd_to_ngn"] = None
+
+        # --- Red-team sessions, breaches & quota (Phase 8) ---------------
+        try:
+            from redlab.models import Session as RSession
+            stats["redteam_sessions_used"] = (
+                db.session.scalar(select(func.count(RSession.id))) or 0
+            )
+            stats["redteam_breaches"] = (
+                db.session.scalar(
+                    select(func.coalesce(func.sum(RSession.breach_count), 0))
+                ) or 0
+            )
+            stats["redteam_session_quota"] = (
+                db.session.scalar(
+                    select(
+                        func.coalesce(
+                            func.sum(Project.redteam_session_quota), 0
+                        )
+                    )
+                    .where(Project.task_type == "dynamic_red_team")
+                ) or 0
+            )
+        except Exception:
+            stats["redteam_sessions_used"] = 0
+            stats["redteam_breaches"] = 0
+            stats["redteam_session_quota"] = 0
 
         # --- Review queue -----------------------------------------------
         rows = db.session.execute(
@@ -869,6 +898,26 @@ def edit_project(project_id: int):
     if project is None:
         abort(404)
 
+    rt_used = 0
+    rt_breaches = 0
+    if project.task_type == "dynamic_red_team":
+        try:
+            from redlab.models import Session as RSession
+            rt_used = (
+                db.session.scalar(
+                    select(func.count(RSession.id))
+                    .where(RSession.project_ref == str(project.id))
+                ) or 0
+            )
+            rt_breaches = (
+                db.session.scalar(
+                    select(func.coalesce(func.sum(RSession.breach_count), 0))
+                    .where(RSession.project_ref == str(project.id))
+                ) or 0
+            )
+        except Exception:
+            rt_used, rt_breaches = 0, 0
+
     form = ProjectForm(obj=project)  # GET: prefill from the DB row
     if form.validate_on_submit():
         rubric_dims, rubric_problems = parse_dimensions(
@@ -884,6 +933,8 @@ def edit_project(project_id: int):
                 form=form,
                 is_edit=True,
                 project=project,
+                redteam_sessions_used=rt_used,
+                redteam_confirmed_breaches=rt_breaches,
                 form_action=url_for(
                     "admin.edit_project", project_id=project_id
                 ),
@@ -924,6 +975,8 @@ def edit_project(project_id: int):
                 form=form,
                 is_edit=True,
                 project=project,
+                redteam_sessions_used=rt_used,
+                redteam_confirmed_breaches=rt_breaches,
                 form_action=url_for(
                     "admin.edit_project", project_id=project_id
                 ),
@@ -936,6 +989,8 @@ def edit_project(project_id: int):
         form=form,
         is_edit=True,
         project=project,
+        redteam_sessions_used=rt_used,
+        redteam_confirmed_breaches=rt_breaches,
         form_action=url_for("admin.edit_project", project_id=project_id),
     )
 

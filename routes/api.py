@@ -23,6 +23,7 @@ from flask import (
     g,
     jsonify,
     request,
+    Response,
 )
 
 import kvstore
@@ -373,6 +374,186 @@ def submit_tasks(project_id: int):
     response = jsonify({"created": count, "project_id": project.id})
     response.status_code = 201
     return response
+
+
+@api_bp.get("/projects/<int:project_id>/export")
+@api_auth
+def export_project_results(project_id: int):
+    """Approved deliverable exports (JSONL / OpenAI / ShareGPT / CSV).
+
+    Formats:
+      - format=openai (or task_type=dynamic_red_team&format=openai):
+        JSONL where each line is:
+        {"messages": [{"role": "user"|"assistant", "content": "..."}],
+         "metadata": {"submission_id": "...", "breach_turns": [...],
+                      "model": "...", "qa_reviewers": [...],
+                      "exported_at": "..."}}
+      - format=sharegpt:
+        JSONL where each line is:
+        {"conversations": [{"from": "human"|"gpt", "value": "..."}]}
+      - format=jsonl / format=csv: standard portal export format.
+
+    Unapproved and rejected sessions are strictly excluded.
+    """
+    project = _scoped_project_or_none(project_id)
+    if project is None:
+        return _json_error(404, "not_found", "No such project.")
+
+    export_format = request.args.get("format", "").lower()
+    task_type_arg = request.args.get("task_type", "").lower()
+    if not export_format:
+        if (project.task_type == "dynamic_red_team"
+                or task_type_arg == "dynamic_red_team"):
+            export_format = "openai"
+        else:
+            export_format = "jsonl"
+
+    from models import utc_now
+    stamp = utc_now().strftime("%Y%m%d_%H%M%S")
+
+    # Fetch only approved submissions for this project
+    subs = (
+        db.session.query(Submission, Task)
+        .join(Task, Submission.task_id == Task.id)
+        .where(
+            Task.project_id == project.id,
+            Submission.status == "approved",
+        )
+        .order_by(Submission.id.asc())
+        .all()
+    )
+
+    if export_format in ("openai", "sharegpt"):
+        from redlab.models import Message, Session, Target
+        from models import AuditLog
+
+        lines = []
+        for submission, task in subs:
+            if not submission.redlab_session_id:
+                continue
+            sess = db.session.get(Session, submission.redlab_session_id)
+            if sess is None:
+                continue
+            msgs = (
+                db.session.query(Message)
+                .filter(Message.session_id == sess.id)
+                .order_by(Message.turn_index.asc())
+                .all()
+            )
+            if not msgs:
+                continue
+
+            if export_format == "openai":
+                model_name = "unknown"
+                if sess.target_id:
+                    tgt = db.session.get(Target, sess.target_id)
+                    if tgt and tgt.model_name:
+                        model_name = tgt.model_name
+                # QA reviewer names from AuditLog
+                reviewers = [
+                    row[0]
+                    for row in db.session.execute(
+                        select(AuditLog.actor_name)
+                        .where(
+                            AuditLog.action == "review.verdict",
+                            AuditLog.entity_type == "submission",
+                            AuditLog.entity_id == submission.id,
+                        )
+                    ).all()
+                    if row[0]
+                ]
+                breach_turns = [
+                    m.turn_index for m in msgs
+                    if m.role == "assistant" and m.is_unsafe_flag
+                ]
+                line_obj = {
+                    "messages": [
+                        {"role": m.role, "content": m.content or ""}
+                        for m in msgs
+                    ],
+                    "metadata": {
+                        "submission_id": str(submission.id),
+                        "breach_turns": breach_turns,
+                        "model": model_name,
+                        "qa_reviewers": reviewers,
+                        "exported_at": utc_now().isoformat(),
+                    },
+                }
+                lines.append(json.dumps(line_obj, ensure_ascii=False))
+            elif export_format == "sharegpt":
+                line_obj = {
+                    "conversations": [
+                        {
+                            "from": "human" if m.role == "user" else "gpt",
+                            "value": m.content or "",
+                        }
+                        for m in msgs
+                    ]
+                }
+                lines.append(json.dumps(line_obj, ensure_ascii=False))
+
+        body = "\n".join(lines) + ("\n" if lines else "")
+        resp = Response(
+            body.encode("utf-8"),
+            mimetype="application/x-ndjson",
+        )
+        fname = f"brydl-project{project.id}-{export_format}-{stamp}.jsonl"
+        resp.headers["Content-Disposition"] = f'attachment; filename="{fname}"'
+        return resp
+
+    elif export_format == "csv":
+        import io
+        import csv as csv_module
+        from client_portal import _as_text
+        buffer = io.StringIO()
+        writer = csv_module.writer(buffer)
+        writer.writerow(
+            ["task_id", "input", "output", "qa_score",
+             "submitted_at", "reviewed_at"]
+        )
+        for submission, task in subs:
+            writer.writerow([
+                task.id,
+                _as_text(_loads(task.input_data)),
+                _as_text(_loads(submission.output_data)),
+                submission.qa_score if submission.qa_score is not None else "",
+                (submission.submitted_at.isoformat()
+                 if submission.submitted_at else ""),
+                (submission.reviewed_at.isoformat()
+                 if submission.reviewed_at else ""),
+            ])
+        resp = Response(
+            buffer.getvalue().encode("utf-8-sig"),
+            mimetype="text/csv",
+        )
+        fname = f"brydl-project{project.id}-approved-{stamp}.csv"
+        resp.headers["Content-Disposition"] = f'attachment; filename="{fname}"'
+        return resp
+    else:  # standard jsonl
+        import client_portal as portal
+        records = [
+            portal.client_safe_record(
+                task.id,
+                _loads(task.input_data),
+                _loads(submission.output_data),
+                submission.qa_score,
+                None,
+                None,
+                (submission.submitted_at.isoformat()
+                 if submission.submitted_at else None),
+                (submission.reviewed_at.isoformat()
+                 if submission.reviewed_at else None),
+            )
+            for submission, task in subs
+        ]
+        body = portal.to_jsonl(records)
+        resp = Response(
+            body.encode("utf-8"),
+            mimetype="application/x-ndjson",
+        )
+        fname = f"brydl-project{project.id}-approved-{stamp}.jsonl"
+        resp.headers["Content-Disposition"] = f'attachment; filename="{fname}"'
+        return resp
 
 
 @api_bp.errorhandler(ApiSubmitError)

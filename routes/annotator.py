@@ -1039,6 +1039,24 @@ def task_page(task_id: int):
             ).first()
         )
         if sub is None:
+            # Check project quota before starting a new session
+            if (project.redteam_session_quota
+                    and project.redteam_session_quota > 0):
+                from redlab.models import Session as RSession
+                used = (
+                    db.session.scalar(
+                        select(func.count(RSession.id))
+                        .where(RSession.project_ref == str(project.id))
+                    ) or 0
+                )
+                if used >= project.redteam_session_quota:
+                    flash(
+                        f"Project session quota of "
+                        f"{project.redteam_session_quota} has been reached.",
+                        "warning",
+                    )
+                    return redirect(url_for("annotator.dashboard"))
+
             sub = Submission(
                 task_id=task.id,
                 annotator_id=current_user.id,
@@ -1064,6 +1082,10 @@ def task_page(task_id: int):
                 target_id=target.id,
             )
             db.session.commit()
+        except ValueError as ex:
+            db.session.rollback()
+            flash(str(ex), "warning")
+            return redirect(url_for("annotator.dashboard"))
         except Exception:
             db.session.rollback()
             current_app.logger.exception(
@@ -1097,6 +1119,8 @@ def task_page(task_id: int):
         # prompt shown to the annotator at the top of the chat card
         # (it's the red-team "goal" for this task).
         rt_prompt_html = render_rich(task.input_data or "")
+        from redlab.seeds import get_seed_prompts
+        seed_prompts = get_seed_prompts()
         return render_template(
             "annotator/task.html",
             task=task, project=project, form=None,
@@ -1114,6 +1138,7 @@ def task_page(task_id: int):
             redteam_base_usd=base_usd,
             redteam_bounty_usd=bounty_usd,
             redteam_usd_to_ngn=usd_to_ngn_rate,
+            redteam_seed_prompts=seed_prompts,
             redlab_enabled=True,
             media_doc=None, media_url=None,
         )
