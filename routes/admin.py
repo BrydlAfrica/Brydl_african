@@ -619,25 +619,11 @@ def dashboard():
 
         # --- Red-team sessions, breaches & quota (Phase 8) ---------------
         try:
-            from redlab.models import Session as RSession
-            stats["redteam_sessions_used"] = (
-                db.session.scalar(select(func.count(RSession.id))) or 0
-            )
-            stats["redteam_breaches"] = (
-                db.session.scalar(
-                    select(func.coalesce(func.sum(RSession.breach_count), 0))
-                ) or 0
-            )
-            stats["redteam_session_quota"] = (
-                db.session.scalar(
-                    select(
-                        func.coalesce(
-                            func.sum(Project.redteam_session_quota), 0
-                        )
-                    )
-                    .where(Project.task_type == "dynamic_red_team")
-                ) or 0
-            )
+            from redlab.integration import get_redteam_quota_stats
+            u, b, q = get_redteam_quota_stats()
+            stats["redteam_sessions_used"] = u
+            stats["redteam_breaches"] = b
+            stats["redteam_session_quota"] = q
         except Exception:
             stats["redteam_sessions_used"] = 0
             stats["redteam_breaches"] = 0
@@ -902,19 +888,8 @@ def edit_project(project_id: int):
     rt_breaches = 0
     if project.task_type == "dynamic_red_team":
         try:
-            from redlab.models import Session as RSession
-            rt_used = (
-                db.session.scalar(
-                    select(func.count(RSession.id))
-                    .where(RSession.project_ref == str(project.id))
-                ) or 0
-            )
-            rt_breaches = (
-                db.session.scalar(
-                    select(func.coalesce(func.sum(RSession.breach_count), 0))
-                    .where(RSession.project_ref == str(project.id))
-                ) or 0
-            )
+            from redlab.integration import get_redteam_quota_stats
+            rt_used, rt_breaches, _ = get_redteam_quota_stats(project.id)
         except Exception:
             rt_used, rt_breaches = 0, 0
 
@@ -2323,15 +2298,9 @@ def review_detail(submission_id: int):
                 and submission.redlab_session_id
                 and form.action.data == "approve"):
             try:
-                from redlab.models import Message
-                confirmed_q = (
-                    db.session.query(Message)
-                    .filter(
-                        Message.session_id == submission.redlab_session_id,
-                        Message.role == "assistant",
-                        Message.is_unsafe_flag.is_(True),
-                    )
-                    .count()
+                from redlab.integration import count_confirmed_breaches
+                confirmed_q = count_confirmed_breaches(
+                    submission.redlab_session_id
                 )
                 submission.redteam_breach_count = int(confirmed_q)
                 db.session.flush()
@@ -2524,25 +2493,10 @@ def redteam_qa_flag_toggle(submission_id: int, mid: str):
     except Exception:
         return {"ok": False, "error": "bad_json"}, 400
     try:
-        from redlab.models import Message, Session
-        msg = db.session.get(Message, mid)
-        if msg is None or msg.session_id != sub.redlab_session_id:
-            return {"ok": False, "error": "message_not_found"}, 404
-        sess = db.session.get(Session, sub.redlab_session_id)
-        if sess is None:
-            return {"ok": False, "error": "session_not_found"}, 404
-        if msg.role != "assistant":
-            return {"ok": False, "error": "flag_assistant_only"}, 400
-        msg.is_unsafe_flag = is_unsafe
-        db.session.flush()
-        new_count = (
-            db.session.query(Message)
-            .filter(Message.session_id == sess.id,
-                    Message.role == "assistant",
-                    Message.is_unsafe_flag.is_(True))
-            .count()
+        from redlab.integration import toggle_qa_message_flag
+        new_count = toggle_qa_message_flag(
+            sub.redlab_session_id, mid, is_unsafe
         )
-        sess.breach_count = new_count
         sub.redteam_breach_count = new_count
         db.session.commit()
         log_event(
@@ -2555,6 +2509,9 @@ def redteam_qa_flag_toggle(submission_id: int, mid: str):
         )
         return {"ok": True, "breach_count": int(new_count),
                 "message_id": mid, "is_unsafe": is_unsafe}
+    except ValueError as err:
+        db.session.rollback()
+        return {"ok": False, "error": str(err)}, 400
     except Exception:
         db.session.rollback()
         current_app.logger.exception(

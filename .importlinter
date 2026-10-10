@@ -1,0 +1,30 @@
+[importlinter]
+root_packages =
+    redlab
+    routes
+include_external_packages = True
+
+[importlinter:contract:1]
+name = redlab must NOT import from Flask routes
+type = forbidden
+source_modules =
+    redlab
+forbidden_modules =
+    routes
+
+[importlinter:contract:2]
+name = Flask routes must NOT import from redlab internal modules
+type = forbidden
+source_modules =
+    routes
+forbidden_modules =
+    redlab.app
+    redlab.crypto
+    redlab.events
+    redlab.flags
+    redlab.llm
+    redlab.models
+    redlab.ssrf
+    redlab.targets
+    redlab.seeds
+allow_indirect_imports = true

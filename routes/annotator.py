@@ -1042,13 +1042,8 @@ def task_page(task_id: int):
             # Check project quota before starting a new session
             if (project.redteam_session_quota
                     and project.redteam_session_quota > 0):
-                from redlab.models import Session as RSession
-                used = (
-                    db.session.scalar(
-                        select(func.count(RSession.id))
-                        .where(RSession.project_ref == str(project.id))
-                    ) or 0
-                )
+                from redlab.integration import get_redteam_quota_stats
+                used, _, _ = get_redteam_quota_stats(project.id)
                 if used >= project.redteam_session_quota:
                     flash(
                         f"Project session quota of "
@@ -1119,7 +1114,7 @@ def task_page(task_id: int):
         # prompt shown to the annotator at the top of the chat card
         # (it's the red-team "goal" for this task).
         rt_prompt_html = render_rich(task.input_data or "")
-        from redlab.seeds import get_seed_prompts
+        from redlab.integration import get_seed_prompts
         seed_prompts = get_seed_prompts()
         return render_template(
             "annotator/task.html",

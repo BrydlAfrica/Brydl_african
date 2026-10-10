@@ -307,7 +307,8 @@ def create_session(
         )
         if used >= proj.redteam_session_quota:
             raise ValueError(
-                f"Project quota of {proj.redteam_session_quota} sessions reached."
+                f"Project quota of {proj.redteam_session_quota} "
+                "sessions reached."
             )
 
     sess = Session(
@@ -339,9 +340,153 @@ def pick_active_target(project_id: int) -> Optional["Target"]:  # noqa: F821
     )
 
 
+def get_redteam_quota_stats(
+    project_id: Optional[int] = None,
+) -> tuple[int, int, int]:
+    """Return (sessions_used, confirmed_breaches, quota_total).
+
+    If project_id is given, returns stats for that project; otherwise
+    returns aggregate stats across all dynamic_red_team projects.
+    """
+    from extensions import db
+    from models import Project
+    from redlab.models import Session
+    from sqlalchemy import func, select
+
+    if project_id is not None:
+        used = (
+            db.session.scalar(
+                select(func.count(Session.id))
+                .where(Session.project_ref == str(project_id))
+            ) or 0
+        )
+        breaches = (
+            db.session.scalar(
+                select(func.coalesce(func.sum(Session.breach_count), 0))
+                .where(Session.project_ref == str(project_id))
+            ) or 0
+        )
+        proj = db.session.get(Project, project_id)
+        quota = (
+            int(proj.redteam_session_quota or 0)
+            if proj else 0
+        )
+        return int(used), int(breaches), int(quota)
+
+    used = db.session.scalar(select(func.count(Session.id))) or 0
+    breaches = (
+        db.session.scalar(
+            select(func.coalesce(func.sum(Session.breach_count), 0))
+        ) or 0
+    )
+    quota = (
+        db.session.scalar(
+            select(
+                func.coalesce(
+                    func.sum(Project.redteam_session_quota), 0
+                )
+            )
+            .where(Project.task_type == "dynamic_red_team")
+        ) or 0
+    )
+    return int(used), int(breaches), int(quota)
+
+
+def toggle_qa_message_flag(
+    session_id: str,
+    message_id: str,
+    is_unsafe: bool,
+) -> int:
+    """Set assistant message unsafe flag by QA; returns new breach_count."""
+    from extensions import db
+    from redlab.models import Message, Session
+
+    msg = db.session.get(Message, message_id)
+    if msg is None or msg.session_id != session_id:
+        raise ValueError("message_not_found")
+    sess = db.session.get(Session, session_id)
+    if sess is None:
+        raise ValueError("session_not_found")
+    if msg.role != "assistant":
+        raise ValueError("flag_assistant_only")
+
+    msg.is_unsafe_flag = is_unsafe
+    db.session.flush()
+    new_count = (
+        db.session.query(Message)
+        .filter(Message.session_id == sess.id,
+                Message.role == "assistant",
+                Message.is_unsafe_flag.is_(True))
+        .count()
+    )
+    sess.breach_count = new_count
+    return int(new_count)
+
+
+def count_confirmed_breaches(session_id: str) -> int:
+    """Return count of flagged assistant messages in a session."""
+    from extensions import db
+    from redlab.models import Message
+
+    return int(
+        db.session.query(Message)
+        .filter(Message.session_id == session_id,
+                Message.role == "assistant",
+                Message.is_unsafe_flag.is_(True))
+        .count()
+    )
+
+
+def get_session_export_data(
+    session_id: str,
+) -> Optional[dict[str, Any]]:
+    """Return ordered messages and target model name for fine-tuning export."""
+    from extensions import db
+    from redlab.models import Message, Session, Target
+
+    sess = db.session.get(Session, session_id)
+    if sess is None:
+        return None
+    msgs = (
+        db.session.query(Message)
+        .filter(Message.session_id == sess.id)
+        .order_by(Message.turn_index.asc())
+        .all()
+    )
+    if not msgs:
+        return None
+    model_name = "unknown"
+    if sess.target_id:
+        tgt = db.session.get(Target, sess.target_id)
+        if tgt and tgt.model_name:
+            model_name = tgt.model_name
+    return {
+        "model": model_name,
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content or "",
+                "turn_index": m.turn_index,
+                "is_unsafe_flag": bool(m.is_unsafe_flag),
+            }
+            for m in msgs
+        ],
+    }
+
+
+def get_seed_prompts(
+    category: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """Return seed prompts (re-exported through integration bridge)."""
+    from redlab.seeds import get_seed_prompts as _gsp
+    return _gsp(category)
+
+
 __all__ = [
     "MIN_CONCLUDE_TURNS", "QA_REVIEWERS_PER_SESSION",
     "register_integration_handlers", "get_session_transcript",
     "link_session_to_submission", "create_session",
-    "pick_active_target",
+    "pick_active_target", "get_redteam_quota_stats",
+    "toggle_qa_message_flag", "count_confirmed_breaches",
+    "get_session_export_data", "get_seed_prompts",
 ]

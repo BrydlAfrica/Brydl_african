@@ -424,31 +424,20 @@ def export_project_results(project_id: int):
     )
 
     if export_format in ("openai", "sharegpt"):
-        from redlab.models import Message, Session, Target
+        from redlab.integration import get_session_export_data
         from models import AuditLog
 
         lines = []
         for submission, task in subs:
             if not submission.redlab_session_id:
                 continue
-            sess = db.session.get(Session, submission.redlab_session_id)
-            if sess is None:
+            data = get_session_export_data(submission.redlab_session_id)
+            if not data or not data.get("messages"):
                 continue
-            msgs = (
-                db.session.query(Message)
-                .filter(Message.session_id == sess.id)
-                .order_by(Message.turn_index.asc())
-                .all()
-            )
-            if not msgs:
-                continue
+            msgs = data["messages"]
+            model_name = data.get("model", "unknown")
 
             if export_format == "openai":
-                model_name = "unknown"
-                if sess.target_id:
-                    tgt = db.session.get(Target, sess.target_id)
-                    if tgt and tgt.model_name:
-                        model_name = tgt.model_name
                 # QA reviewer names from AuditLog
                 reviewers = [
                     row[0]
@@ -463,12 +452,12 @@ def export_project_results(project_id: int):
                     if row[0]
                 ]
                 breach_turns = [
-                    m.turn_index for m in msgs
-                    if m.role == "assistant" and m.is_unsafe_flag
+                    m["turn_index"] for m in msgs
+                    if m["role"] == "assistant" and m["is_unsafe_flag"]
                 ]
                 line_obj = {
                     "messages": [
-                        {"role": m.role, "content": m.content or ""}
+                        {"role": m["role"], "content": m["content"] or ""}
                         for m in msgs
                     ],
                     "metadata": {
@@ -484,8 +473,8 @@ def export_project_results(project_id: int):
                 line_obj = {
                     "conversations": [
                         {
-                            "from": "human" if m.role == "user" else "gpt",
-                            "value": m.content or "",
+                            "from": "human" if m["role"] == "user" else "gpt",
+                            "value": m["content"] or "",
                         }
                         for m in msgs
                     ]
