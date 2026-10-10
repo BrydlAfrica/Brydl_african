@@ -569,9 +569,16 @@ def dashboard():
         )
 
         # --- Pending payout ----------------------------------------------
+        per_sub = case(
+            (Project.task_type == "dynamic_red_team",
+             func.coalesce(Project.redteam_base_pay, 0)
+             + func.coalesce(Submission.redteam_breach_count, 0)
+             * func.coalesce(Project.redteam_breach_bounty, 0)),
+            else_=func.coalesce(Project.pay_per_task, 0),
+        )
         approved_value = money(
             db.session.scalar(
-                select(func.coalesce(func.sum(Project.pay_per_task), 0))
+                select(func.coalesce(func.sum(per_sub), 0))
                 .select_from(Submission)
                 .join(Submission.task)
                 .join(Task.project)
@@ -2226,8 +2233,59 @@ def review_detail(submission_id: int):
     except ValueError:
         output_display = submission.output_data
 
+    # ---- Dynamic red-team: fetch full transcript & recompute breach
+    # count at review time so the payout uses QA-confirmed flags. ----
+    redteam_transcript = None
+    redteam_payout_usd = None
+    if (project.task_type == "dynamic_red_team"
+            and submission.redlab_session_id):
+        try:
+            from redlab.integration import get_session_transcript
+            redteam_transcript = get_session_transcript(
+                submission.redlab_session_id
+            )
+        except Exception:
+            current_app.logger.exception(
+                "Failed to load red-team transcript for sub=%s",
+                submission.id,
+            )
+            redteam_transcript = None
+        # Exact-Decimal preview payout (base + confirmed breaches * bounty).
+        base = project.redteam_base_pay or Decimal("0.00")
+        bounty = project.redteam_breach_bounty or Decimal("0.00")
+        confirmed = Decimal(int(submission.redteam_breach_count or 0))
+        redteam_payout_usd = money(
+            Decimal(base) + Decimal(bounty) * confirmed
+        )
+
     form = ReviewForm()
     if form.validate_on_submit():
+        # If QA is approving a red-team sub, recompute the confirmed
+        # breach count from the assistant-message flags currently in
+        # the DB (which may have been toggled via qa-flag-toggle above)
+        # so the cached count matches what payout aggregation will sum.
+        if (project.task_type == "dynamic_red_team"
+                and submission.redlab_session_id
+                and form.action.data == "approve"):
+            try:
+                from redlab.models import Message
+                confirmed_q = (
+                    db.session.query(Message)
+                    .filter(
+                        Message.session_id == submission.redlab_session_id,
+                        Message.role == "assistant",
+                        Message.is_unsafe_flag.is_(True),
+                    )
+                    .count()
+                )
+                submission.redteam_breach_count = int(confirmed_q)
+                db.session.flush()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception(
+                    "Could not sync red-team breach count for sub=%s",
+                    submission.id,
+                )
         try:
             updated, escalated = _apply_verdict(
                 submission_ids=[submission.id],
@@ -2321,6 +2379,8 @@ def review_detail(submission_id: int):
                     if task.consensus_group_id is not None else None
                 ),
                 form=form,
+                redteam_transcript=redteam_transcript,
+                redteam_payout_usd=redteam_payout_usd,
             )
         if updated != 1:
             # Lost a race: another reviewer got here first.
@@ -2359,7 +2419,94 @@ def review_detail(submission_id: int):
         media_prompt=review_media_prompt,
         rubric_view=_rubric_view(submission, project),
         form=form,
+        redteam_transcript=redteam_transcript,
+        redteam_payout_usd=redteam_payout_usd,
     )
+
+
+@admin_bp.route(
+    "/review/redteam/<int:submission_id>/messages/<mid>/flag",
+    methods=["POST"],
+)
+@qa_required
+def redteam_qa_flag_toggle(submission_id: int, mid: str):
+    """QA override of an assistant-turn breach flag for a red-team sub.
+
+    QA reviewers can confirm or overturn the annotator's per-turn
+    safety flags before they approve a dynamic red-team submission.
+    Toggling a flag re-syncs ``Session.breach_count`` and the cached
+    ``Submission.redteam_breach_count`` so the payout ledger uses the
+    QA-confirmed count (base + breach_bounty * confirmed_count).
+
+    This endpoint accepts JSON ``{"is_unsafe": true|false}`` (with
+    X-CSRFToken header) and returns the fresh breach count; only
+    'submitted' dynamic_red_team submissions can be edited, to
+    prevent tampering after a verdict is recorded.
+    """
+    try:
+        csrf_val = (
+            request.headers.get("X-CSRFToken")
+            or request.headers.get("X-CSRF-Token")
+            or (request.get_json(silent=True) or {}).get("csrf_token")
+            or request.form.get("csrf_token", "")
+        )
+        validate_csrf(csrf_val)
+    except ValidationError:
+        return {"ok": False, "error": "csrf_failed"}, 400
+
+    sub = db.session.get(Submission, submission_id)
+    if sub is None:
+        abort(404)
+    task = sub.task
+    project = task.project
+    if (sub.status != "submitted"
+            or project.task_type != "dynamic_red_team"
+            or not sub.redlab_session_id):
+        return {"ok": False, "error": "not_editable"}, 400
+    try:
+        payload = request.get_json(silent=True) or {}
+        is_unsafe = bool(payload.get("is_unsafe"))
+    except Exception:
+        return {"ok": False, "error": "bad_json"}, 400
+    try:
+        from redlab.models import Message, Session
+        msg = db.session.get(Message, mid)
+        if msg is None or msg.session_id != sub.redlab_session_id:
+            return {"ok": False, "error": "message_not_found"}, 404
+        sess = db.session.get(Session, sub.redlab_session_id)
+        if sess is None:
+            return {"ok": False, "error": "session_not_found"}, 404
+        if msg.role != "assistant":
+            return {"ok": False, "error": "flag_assistant_only"}, 400
+        msg.is_unsafe_flag = is_unsafe
+        db.session.flush()
+        new_count = (
+            db.session.query(Message)
+            .filter(Message.session_id == sess.id,
+                    Message.role == "assistant",
+                    Message.is_unsafe_flag.is_(True))
+            .count()
+        )
+        sess.breach_count = new_count
+        sub.redteam_breach_count = new_count
+        db.session.commit()
+        log_event(
+            "review.redteam_flag_toggle",
+            actor=current_user,
+            entity_type="submission",
+            entity_id=sub.id,
+            detail={"message_id": mid, "is_unsafe": is_unsafe,
+                    "breach_count": new_count},
+        )
+        return {"ok": True, "breach_count": int(new_count),
+                "message_id": mid, "is_unsafe": is_unsafe}
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "QA flag toggle failed for sub=%s msg=%s",
+            submission_id, mid,
+        )
+        return {"ok": False, "error": "internal"}, 500
 
 
 @admin_bp.route("/review/bulk", methods=["POST"])
@@ -2997,24 +3144,42 @@ PAYMENT_METHODS = ("bank_transfer", "mobile_money", "cash", "other")
 
 def _unclaimed_agg(
     annotator_id: int | None = None,
-) -> dict[int, tuple[int, float, object]]:
+) -> dict[int, tuple[int, Decimal, object]]:
     """Aggregate unpaid approved work per annotator in one grouped query.
 
     "Unclaimed" means an approved submission whose payment_id is NULL —
     approved work that has never been bundled into any payout run.
 
+    Per-submission payout is computed in the database using exact
+    Decimal arithmetic:
+      - For standard tasks: project.pay_per_task (already Decimal).
+      - For dynamic_red_team tasks: project.redteam_base_pay +
+        submission.redteam_breach_count * project.redteam_breach_bounty.
+    A SQL ``CASE`` expression picks the right branch per task type,
+    and SUM/COALESCE returns a Decimal we then quantize to 2dp with
+    :func:`models.money` — no float arithmetic is involved.
+
     Args:
         annotator_id: Optional annotator to restrict the aggregation to.
 
     Returns:
-        Mapping of annotator id to (count, USD value rounded to 2
+        Mapping of annotator id to (count, USD Decimal rounded to 2
         decimals, earliest submitted_at in the bundle).
     """
+    per_sub = (
+        case(
+            (Project.task_type == "dynamic_red_team",
+             func.coalesce(Project.redteam_base_pay, 0)
+             + func.coalesce(Submission.redteam_breach_count, 0)
+             * func.coalesce(Project.redteam_breach_bounty, 0)),
+            else_=func.coalesce(Project.pay_per_task, 0),
+        )
+    )
     stmt = (
         select(
             Submission.annotator_id,
             func.count(Submission.id),
-            func.coalesce(func.sum(Project.pay_per_task), 0.0),
+            func.coalesce(func.sum(per_sub), 0),
             func.min(Submission.submitted_at),
         )
         .join(Submission.task)
@@ -3029,7 +3194,10 @@ def _unclaimed_agg(
         stmt = stmt.where(Submission.annotator_id == annotator_id)
     rows = db.session.execute(stmt).all()
     return {
-        row[0]: (row[1], money(row[2]), row[3]) for row in rows
+        row[0]: (row[1],
+                 money(row[2] if row[2] is not None else Decimal("0")),
+                 row[3])
+        for row in rows
     }
 
 

@@ -291,20 +291,27 @@ class User(UserMixin, db.Model):
         """Total USD earned from QA-approved submissions.
 
         Earnings are computed from approved submissions (joined through
-        their task to the project's pay_per_task), so the figure includes
-        money earned but not yet paid out. The payments table, by contrast,
-        records actual payouts — the difference between the two is the
-        annotator's outstanding balance. Decimal end to end (no float
-        money).
+        their task to the project's pay_per_task or red-team base +
+        bounty formula), so the figure includes money earned but not
+        yet paid out. The payments table, by contrast, records actual
+        payouts — the difference between the two is the annotator's
+        outstanding balance. Decimal end to end (no float money).
 
         Returns:
             Earnings in USD as a Decimal rounded to 2 places, or
             Decimal("0.00") on failure.
         """
         try:
+            per_sub = case(
+                (Project.task_type == "dynamic_red_team",
+                 func.coalesce(Project.redteam_base_pay, 0)
+                 + func.coalesce(Submission.redteam_breach_count, 0)
+                 * func.coalesce(Project.redteam_breach_bounty, 0)),
+                else_=func.coalesce(Project.pay_per_task, 0),
+            )
             stmt = (
                 select(func.coalesce(
-                    func.sum(Project.pay_per_task), Decimal("0.00")
+                    func.sum(per_sub), Decimal("0.00")
                 ))
                 .select_from(Submission)
                 # Relationship joins: no hand-written ON clauses needed.

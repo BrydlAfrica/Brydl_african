@@ -45,7 +45,7 @@ from flask import (
 from flask_login import current_user, logout_user
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import ValidationError, generate_csrf, validate_csrf
-from sqlalchemy import exists, func, select, update
+from sqlalchemy import case, exists, func, select, update
 from sqlalchemy.orm import joinedload
 from wtforms import (
     IntegerField,
@@ -814,9 +814,16 @@ def dashboard():
         month_start = utc_now().replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
+        per_sub = case(
+            (Project.task_type == "dynamic_red_team",
+             func.coalesce(Project.redteam_base_pay, 0)
+             + func.coalesce(Submission.redteam_breach_count, 0)
+             * func.coalesce(Project.redteam_breach_bounty, 0)),
+            else_=func.coalesce(Project.pay_per_task, 0),
+        )
         stats["earnings_month"] = money(
             db.session.scalar(
-                select(func.coalesce(func.sum(Project.pay_per_task), 0))
+                select(func.coalesce(func.sum(per_sub), 0))
                 .select_from(Submission)
                 .join(Submission.task)
                 .join(Task.project)
@@ -1460,28 +1467,51 @@ def history():
             )
         submissions = list(pagination.items)
         task_ids = {submission.task_id for submission in submissions}
-        task_info: dict[int, tuple[str, float]] = {}
+        task_info: dict[
+            int,
+            tuple[str, str, Decimal | None, Decimal | None, Decimal | None],
+        ] = {}
         if task_ids:
             task_info = {
-                tid: (name, pay)
-                for tid, name, pay in db.session.execute(
-                    select(
-                        Task.id,
-                        Project.name,
-                        Project.pay_per_task,
-                    )
-                    .join(Task.project)
-                    .where(Task.id.in_(task_ids))
-                ).all()
+                tid: (name, ttype, ppt, rbase, rbounty)
+                for tid, name, ttype, ppt, rbase, rbounty in (
+                    db.session.execute(
+                        select(
+                            Task.id,
+                            Project.name,
+                            Project.task_type,
+                            Project.pay_per_task,
+                            Project.redteam_base_pay,
+                            Project.redteam_breach_bounty,
+                        )
+                        .join(Task.project)
+                        .where(Task.id.in_(task_ids))
+                    ).all()
+                )
             }
+
+        def _calc_sub_pay(sub):
+            meta = task_info.get(sub.task_id)
+            if not meta:
+                return money(0)
+            name, ttype, ppt, rbase, rbounty = meta
+            if ttype == "dynamic_red_team":
+                base = rbase or Decimal("0.00")
+                bounty = rbounty or Decimal("0.00")
+                cnt = Decimal(int(sub.redteam_breach_count or 0))
+                return money(base + bounty * cnt)
+            return money(ppt or 0)
+
         rows = [
             {
                 "submission": submission,
                 "task_id": submission.task_id,
-                "project_name": task_info.get(
-                    submission.task_id, ("—", 0.0)
-                )[0],
-                "pay": task_info.get(submission.task_id, ("—", 0.0))[1],
+                "project_name": (
+                    task_info.get(
+                        submission.task_id, ("—", "", None, None, None)
+                    )[0]
+                ),
+                "pay": _calc_sub_pay(submission),
             }
             for submission in submissions
         ]

@@ -110,24 +110,84 @@
           Consensus: {{ consensus.status }}{% if consensus.decision %} → {{ consensus.decision }}{% endif %}
         </span>
         {% endif %}
+        {% if project.task_type == 'dynamic_red_team' %}
+        <span class="badge bg-danger float-end me-1">
+          <i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Red-team chat
+        </span>
+        {% endif %}
       </div>
       <div class="card-body">
-        <pre class="mb-0 small" style="white-space: pre-wrap;">{{ output_display }}</pre>
-        {% if rubric_view %}
-        <div class="table-responsive"><table class="table table-sm table-striped mt-3 mb-0 small">
-          <thead>
-            <tr><th>Rubric</th><th class="text-center">A</th><th class="text-center">B</th></tr>
-          </thead>
-          <tbody>
-            {% for dim, scores in rubric_view.items() %}
-            <tr>
-              <td>{{ dim }}</td>
-              <td class="text-center">{{ scores.a }}</td>
-              <td class="text-center">{{ scores.b }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table></div>
+        {# Dynamic red-team: render the full chronological transcript with
+           per-turn QA-controlled breach flags. #}
+        {% if project.task_type == 'dynamic_red_team' and redteam_transcript %}
+          {% set sess = redteam_transcript.session %}
+          <div id="qa-redteam"
+               data-sub-id="{{ submission.id }}"
+               data-csrf-token="{{ form.csrf_token._value() }}"
+               data-toggle-url="{{ url_for('admin.redteam_qa_flag_toggle', submission_id=submission.id, mid='__MID__') }}"
+               data-base-usd="{{ '%.2f' % (project.redteam_base_pay or 0) }}"
+               data-bounty-usd="{{ '%.2f' % (project.redteam_breach_bounty or 0) }}"
+               class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
+              <span>Session <code>{{ submission.redlab_session_id }}</code></span>
+              <span>
+                <span class="badge bg-warning text-dark me-1" id="qa-breach-count">
+                  <i class="bi bi-flag me-1" aria-hidden="true"></i><span class="cnt">{{ submission.redteam_breach_count or 0 }}</span> breach{% if (submission.redteam_breach_count or 0) != 1 %}es{% endif %}
+                </span>
+                <span class="badge bg-primary" id="qa-payout-preview">
+                  <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>${{ '%.2f' % (redteam_payout_usd or 0) }}
+                </span>
+              </span>
+            </div>
+            {% if sess and sess.conclude_note %}
+            <div class="alert alert-info py-2 px-3 small mb-2">
+              <strong><i class="bi bi-chat-left-quote me-1" aria-hidden="true"></i>Annotator notes:</strong>
+              <div style="white-space: pre-wrap;" class="mt-1">{{ sess.conclude_note }}</div>
+            </div>
+            {% endif %}
+            <div class="border rounded p-2 bg-light" style="max-height: 520px; overflow-y: auto;" id="qa-redteam-log" aria-live="polite">
+              {% for msg in redteam_transcript.messages %}
+              <div class="d-flex mb-2 rt-msg {% if msg.role == 'user' %}justify-content-end{% endif %}"
+                   data-mid="{{ msg.id }}" data-role="{{ msg.role }}" data-flagged="{{ '1' if msg.is_unsafe_flag else '0' }}">
+                <div class="px-2 py-1 rounded small
+                            {% if msg.role == 'user' %}bg-primary text-white{% else %}bg-white border{% endif %}
+                            {% if msg.is_unsafe_flag %}border-danger border-2 text-danger{% endif %}"
+                     style="max-width: 80%; white-space: pre-wrap;">{{ msg.content }}</div>
+                {% if msg.role == 'assistant' %}
+                <button type="button"
+                        class="btn btn-sm ms-1 rt-qa-flag
+                               {% if msg.is_unsafe_flag %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                        title="Toggle QA-confirmed breach flag"
+                        aria-label="Toggle breach flag">
+                  <i class="bi bi-flag" aria-hidden="true"></i>
+                </button>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            <div class="form-text mt-1">
+              Flag buttons are QA overrides — toggling updates the confirmed
+              breach count and the payout preview above before you approve.
+            </div>
+          </div>
+        {% elif output_display %}
+          <pre class="mb-0 small" style="white-space: pre-wrap;">{{ output_display }}</pre>
+          {% if rubric_view %}
+          <div class="table-responsive"><table class="table table-sm table-striped mt-3 mb-0 small">
+            <thead>
+              <tr><th>Rubric</th><th class="text-center">A</th><th class="text-center">B</th></tr>
+            </thead>
+            <tbody>
+              {% for dim, scores in rubric_view.items() %}
+              <tr>
+                <td>{{ dim }}</td>
+                <td class="text-center">{{ scores.a }}</td>
+                <td class="text-center">{{ scores.b }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table></div>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -189,4 +249,7 @@
     </form>
   </div>
 </div>
+{% if project.task_type == 'dynamic_red_team' and redteam_transcript %}
+<script src="{{ url_for('static', filename='js/qa_redteam_flags.js') }}" defer></script>
+{% endif %}
 {% endblock %}
