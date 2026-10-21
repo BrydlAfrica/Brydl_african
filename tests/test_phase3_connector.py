@@ -4,22 +4,24 @@ Verifies:
 1. SSRF validator table-driven: https is required, loopback/RFC1918/
    link-local/metadata/IPv6-loopback blocked, localhost http allowed
    only in dev, dns failure returns 'dns_resolution_failed'.
-2. Mock model returns canary on credential probes (~45% rate),
+2. IPv4-mapped IPv6 normalization and 0.0.0.0/8 block coverage.
+3. DNS rebinding prevention via connection IP pinning.
+4. Mock model returns canary on credential probes (~45% rate),
    [BYPASS] on jailbreak keywords, matches language on
    Yoruba/Hausa/Swahili/French prompts, safe baseline otherwise,
    deterministic for a given seed.
-3. Connector injects Bearer header, times out per-config, retries
+5. Connector injects Bearer header, times out per-config, retries
    once on 5xx/429 with backoff, maps errors to clean codes,
    redacts sk-/Bearer from bad responses.
 """
 from __future__ import annotations
 import importlib
-import shutil
+import socket
+import unittest.mock
 
 import asyncio
 import os
 import sys
-import types
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -60,6 +62,7 @@ importlib.reload(ssrf)
 
 cases_ok = [
     ("https://api.openai.com/v1/chat/completions", "real https endpoint"),
+    ("https://93.184.216.34/v1/chat", "public IP https endpoint"),
 ]
 cases_blocked = [
     ("http://127.0.0.1:8000/v1/chat", "loopback http blocked", "scheme_not_https"),
@@ -69,6 +72,8 @@ cases_blocked = [
     ("", "empty url -> invalid_url", "invalid_url"),
     ("not a url", "garbage -> invalid_url", "invalid_url"),
     ("http://", "empty host -> invalid_url", "invalid_url"),
+    ("https://", "empty host https -> invalid_url", "invalid_url"),
+    ("https:///", "empty host slash -> invalid_url", "invalid_url"),
 ]
 # Hostname-blocked cases use https against IP literals that land in
 # private ranges (so the scheme check passes and we hit the IP block).
@@ -82,22 +87,26 @@ cases_blocked += [
     ("https://100.64.0.1/", "CGNAT 100.64/10 blocked (https)",
      "hostname_blocked"),
 ]
-# Test https:// schemes with blocked IP literals (using hostname='127...'
-# → we catch IP literals too)
-ip_literal_https = [
-    ("https://127.0.0.1/", "https to loopback literal blocked",
-     "hostname_blocked"),
-    ("https://169.254.169.254/", "https to metadata literal blocked",
-     "hostname_blocked"),
-    ("https://[::1]/", "https to IPv6 loopback literal blocked",
-     "hostname_blocked"),
+# Parameterised tests over IPv4-mapped IPv6, 0.0.0.0/8, broadcast, and ULA
+parameterized_ssrf_cases = [
+    ("https://0.0.0.0", "0.0.0.0/8 root blocked", "hostname_blocked"),
+    ("https://0.0.0.1/v1", "0.0.0.1 in 0.0.0.0/8 blocked", "hostname_blocked"),
+    ("https://255.255.255.255/v1", "limited broadcast blocked", "hostname_blocked"),
+    ("https://[::ffff:127.0.0.1]/", "IPv4-mapped loopback blocked", "hostname_blocked"),
+    ("https://[::ffff:169.254.169.254]/", "IPv4-mapped metadata blocked", "hostname_blocked"),
+    ("https://[::ffff:10.0.0.1]/", "IPv4-mapped private 10.x blocked", "hostname_blocked"),
+    ("https://[::ffff:0.0.0.0]/", "IPv4-mapped 0.0.0.0 blocked", "hostname_blocked"),
+    ("https://[::1]/", "IPv6 loopback blocked", "hostname_blocked"),
+    ("https://[fc00::1]/", "IPv6 unique-local blocked", "hostname_blocked"),
+    ("https://[fe80::1]/", "IPv6 link-local blocked", "hostname_blocked"),
+    ("https://[::]/", "IPv6 unspecified :: blocked", "hostname_blocked"),
 ]
 
 for url, label in cases_ok:
     ok, reason = ssrf.validate_endpoint_url(url)
     expect(ok and reason is None, f"{label}: {url}")
 
-for url, label, expected_code in cases_blocked + ip_literal_https:
+for url, label, expected_code in cases_blocked + parameterized_ssrf_cases:
     ok, reason = ssrf.validate_endpoint_url(url)
     expect(not ok and reason == expected_code,
            f"{label}: {url} -> {expected_code} (got reason={reason})")
@@ -113,6 +122,20 @@ expect(not ok and reason in ("hostname_blocked", "scheme_not_https"),
        "REDLAB_ALLOW_HTTP_LOCAL does NOT open RFC1918")
 os.environ.pop("REDLAB_ALLOW_HTTP_LOCAL", None)
 importlib.reload(ssrf)
+
+# Fuzzing / robustness on odd hostnames (no unhandled UnicodeEncodeError)
+fuzz_urls = [
+    ("https://" + "a" * 300 + ".com/v1", "label > 63 chars"),
+    ("https://user:pass@127.0.0.1:8000/v1", "userinfo in loopback"),
+    ("https://example.com:443#fragment@127.0.0.1", "fragment smuggling"),
+    ("https://127.0.0.1./v1", "trailing dot in IP"),
+]
+for f_url, desc in fuzz_urls:
+    try:
+        ok, reason = ssrf.validate_endpoint_url(f_url)
+        expect(isinstance(ok, bool), f"fuzz {desc} safely returns boolean (ok={ok}, reason={reason})")
+    except Exception as exc:
+        expect(False, f"fuzz {desc} raised unhandled {type(exc).__name__}: {exc}")
 
 
 # --- 2. Mock model --------------------------------------------------------
@@ -195,10 +218,8 @@ print("== 3. Connector ==")
 from redlab.connector import (  # noqa: E402
     ERR_BAD_RESPONSE, ERR_CLIENT_AUTH, ERR_ENDPOINT_BLOCKED,
     ERR_RATE_LIMITED, ERR_UNREACHABLE, MAX_RETRIES, build_history,
-    call_client_model,
+    call_client_model, PinnedNetworkBackend,
 )
-
-# build_history accepts both model-style objects and dicts
 
 
 class _FakeMsg:
@@ -220,7 +241,6 @@ expect(len(hist) == 2 and hist[0] == {"role": "user", "content": "hello"},
 class _FakeTarget:
     def __init__(self, endpoint, key_plain="sk-test-api-key-abcdefghij0001",
                  model_name="mock-model"):
-        # Store the ciphertext by encrypting through crypto.
         from redlab.crypto import encrypt_secret
         self.id = "tg-test"
         self.endpoint = endpoint
@@ -345,7 +365,6 @@ expect(attempts == 2, f"one retry before success (got {attempts})")
 
 
 # 3f. Timeout → ERR_UNREACHABLE
-# Use a non-routable TEST-NET address and a very short timeout.
 async def _run_timeout():
     client = httpx.AsyncClient(
         transport=httpx.MockTransport(
@@ -391,6 +410,93 @@ expect("sk-...redacted" in content,
 expect(not ok and err == ERR_BAD_RESPONSE,
        "5xx after retry exhaustion returns ERR_BAD_RESPONSE")
 
+# 3h. 2 MB Streaming response size cap enforcement (chunked & no Content-Length)
+async def _run_oversize_response():
+    # Stream in 512KB chunks totaling > 2MB without a Content-Length header
+    async def _chunk_gen():
+        for _ in range(5):
+            yield b"X" * (512 * 1024)
+
+    async def _handler(request):
+        return httpx.Response(
+            200,
+            content=_chunk_gen(),
+        )
+    client = _transport(_handler)
+    ok, content, err = await call_client_model(
+        _FakeTarget(endpoint="https://93.184.216.34/v1/chat"),
+        [{"role": "user", "content": "hi"}],
+        client=client,
+    )
+    await client.aclose()
+    return ok, content, err
+ok, content, err = asyncio.run(_run_oversize_response())
+expect(not ok and err == ERR_BAD_RESPONSE,
+       "Oversize chunked stream (>2MB) returns ERR_BAD_RESPONSE")
+expect("exceeded 2MB limit" in content,
+       "Oversize chunked stream aborts mid-stream with size limit message")
+
+
+# 4. DNS Rebinding Prevention & Connection Reuse Proof
+print("== 4. DNS Rebinding Prevention & Transport ==")
+call_count = 0
+
+
+def _mock_getaddrinfo(host, port, *args, **kwargs):
+    global call_count
+    call_count += 1
+    if call_count == 1:
+        # Initial validation call: resolves public IP (93.184.216.34)
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
+    # Rebinding attempt on second call: resolves private loopback (127.0.0.1)
+    return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))]
+
+
+with unittest.mock.patch("socket.getaddrinfo", side_effect=_mock_getaddrinfo):
+    # 1. First validation passes and resolves to 93.184.216.34
+    ok, pinned_ip, reason = ssrf.resolve_and_validate_endpoint_url("https://rebind-test.attacker.com/v1")
+    expect(ok and pinned_ip == "93.184.216.34",
+           f"Call 1 validates public IP (got {pinned_ip})")
+
+    # 2. PinnedNetworkBackend locks TCP target to pinned_ip
+    backend = PinnedNetworkBackend(pinned_ip)
+    expect(backend.pinned_ip == "93.184.216.34",
+           "PinnedNetworkBackend locks TCP connection target to initial validated IP")
+
+    # 3. Second validation call resolves to 127.0.0.1 and is immediately rejected
+    ok2, pinned_ip2, reason2 = ssrf.resolve_and_validate_endpoint_url("https://rebind-test.attacker.com/v1")
+    expect(not ok2 and reason2 == "hostname_blocked",
+           f"Call 2 rebinding to 127.0.0.1 is blocked (got {reason2})")
+
+# 4. PinnedIPTransport instantiation with explicit SSL context (no private attribute access)
+from redlab.connector import PinnedIPTransport
+transport = PinnedIPTransport("93.184.216.34")
+expect(isinstance(transport._pool._network_backend, PinnedNetworkBackend),
+       "PinnedIPTransport uses PinnedNetworkBackend")
+expect(transport._pool._network_backend.pinned_ip == "93.184.216.34",
+       "PinnedIPTransport configures backend with validated pinned IP")
+
+# 5. Two sequential calls on a single AsyncClient instance reusing transport
+async def _run_2call_reuse():
+    calls_made = []
+    async def _handler(request):
+        calls_made.append(str(request.url))
+        return httpx.Response(200, json={"choices": [{"message": {"content": f"Reply {len(calls_made)}"}}]})
+    
+    shared_client = _transport(_handler)
+    target = _FakeTarget(endpoint="https://93.184.216.34/v1/chat")
+    
+    # Call 1
+    ok1, c1, err1 = await call_client_model(target, [{"role": "user", "content": "turn 1"}], client=shared_client)
+    # Call 2 reusing same client connection
+    ok2, c2, err2 = await call_client_model(target, [{"role": "user", "content": "turn 2"}], client=shared_client)
+    await shared_client.aclose()
+    return ok1, c1, ok2, c2, len(calls_made)
+
+ok1, c1, ok2, c2, n_calls = asyncio.run(_run_2call_reuse())
+expect(ok1 and c1 == "Reply 1" and ok2 and c2 == "Reply 2" and n_calls == 2,
+       "Single AsyncClient cleanly executes 2 sequential calls with connection reuse")
+
 
 # --- Final verdict --------------------------------------------------------
 print()
@@ -399,4 +505,4 @@ if FAIL:
     for f in FAIL:
         print(" -", f)
     sys.exit(1)
-print("ALL 46 Phase 3 CONNECTOR CHECKS PASSED")
+print("ALL Phase 3 CONNECTOR & SSRF CHECKS PASSED")

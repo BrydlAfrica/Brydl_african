@@ -466,9 +466,38 @@ def create_app(config_class: type = Config) -> Flask:
             import sentry_sdk
             from sentry_sdk.integrations.flask import FlaskIntegration
 
+            integrations = [FlaskIntegration()]
+            try:
+                from sentry_sdk.integrations.starlette import StarletteIntegration
+                integrations.append(StarletteIntegration())
+            except (ImportError, Exception):
+                pass
+            try:
+                from sentry_sdk.integrations.fastapi import FastApiIntegration
+                integrations.append(FastApiIntegration())
+            except (ImportError, Exception):
+                pass
+
+            def _sentry_before_send(event, hint):
+                # Scrub sensitive headers, extra context, and tokens before sending to Sentry
+                request = event.get("request", {}) if isinstance(event, dict) else {}
+                if isinstance(request, dict):
+                    headers = request.get("headers", {})
+                    if isinstance(headers, dict):
+                        for k in list(headers.keys()):
+                            if k.lower() in ("authorization", "cookie", "set-cookie", "x-csrftoken", "x-api-key"):
+                                headers[k] = "[FILTERED]"
+                extra = event.get("extra", {}) if isinstance(event, dict) else {}
+                if isinstance(extra, dict):
+                    for k in list(extra.keys()):
+                        if any(s in k.lower() for s in ("secret", "key", "token", "auth", "cookie")):
+                            extra[k] = "[FILTERED]"
+                return event
+
             sentry_sdk.init(
                 dsn=_sentry_dsn,
-                integrations=[FlaskIntegration()],
+                integrations=integrations,
+                before_send=_sentry_before_send,
                 traces_sample_rate=float(
                     os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")
                 ),
@@ -483,7 +512,7 @@ def create_app(config_class: type = Config) -> Flask:
                 ),
                 release=os.environ.get("RELEASE_SHA", "dev"),
             )
-            app.logger.info("Sentry error tracking enabled.")
+            app.logger.info("Sentry error tracking enabled (Flask + ASGI).")
         except ImportError:
             app.logger.warning(
                 "SENTRY_DSN is set but sentry-sdk is not installed; "

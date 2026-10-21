@@ -178,8 +178,16 @@ def _run_paystack_reconcile(payload: dict) -> None:
     )
 
 
+def _run_redlab_retention_prune(payload: dict) -> None:
+    """Prune concluded RedLab sessions older than retention days (DPA compliance)."""
+    from redlab.retention import prune_expired_transcripts
+    days = int(payload.get("retention_days") or current_app.config.get("REDLAB_TRANSCRIPT_RETENTION_DAYS", 90))
+    prune_expired_transcripts(days=days, project_id=payload.get("project_id"))
+
+
 RUNNERS["email.deliver"] = _run_email_deliver
 RUNNERS["paystack.reconcile"] = _run_paystack_reconcile
+RUNNERS["redlab.retention_prune"] = _run_redlab_retention_prune
 
 
 def claim_job(job_id: int) -> BackgroundJob | None:

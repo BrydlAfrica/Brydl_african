@@ -246,6 +246,9 @@ def reset_call_state(failure_code=None, reply_text="hello from mock"):
 # --- Convenience: reset session between tests --------------------------
 def fresh_session_s1():
     """Reset s1 to zero turns / delete messages — so tests start clean."""
+    # Also reset in-memory rate limiter timestamps
+    from redlab.app import _session_turn_timestamps
+    _session_turn_timestamps.clear()
     with flask_app.app_context():
         Message.query.filter(
             Message.session_id == "session000000000000000000000001"
@@ -483,6 +486,25 @@ expect(r.status_code == 422 or r.status_code == 400,
        f"oversize content → 4xx (got {r.status_code})")
 expect(_call_count["n"] == 0,
        "connector NOT called for oversize content")
+
+
+# === 7. Sliding-Window Rate Limiting ===================================
+print("\n== 7. Rate limiting ==")
+fresh_session_s1()
+reset_call_state()
+os.environ["REDLAB_TURN_BURST_CAP"] = "3"
+os.environ["REDLAB_TURN_BURST_WINDOW"] = "5.0"
+r1 = post_turn(TURN_URL_SID1, content="rate1", client_turn_id="r01")
+r2 = post_turn(TURN_URL_SID1, content="rate2", client_turn_id="r02")
+r3 = post_turn(TURN_URL_SID1, content="rate3", client_turn_id="r03")
+r4 = post_turn(TURN_URL_SID1, content="rate4", client_turn_id="r04")
+
+expect(r1.status_code == 200, "burst turn 1 allowed (got 200)")
+expect(r2.status_code == 200, "burst turn 2 allowed (got 200)")
+expect(r3.status_code == 200, "burst turn 3 allowed (got 200)")
+expect(r4.status_code == 429, f"burst turn 4 rejected with 429 (got {r4.status_code})")
+expect(r4.json().get("error") == "rate_limited", "burst turn 4 returns error=rate_limited")
+os.environ["REDLAB_TURN_BURST_CAP"] = "15"
 
 
 # === Final verdict ======================================================

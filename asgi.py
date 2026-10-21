@@ -71,11 +71,23 @@ if _HAVE_ASGI_DEPS:
     root = FastAPI()
 
     @root.on_event("startup")
-    async def _raise_thread_limit() -> None:
+    async def _on_startup() -> None:
         """Bump AnyIO's to-thread limiter so Flask-under-ASGI has
-        enough workers under concurrent annotator load. Runs inside
-        the event loop (where the limiter is first created), not at
-        import time."""
+        enough workers under concurrent annotator load, and verify single-worker
+        pilot configuration."""
+        import os
+        web_concurrency = os.environ.get("WEB_CONCURRENCY", "1")
+        try:
+            if int(web_concurrency) > 1:
+                logger.warning(
+                    "⚠️ WARNING: multi-worker detected (WEB_CONCURRENCY=%s); "
+                    "in-process sliding-window rate limiter will be degraded across workers. "
+                    "Ensure single-worker deployment (--workers 1) for pilot or configure Redis!",
+                    web_concurrency,
+                )
+        except ValueError:
+            pass
+
         limiter = anyio.to_thread.current_default_thread_limiter()
         if limiter.total_tokens < _THREAD_LIMIT:
             limiter.total_tokens = _THREAD_LIMIT
@@ -95,11 +107,13 @@ if _HAVE_ASGI_DEPS:
     # would fall through to Flask and return an HTML 404.
     @root.get("/redlab", include_in_schema=False)
     async def _redlab_root():
+        import os
         return JSONResponse(
             status_code=200,
             content={
                 "service": "redlab",
                 "version": "14.0.0",
+                "pid": os.getpid(),
                 "redlab_enabled": is_redlab_enabled(),
                 "endpoints": ["/redlab/healthz"]
                 + (["/redlab/v1/..."] if is_redlab_enabled() else []),

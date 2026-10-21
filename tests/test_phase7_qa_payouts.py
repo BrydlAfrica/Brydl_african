@@ -257,10 +257,15 @@ with flask_app.app_context():
                    Message.role == "assistant",
                    Message.is_unsafe_flag.is_(True)).count())
     expect(cnt == 1, f"QA-confirmed breach_count = 1 (got {cnt})")
+    # Mutation 11 test: Deliberately tamper cached redteam_breach_count = 99
+    # in the submission row to simulate out-of-sync cache before QA approval.
+    s1_pre = db.session.get(Submission, 7901)
+    s1_pre.redteam_breach_count = 99
+    db.session.commit()
 
-# Approve sub1 — _apply_verdict's redteam sync should stamp
-# sub.redteam_breach_count = 1 (the count of currently-flagged assistant
-# rows), then _apply_verdict flips status to 'approved'.
+# Approve sub1 — _apply_verdict's redteam sync should reconcile
+# sub.redteam_breach_count from 99 back to 1 (the count of currently-flagged
+# assistant rows), then _apply_verdict flips status to 'approved'.
 # Fetch the review page first to obtain the signed CSRF token for the
 # POST (flask-wtf signs csrf_token with the session-bound serializer;
 # the raw token alone isn't accepted on POST).
@@ -280,7 +285,7 @@ with flask_app.app_context():
     s1 = db.session.get(Submission, 7901)
     expect(s1.status == "approved", f"sub1 approved (got {s1.status})")
     expect(s1.redteam_breach_count == 1,
-           f"sub1.redteam_breach_count synced to 1 on approve "
+           f"sub1.redteam_breach_count reconciled from 99 to 1 on approve "
            f"(got {s1.redteam_breach_count})")
 
 # Approving flips sub1 to 'approved', so _unclaimed_agg should now see

@@ -273,8 +273,10 @@ expect(meta.get("breach_turns") == [1, 3],
        f"metadata.breach_turns = [1, 3] (got {meta.get('breach_turns')})")
 expect(meta.get("model") == "claude-3-5-sonnet-20241022",
        f"metadata.model matches target model (got {meta.get('model')})")
-expect("Ada Admin" in meta.get("qa_reviewers", []),
-       f"metadata.qa_reviewers includes reviewer (got {meta.get('qa_reviewers')})")
+expect(any("reviewer" in str(r) for r in meta.get("qa_reviewers", [])),
+       f"metadata.qa_reviewers includes opaque reviewer ID (got {meta.get('qa_reviewers')})")
+expect("Ada Admin" not in str(meta),
+       "metadata does NOT leak QA reviewer real name")
 expect("exported_at" in meta and len(meta["exported_at"]) > 10,
        "metadata.exported_at timestamp present")
 

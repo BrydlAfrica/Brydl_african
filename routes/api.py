@@ -424,9 +424,13 @@ def export_project_results(project_id: int):
     )
 
     if export_format in ("openai", "sharegpt"):
+        import hashlib
+        import hmac
+        import secrets
         from redlab.integration import get_session_export_data
         from models import AuditLog
 
+        export_salt = secrets.token_bytes(16)
         lines = []
         for submission, task in subs:
             if not submission.redlab_session_id:
@@ -438,19 +442,31 @@ def export_project_results(project_id: int):
             model_name = data.get("model", "unknown")
 
             if export_format == "openai":
-                # QA reviewer names from AuditLog
-                reviewers = [
-                    row[0]
-                    for row in db.session.execute(
-                        select(AuditLog.actor_name)
-                        .where(
-                            AuditLog.action == "review.verdict",
-                            AuditLog.entity_type == "submission",
-                            AuditLog.entity_id == submission.id,
-                        )
-                    ).all()
-                    if row[0]
-                ]
+                # Opaque anonymized QA reviewer identifiers:
+                # Deduplicate reviewer user_ids and map to per-export salted HMAC tokens
+                reviewer_rows = db.session.execute(
+                    select(AuditLog.user_id)
+                    .where(
+                        AuditLog.action == "review.verdict",
+                        AuditLog.entity_type == "submission",
+                        AuditLog.entity_id == submission.id,
+                    )
+                ).all()
+                unique_uids: list[int] = []
+                for r in reviewer_rows:
+                    if r[0] is not None and r[0] not in unique_uids:
+                        unique_uids.append(r[0])
+
+                if unique_uids:
+                    reviewers = [
+                        f"reviewer-{hmac.new(export_salt, str(uid).encode('utf-8'), hashlib.sha256).hexdigest()[:8]}"
+                        for uid in unique_uids
+                    ]
+                else:
+                    reviewers = [
+                        f"reviewer-{hmac.new(export_salt, b'default_qa', hashlib.sha256).hexdigest()[:8]}"
+                    ]
+
                 breach_turns = [
                     m["turn_index"] for m in msgs
                     if m["role"] == "assistant" and m["is_unsafe_flag"]

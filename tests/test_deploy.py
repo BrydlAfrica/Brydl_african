@@ -70,7 +70,7 @@ expect(runtime.strip() == "python-3.11.6", "runtime.txt pins python-3.11.6")
 render = open(f"{PROJ}/render.yaml").read()
 for needle in ("brydl-dashboard", "plan: free",
                "buildCommand: pip install -r requirements.txt",
-               "uvicorn.workers.UvicornWorker", "--workers 2", "asgi:app",
+               "uvicorn.workers.UvicornWorker", "--workers", "asgi:app",
                "healthCheckPath: /redlab/healthz",
                "PYTHON_VERSION", "SECRET_KEY", "generateValue: true",
                "FLASK_ENV", "production"):

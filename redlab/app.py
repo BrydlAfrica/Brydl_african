@@ -23,6 +23,7 @@ module-level instance used by ``asgi:app``.
 from __future__ import annotations
 
 import logging
+import os
 import time
 import uuid
 from contextlib import contextmanager
@@ -58,6 +59,32 @@ logger = logging.getLogger(__name__)
 # both the explicit 404 router and any future gate can return identical
 # JSON.
 DISABLED_BODY: dict[str, str] = {"error": "redlab_disabled"}
+
+# In-memory sliding-window turn rate limiter timestamps per session: {session_id: [timestamps]}
+_session_turn_timestamps: dict[str, list[float]] = {}
+
+
+def _check_turn_rate_limit(sid: str, burst_cap: int, burst_window: float) -> bool:
+    """Sliding-window rate limiter with TTL pruning to prevent unbounded growth."""
+    if burst_cap <= 0:
+        return True
+    now = time.time()
+    recent = [t for t in _session_turn_timestamps.get(sid, []) if now - t < burst_window]
+    if len(recent) >= burst_cap:
+        return False
+    recent.append(now)
+    _session_turn_timestamps[sid] = recent
+
+    # Prune expired session keys if dictionary grows (prevent memory leak)
+    if len(_session_turn_timestamps) > 500:
+        cutoff = now - max(burst_window * 2, 60.0)
+        expired = [
+            k for k, ts in _session_turn_timestamps.items()
+            if not ts or ts[-1] < cutoff
+        ]
+        for k in expired:
+            _session_turn_timestamps.pop(k, None)
+    return True
 
 
 def _request_id_from(request: Request) -> str:
@@ -116,6 +143,11 @@ def _flask_ctx() -> Iterator[None]:
 
 def create_redlab_app() -> FastAPI:
     """Construct the RedLab FastAPI sub-app."""
+    if os.environ.get("REDLAB_ALLOW_HTTP_LOCAL", "").strip().lower() in ("1", "true", "yes"):
+        logger.warning(
+            "⚠️ BOOT WARNING: REDLAB_ALLOW_HTTP_LOCAL is enabled! Plaintext HTTP loopback "
+            "is allowed. Ensure this flag is disabled in production!"
+        )
     app = FastAPI(
         title="Brydl RedLab",
         version="14.0.0",
@@ -135,6 +167,7 @@ def create_redlab_app() -> FastAPI:
             "status": "ok",
             "service": "redlab",
             "version": "14.0.0",
+            "pid": os.getpid(),
             "redlab_enabled": is_redlab_enabled(),
         }
 
@@ -181,6 +214,7 @@ def create_redlab_app() -> FastAPI:
                    401: {"model": ErrorResponse},
                    403: {"model": ErrorResponse},
                    404: {"model": ErrorResponse},
+                   429: {"model": ErrorResponse},
                    502: {"model": ErrorResponse},
                    503: {"model": ErrorResponse}},
     )
@@ -203,6 +237,15 @@ def create_redlab_app() -> FastAPI:
           * On success, writes user + assistant messages in one commit
             and bumps session.turn_count.
         """
+        # Sliding-window rate limit: max burst per session window
+        burst_cap = int(os.environ.get("REDLAB_TURN_BURST_CAP", "15"))
+        burst_window = float(os.environ.get("REDLAB_TURN_BURST_WINDOW", "1.0"))
+        if not _check_turn_rate_limit(sid, burst_cap, burst_window):
+            raise HTTPException(
+                status_code=429,
+                detail={"error": "rate_limited",
+                        "detail": "Turn rate limit exceeded. Please wait before sending another prompt."},
+            )
         # Phase 1: read + verify session inside a Flask app context,
         # then release the DB transaction before the await. All DB
         # access is sync (SQLAlchemy 1.x style), so we do it straight

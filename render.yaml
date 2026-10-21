@@ -19,12 +19,9 @@ services:
     plan: free
     autoDeploy: true
     buildCommand: pip install -r requirements.txt && flask --app app db upgrade
-    # v14+: uvicorn workers serve both Flask (WSGI, via a2wsgi) and
-    # RedLab (ASGI/FastAPI) on one port. 2 workers × 60 AnyIO threads
-    # (set in asgi.py) keeps ~50 concurrent annotators responsive on
-    # the free tier's single CPU while still leaving RAM headroom for
-    # FastAPI/httpx.
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker --workers 2 asgi:app
+    # Pilot single-worker deployment: 1 worker enforces in-process sliding-window
+    # rate limiting strictly (N=1) on the client LLM endpoint.
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker --workers 1 asgi:app
     # Healthz lives in the RedLab sub-app. It returns 200 even when
     # REDLAB_ENABLED is false, so the platform keeps serving the Flask
     # app throughout the phased v14 rollout.
