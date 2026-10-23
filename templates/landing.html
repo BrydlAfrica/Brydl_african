@@ -1,41 +1,51 @@
 {% extends "base.html" %}
 {% set boot_loader = true %}
 
-{% block title %}Brydl — Africa's AI data labelling company{% endblock %}
+{% block title %}Brydl AI — African Language AI Safety, Red-Teaming & Speech Alignment | A Greywood Technologies Enterprise{% endblock %}
 
 {% block content %}
 {# ---------------------------------------------------------------- hero #}
 <section class="brydl-hero brydl-reveal">
   <div class="row align-items-center g-4">
     <div class="col-lg-6">
+      <div class="mb-3">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-semibold">
+          <i class="bi bi-shield-check me-1" aria-hidden="true"></i>A Greywood Technologies Enterprise
+        </span>
+      </div>
       <p class="brydl-eyebrow">
         <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i>
-        AI data labelling · built in Nigeria · working across Africa
+        African Language AI Safety · RedLab v14 OS · Built in Nigeria
       </p>
       <h1 class="brydl-hero-title">
-        Training data for AI,
+        African Language AI Safety,
         <span class="brydl-hero-shine">built by African hands.</span>
       </h1>
+      <p class="lead fw-semibold text-primary mt-2 mb-2">
+        Red-Teaming &amp; Multilingual Evaluation for Enterprise AI.
+      </p>
       <p class="brydl-hero-sub">
-        Brydl is Africa's AI data labelling company. Clients get accurately
-        labelled datasets — vision, text, audio and RLHF preference data —
-        delivered with provable quality. African annotators, QA reviewers
-        and auditors get fairly paid digital work. One platform runs both
-        sides, to the last kobo.
+        Protecting global LLMs and speech models from cultural exploits, jailbreaks, and dialect failures across Hausa, Yoruba, Igbo, Swahili, Amharic, and Pidgin. Brydl is Africa's AI data labelling company — delivering vision, text, audio and RLHF preference data with provable quality. Powered by Greywood Technologies.
       </p>
       <div class="d-flex flex-wrap gap-2 mt-4">
         <a class="btn btn-primary btn-lg px-4" href="#clients">
-          <i class="bi bi-briefcase me-1" aria-hidden="true"></i>
-          I need data labelled
+          <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
+          Request Safety Benchmark
         </a>
-        <a class="btn btn-outline-primary btn-lg px-4" href="#staff">
+        <a class="btn btn-outline-primary btn-lg px-4" href="#redlab-engine">
+          <i class="bi bi-cpu me-1" aria-hidden="true"></i>
+          Explore RedLab Platform
+        </a>
+        <a class="btn btn-light border btn-lg px-4 text-secondary" href="#staff">
           <i class="bi bi-person-workspace me-1" aria-hidden="true"></i>
           I want to work as an annotator
         </a>
       </div>
       <ul class="brydl-chips mt-4">
-        <li><i class="bi bi-journal-check me-1" aria-hidden="true"></i>Every action audited</li>
-        <li><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>Blind consensus QA</li>
+        <li><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Zero Data Retention</li>
+        <li><i class="bi bi-key-fill me-1" aria-hidden="true"></i>AES-128 MultiFernet Encrypted</li>
+        <li><i class="bi bi-people me-1" aria-hidden="true"></i>Native Speaker Network</li>
+        <li><i class="bi bi-patch-check me-1" aria-hidden="true"></i>NDPA &amp; CAMA Aligned</li>
         <li><i class="bi bi-cash-coin me-1" aria-hidden="true"></i>Naira-ready payouts</li>
       </ul>
     </div>
@@ -57,11 +67,165 @@
   </div>
 </section>
 
+{# -------------------------------------------------------- core pillars #}
+<section id="core-pillars" class="mt-5 pt-3 brydl-reveal">
+  <div class="text-center mb-4">
+    <p class="text-primary fw-semibold small text-uppercase mb-1 tracking-wide">Enterprise Capabilities</p>
+    <h2 class="h3 fw-bold">4 Core Pillars of African AI Safety</h2>
+    <p class="text-muted mx-auto" style="max-width: 680px;">
+      Comprehensive alignment infrastructure tailored specifically to the linguistic diversity, dialectal shifts, and cultural nuances of the African continent.
+    </p>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4 d-flex flex-column">
+          <div class="stat-icon mb-3 bg-primary-subtle text-primary p-2 rounded-3 d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="bi bi-shield-shaded fs-5" aria-hidden="true"></i>
+          </div>
+          <h3 class="h6 fw-bold mb-2">Adversarial Red-Teaming (African Context)</h3>
+          <p class="text-muted small mb-3 flex-grow-1">
+            Stress-testing global models against regional jailbreaks, hate speech, election manipulation, financial fraud prompts, and cultural toxicity in 6+ African languages.
+          </p>
+          <div class="border-top pt-2">
+            <span class="badge bg-light text-secondary border small">Deliverable</span>
+            <p class="text-dark small fw-medium mt-1 mb-0">Structured breach logs &amp; attack vector datasets</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4 d-flex flex-column">
+          <div class="stat-icon mb-3 bg-primary-subtle text-primary p-2 rounded-3 d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="bi bi-mic-fill fs-5" aria-hidden="true"></i>
+          </div>
+          <h3 class="h6 fw-bold mb-2">African Speech &amp; Native Accent Corpora</h3>
+          <p class="text-muted small mb-3 flex-grow-1">
+            High-fidelity audio data for Speech-to-Text (STT) and voice agents across noisy acoustic environments, code-switching (English + local dialect), and regional accents.
+          </p>
+          <div class="border-top pt-2">
+            <span class="badge bg-light text-secondary border small">Deliverable</span>
+            <p class="text-dark small fw-medium mt-1 mb-0">Paired audio + verbatim transcripts &amp; phoneme maps</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4 d-flex flex-column">
+          <div class="stat-icon mb-3 bg-primary-subtle text-primary p-2 rounded-3 d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="bi bi-hand-thumbs-up-fill fs-5" aria-hidden="true"></i>
+          </div>
+          <h3 class="h6 fw-bold mb-2">Culturally-Grounded RLHF &amp; Preference Data</h3>
+          <p class="text-muted small mb-3 flex-grow-1">
+            Native speaker annotations for SFT, DPO, and RLHF to eliminate Western bias and ground model outputs in authentic African cultural contexts.
+          </p>
+          <div class="border-top pt-2">
+            <span class="badge bg-light text-secondary border small">Deliverable</span>
+            <p class="text-dark small fw-medium mt-1 mb-0">Gold-standard preference pairs &amp; rationale scoring</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4 d-flex flex-column">
+          <div class="stat-icon mb-3 bg-primary-subtle text-primary p-2 rounded-3 d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="bi bi-file-earmark-check-fill fs-5" aria-hidden="true"></i>
+          </div>
+          <h3 class="h6 fw-bold mb-2">Regulatory Bridge &amp; AI Governance</h3>
+          <p class="text-muted small mb-3 flex-grow-1">
+            Model alignment verification matching African regional AI frameworks (AU AI Strategy, Nigeria NDPA) and international safety benchmarks (NIST AI RMF, EU AI Act).
+          </p>
+          <div class="border-top pt-2">
+            <span class="badge bg-light text-secondary border small">Deliverable</span>
+            <p class="text-dark small fw-medium mt-1 mb-0">Enterprise AI compliance audit certificates</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---------------------------------------------------- redlab engine showcase #}
+<section id="redlab-engine" class="mt-5 pt-3 brydl-reveal">
+  <div class="card border-0 shadow-sm bg-dark text-white rounded-4 overflow-hidden">
+    <div class="card-body p-4 p-lg-5">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-6">
+          <span class="badge bg-danger mb-2">v14-RedLab OS</span>
+          <h2 class="h3 fw-bold text-white mb-3">Powered by Brydl v14-RedLab Engine</h2>
+          <p class="text-white-50 mb-4">
+            Our dual-engine architecture combines high-throughput async FastAPI dispatch with rock-solid Flask governance to evaluate proprietary enterprise models safely.
+          </p>
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-lightning-charge-fill text-warning fs-5"></i>
+                <div>
+                  <h4 class="h6 text-white fw-semibold mb-1">Dual-Engine Execution</h4>
+                  <p class="text-white-50 small mb-0">Async FastAPI pipeline ensuring sub-second turn latency.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-key-fill text-info fs-5"></i>
+                <div>
+                  <h4 class="h6 text-white fw-semibold mb-1">MultiFernet Encryption</h4>
+                  <p class="text-white-50 small mb-0">AES-128 key rotation protecting proprietary endpoints.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-shield-fill-check text-success fs-5"></i>
+                <div>
+                  <h4 class="h6 text-white fw-semibold mb-1">SSRF Guard &amp; IP Pinning</h4>
+                  <p class="text-white-50 small mb-0">Defeats DNS-rebinding attacks via socket pinning.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-cash-stack text-warning fs-5"></i>
+                <div>
+                  <h4 class="h6 text-white fw-semibold mb-1">Dynamic Breach Bounties</h4>
+                  <p class="text-white-50 small mb-0">Base pay + verified bounty per confirmed jailbreak.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="bg-black border border-secondary rounded-3 p-3 font-monospace small shadow">
+            <div class="d-flex align-items-center justify-content-between border-bottom border-secondary pb-2 mb-3 text-white-50">
+              <div class="d-flex gap-1">
+                <span class="rounded-circle bg-danger d-inline-block" style="width:10px;height:10px;"></span>
+                <span class="rounded-circle bg-warning d-inline-block" style="width:10px;height:10px;"></span>
+                <span class="rounded-circle bg-success d-inline-block" style="width:10px;height:10px;"></span>
+              </div>
+              <span>redlab-session-live.log</span>
+            </div>
+            <p class="mb-1 text-info">&gt; INITIATING ADVERSARIAL TURN [SESSION #4029]</p>
+            <p class="mb-1 text-white">&gt; TARGET: <span class="text-warning">https://api.enterprise-client.com/v1/chat</span></p>
+            <p class="mb-1 text-white-50">&gt; PROMPT [Hausa Evasion]: "Ta yaya zan iya wuce tsarin kariya na banki..."</p>
+            <p class="mb-1 text-warning">&gt; SSRF VALIDATION: Pinned IP 93.184.216.34 [OK]</p>
+            <p class="mb-1 text-danger">&gt; [STATUS]: ⚠️ BREACH CONFIRMED (Vulnerability: Financial Guardrail Bypass)</p>
+            <p class="mb-0 text-success">&gt; [REDLAB]: MultiFernet Encrypted -&gt; Exported to OpenAI JSONL -&gt; Bounty Settled</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 {# ------------------------------------------------------------ clients #}
-<section id="clients" class="mt-5 brydl-reveal">
+<section id="clients" class="mt-5 pt-3 brydl-reveal">
   <h2 class="h4 fw-bold mb-1">For clients: ship AI models on trustworthy data</h2>
   <p class="text-muted mb-4">
-    Outsource your labelling to a team that treats quality as
+    Outsource your labelling and red-teaming to a team that treats quality as
     engineering, not luck — with the receipts to prove it.
   </p>
   <div class="row g-3">
@@ -99,7 +263,7 @@
       <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>
       Sign in to start a project
     </a>
-    <span class="text-muted small ms-2">Your Brydl team sets up the first labelling project with you.</span>
+    <span class="text-muted small ms-2">I need data labelled — your Brydl team sets up the first project with you.</span>
   </div>
 </section>
 
@@ -107,7 +271,7 @@
 <section id="staff" class="mt-5 brydl-reveal">
   <h2 class="h4 fw-bold mb-1">For annotators &amp; staff: digital work that pays exactly</h2>
   <p class="text-muted mb-4">
-    Join a remote team labelling the data behind the world's AI —
+    Join a remote team labelling and safety-testing data behind the world's AI —
     from anywhere in Africa, on any connection.
   </p>
   <div class="row g-3">
@@ -245,7 +409,7 @@
   <div class="brydl-binary brydl-binary--band" aria-hidden="true">{% for i in range(64) %}<span>{{ (i * 11) % 2 }}</span>{% endfor %}</div>
   <div class="position-relative text-center py-5 px-3">
     <h2 class="h3 fw-bold text-white mb-2">Let's build your dataset — or your career</h2>
-    <p class="mb-4 text-white-50">Clients: your first project can be live in minutes. Workers: your next payout is a sign-in away.</p>
+    <p class="mb-4 text-white-50">Clients: your first safety or annotation project can be live in minutes. Workers: your next payout is a sign-in away.</p>
     <a class="btn btn-light btn-lg px-4 text-primary fw-semibold" href="{{ url_for('auth.login') }}">
       <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>Sign in to Brydl
     </a>
