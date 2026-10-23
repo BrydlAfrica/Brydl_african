@@ -111,52 +111,35 @@ git push
 
 ---
 
-## Part 2 — PostgreSQL on Render
+## Part 2 — Supabase PostgreSQL Database Setup
 
-Good news: **the Blueprint does this for you.** The `databases:` block
-in `render.yaml` provisions a PostgreSQL instance named
-`brydl-postgres`, creates the `brydl` database, and injects the
-connection string into your web service as `DATABASE_URL`. There are
-zero manual database steps on the Blueprint path.
+Brydl uses **Supabase PostgreSQL** for robust, persistent database storage, zero-downtime backups, and connection pooling:
 
-### 2.1 Deploy the Blueprint (recommended path)
+### 2.1 Create Supabase Project
 
-1. <https://dashboard.render.com> → sign in with GitHub.
-2. **New +** → **Blueprint** → pick `brydl-dashboard` → **Apply**.
-3. Render builds: `pip install -r requirements.txt && flask --app app
-   db upgrade` — the committed migrations (17 at ship) create the
-   entire schema in PostgreSQL. Then gunicorn starts. On first deploy
-   you should see **9 `Running upgrade` lines** ending
-   `c7d21b8a45e9` in the build log — that is chain 17 head.
-4. When both tiles turn **Live**:
+1. Navigate to <https://supabase.com> and sign in / create an account.
+2. Click **New Project**:
+   - **Name**: `brydl-production` (or `brydl-pilot`)
+   - **Database Password**: Generate a secure password and save it in your password manager.
+   - **Region**: Select `EU (Frankfurt)` or `EU (London)` for optimal latency to African traffic.
+3. Click **Create new project** and wait ~1 minute for provisioning.
 
-   - Click **brydl-postgres** → status **Available**.
-   - Click the web service → **Environment** → you should see
-     `DATABASE_URL` (injected from the database) alongside
-     `SECRET_KEY`, `FLASK_ENV=production`, `BRYDL_AUTO_SCHEMA=0`.
+### 2.2 Get Connection String URI
 
-That's the whole setup. Skip to Part 3.
+1. In Supabase Dashboard, go to **Project Settings** (gear icon) → **Database**.
+2. Scroll to **Connection string** → click the **URI** tab.
+3. Select **Mode**:
+   - **Transaction Pooler (Port 6543)** — *Recommended for web service / serverless*:
+     `postgresql://postgres.[project-ref]:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require`
+   - **Session / Direct (Port 5432)** — *For local migrations and CLI operations*:
+     `postgresql://postgres:[YOUR-PASSWORD]@db.[project-ref].supabase.co:5432/postgres?sslmode=require`
 
-### 2.2 Manual path (only if not using the Blueprint)
+### 2.3 Configure `DATABASE_URL` on Render Web Service
 
-1. **New + → PostgreSQL**:
-   - Name: `brydl-postgres` · Database: `brydl`
-   - **Region: Frankfurt** (lowest latency to Nigeria; the web service
-     MUST be in the same region to use the free internal network)
-   - Plan: Free → **Create Database**.
-2. Web service (if it exists already): **Environment → Add
-   Environment Variable** → key `DATABASE_URL`, value = the
-   database's **Internal Database URL** (from the database page's
-   *Connections* section) → **Save** (the service redeploys).
-
-### 2.3 Understand the two connection URLs
-
-On the database page, *Connections* gives you two strings:
-
-| URL | Use it for |
-| --- | --- |
-| **Internal Database URL** (`dpg-…-a` host) | The web service env var (same-region, free traffic, fastest) |
-| **External Database URL** (`dpg-…` public host, ends with `?sslmode=require`) | Your LOCAL machine: seed-admin, backups, migrations |
+1. On Render Dashboard (<https://dashboard.render.com>) → your `brydl-dashboard` web service → **Environment**.
+2. Set `DATABASE_URL` to your Supabase Transaction Pooler URI (ensure password is inserted and `?sslmode=require` is present).
+3. Set `REDLAB_ENABLED=true` and `REDLAB_FERNET_KEY`.
+4. Click **Save Changes** — Render automatically builds and runs `flask --app app db upgrade` to create all tables and the `redlab` schema.
 
 Both look like `postgres://brydl_user:PASSWORD@dpg-xxx/brydl` — the app
 rewrites the legacy `postgres://` scheme automatically; paste either

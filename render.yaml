@@ -1,17 +1,14 @@
 # Render Blueprint for Brydl Dashboard.
 # Deploy: push this repo to GitHub/GitLab, then Render Dashboard ->
-# "New +" -> "Blueprint" -> pick the repository. Render reads this file
-# and provisions the PostgreSQL database + web service below.
+# "New +" -> "Blueprint" -> pick the repository.
+#
+# DATABASE: Powered by Supabase PostgreSQL (or any hosted PostgreSQL).
+# Paste your Supabase URI into DATABASE_URL (Transaction Pooler: port 6543
+# or Direct Session: port 5432).
 #
 # SCHEMA: production never uses db.create_all(). The build command runs
 # `flask db upgrade` (migrations/) on every deploy BEFORE the service
 # starts, so the database schema is always the migrated, versioned one.
-#
-# FREE-PLAN CAVEAT: Render's FREE PostgreSQL expires after ~30 days
-# (contents are then deleted). Fine for the deploy rehearsal; upgrade
-# the database plan below (e.g. basic-256mb) before real annotator
-# data goes in. Snapshots: `pg_dump` the External Database URL
-# + download the file (the built-in backup CLI is SQLite-only).
 services:
   - type: web
     name: brydl-dashboard
@@ -43,29 +40,15 @@ services:
       # command); direct create_all stays a local-dev-only convenience.
       - key: BRYDL_AUTO_SCHEMA
         value: "0"
-      # OPTIONAL outbound mail for password-reset links (Build 20).
-      # Uncomment and fill from your mail provider (Brevo/Resend/Gmail
-      # app-password). Without these, reset links land in the app log.
-      # - key: SMTP_HOST
-      #   value: "smtp.yourprovider.com"
-      # - key: SMTP_PORT
-      #   value: "587"
-      # - key: SMTP_USERNAME
-      #   value: "your-smtp-user"
-      # - key: SMTP_PASSWORD
-      #   sync: false          # paste the secret in the dashboard
-      # - key: MAIL_FROM
-      #   value: "Brydl <no-reply@yourdomain.com>"
-      # Injected by Render from the database provisioned below;
-      # config.py rewrites the legacy postgres:// scheme itself.
+      # RedLab dynamic red-teaming (v14):
+      - key: REDLAB_ENABLED
+        value: "true"
+      # Dedicated Fernet encryption key for client LLM targets
+      - key: REDLAB_FERNET_KEY
+        sync: false
+      # Supabase PostgreSQL database connection URI:
+      # Paste from Supabase Project Settings -> Database -> Connection String (URI).
+      # Format (Transaction Pooler): postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require
+      # Format (Direct Session): postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
       - key: DATABASE_URL
-        fromDatabase:
-          name: brydl-postgres
-          property: connectionString
-
-# PostgreSQL backing the service above. Free plan expires after ~30
-# days — upgrade `plan` (e.g. basic-256mb) before real data goes in.
-databases:
-  - name: brydl-postgres
-    databaseName: brydl
-    plan: free
+        sync: false

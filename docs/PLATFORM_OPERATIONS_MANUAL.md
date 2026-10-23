@@ -239,7 +239,8 @@ pip install -r requirements.txt
 ### Step 3: Configure `/opt/brydl/.env`
 ```ini
 FLASK_ENV=production
-DATABASE_URL=postgresql://brydl:StrongPassword123@localhost:5432/brydl_prod
+# Supabase PostgreSQL (Transaction Pooler port 6543 or Session port 5432):
+DATABASE_URL=postgresql://postgres.yourprojectref:StrongPassword123@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require
 SECRET_KEY=paste-64-character-random-hex-string
 REDLAB_ENABLED=true
 REDLAB_FERNET_KEY=paste-32-byte-fernet-key

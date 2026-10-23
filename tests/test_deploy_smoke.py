@@ -24,7 +24,7 @@ expect(os.path.exists("Procfile"), "Procfile present")
 ry = open("render.yaml").read()
 expect("flask --app app db upgrade" in ry, "render build runs migrations")
 expect("gunicorn" in ry and "healthCheckPath" in ry, "gunicorn + health check")
-expect("brydl-postgres" in ry and "DATABASE_URL" in ry, "PostgreSQL provisioned")
+expect("DATABASE_URL" in ry, "PostgreSQL DATABASE_URL configured")
 expect("BRYDL_AUTO_SCHEMA" in ry and "value: \"0\"" in ry,
        "auto-schema disabled in prod")
 

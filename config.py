@@ -231,11 +231,11 @@ def _sqlite_connect_with_retry(path: str):
 def _engine_options(uri: str) -> dict:
     """Return SQLAlchemy engine options for the given database URI.
 
-    The two backends need different driver-level knobs: SQLite wants a
+    The backends need different driver-level knobs: SQLite wants a
     busy timeout in seconds (reducing "database is locked" under
-    concurrent annotators), PostgreSQL wants a connect timeout so a
-    hiccup on Render's database network fails fast instead of hanging
-    a gunicorn worker.
+    concurrent annotators), PostgreSQL / Supabase wants a connect timeout
+    and pool recycling so PgBouncer transaction poolers and stale SSL
+    sockets are automatically reconnected before use.
 
     Args:
         uri: The SQLAlchemy database URI.
@@ -249,6 +249,7 @@ def _engine_options(uri: str) -> dict:
         "max_overflow": 20,
     }
     if uri.startswith("postgresql"):
+        options["pool_recycle"] = 300  # 5 min recycle for Supabase / PgBouncer
         options["connect_args"] = {"connect_timeout": 10}
     else:
         # Retry-enabled creator honouring THIS engine's file path (see
