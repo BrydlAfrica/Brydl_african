@@ -1,0 +1,261 @@
+{# -------------------------------------------------------------------------
+   Staff Offcanvas Navigation Sidebar (Left Slide-Over)
+   Organized, modern categorized tools menu for staff workspaces.
+   ------------------------------------------------------------------------- #}
+<div class="offcanvas offcanvas-start brydl-sidebar" tabindex="-1" id="staffSidebar" aria-labelledby="staffSidebarLabel">
+  <div class="offcanvas-header border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <img src="{{ url_for('static', filename='brand/logo-64.png') }}" alt="" width="28" height="28" class="rounded">
+      <div>
+        <h5 class="offcanvas-title fw-bold mb-0 fs-6" id="staffSidebarLabel">Brydl Workspace</h5>
+        <span class="badge role-badge {% if current_user.role == 'admin' %}bg-warning text-dark{% elif current_user.role == 'project_manager' %}bg-success text-white{% elif current_user.role == 'qa' %}bg-info text-dark{% elif current_user.role == 'auditor' %}bg-light text-dark{% else %}bg-secondary{% endif %}">{{ current_user.role|upper }} PORTAL</span>
+      </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+
+  <div class="offcanvas-body p-0 d-flex flex-column justify-content-between">
+    <div class="p-3">
+      {% if current_user.role == 'admin' %}
+      {# ---------------- ADMIN MENU ---------------- #}
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Core Workflows</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/admin/" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/admin/' }}">
+            <i class="bi bi-speedometer2 text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Executive Dashboard</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Overview, throughput &amp; metrics</div>
+            </div>
+          </a>
+          <a href="/admin/projects" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/projects') }}">
+            <i class="bi bi-kanban text-info fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Project Management</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Create, configure &amp; monitor projects</div>
+            </div>
+          </a>
+          <a href="/admin/tasks" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/tasks') }}">
+            <i class="bi bi-list-check text-success fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Task Management</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Upload, batch assign &amp; export</div>
+            </div>
+          </a>
+          <a href="/admin/approvals" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/approvals') }}">
+            <i class="bi bi-clipboard2-check text-warning fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Project Approvals</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Vet proposals &amp; activate rates</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Quality &amp; AI Safety</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/admin/review" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/review') and not request.path.startswith('/admin/review/conflicts') }}">
+            <i class="bi bi-clipboard-check text-success fs-6"></i>
+            <div>
+              <div class="fw-semibold small">QA Review Queue</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Score submissions &amp; bounties</div>
+            </div>
+          </a>
+          <a href="/admin/quality" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/quality') }}">
+            <i class="bi bi-patch-check text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Quality Analytics</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Annotator agreement &amp; benchmarks</div>
+            </div>
+          </a>
+          <a href="/admin/review/conflicts" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/review/conflicts') }}">
+            <i class="bi bi-diagram-3 text-warning fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Consensus Arbitration</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Resolve blind consensus conflicts</div>
+            </div>
+          </a>
+          <a href="/admin/sft" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/sft') }}">
+            <i class="bi bi-collection text-info fs-6"></i>
+            <div>
+              <div class="fw-semibold small">SFT &amp; Fine-Tuning Exports</div>
+              <div class="text-muted" style="font-size: 0.75rem;">OpenAI &amp; ShareGPT JSONL export</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Finance &amp; Governance</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/admin/payments" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/payments') }}">
+            <i class="bi bi-cash-coin text-success fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Payments &amp; Disbursements</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Bank batch CSVs &amp; Paystack runs</div>
+            </div>
+          </a>
+          <a href="/admin/users" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/users') }}">
+            <i class="bi bi-people-fill text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Staff &amp; Team Management</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Manage roles, access &amp; onboarding</div>
+            </div>
+          </a>
+          <a href="/admin/audit" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/audit') }}">
+            <i class="bi bi-journal-text text-secondary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">System Audit Trail</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Immutable cryptographic logs</div>
+            </div>
+          </a>
+          <a href="/admin/settings" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/settings') }}">
+            <i class="bi bi-gear text-dark fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Platform Settings</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Security, MultiFernet &amp; FX rates</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      {% elif current_user.role == 'project_manager' %}
+      {# ---------------- PM MENU ---------------- #}
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Project Workspace</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/pm/" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/pm/' }}">
+            <i class="bi bi-speedometer2 text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">PM Dashboard</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Campaign progress &amp; velocity</div>
+            </div>
+          </a>
+          <a href="/pm/projects" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/pm/projects' }}">
+            <i class="bi bi-kanban text-info fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Assigned Projects</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Active campaigns under your care</div>
+            </div>
+          </a>
+          <a href="/pm/projects/new" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/pm/projects/new' }}">
+            <i class="bi bi-plus-circle text-success fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Propose New Project</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Draft guidelines, pricing &amp; LLM target</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      {% elif current_user.role == 'qa' %}
+      {# ---------------- QA MENU ---------------- #}
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">QA Console</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/admin/review" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/review') }}">
+            <i class="bi bi-clipboard-check text-success fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Submission Review Queue</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Audit transcripts &amp; confirm bounties</div>
+            </div>
+          </a>
+          <a href="/admin/quality" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/quality') }}">
+            <i class="bi bi-patch-check text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Quality Metrics</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Review velocity &amp; pass rates</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      {% elif current_user.role == 'auditor' %}
+      {# ---------------- AUDITOR MENU ---------------- #}
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Auditor Console</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/admin/review/conflicts" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/review/conflicts') }}">
+            <i class="bi bi-diagram-3 text-warning fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Arbitration Queue</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Resolve diverging consensus disputes</div>
+            </div>
+          </a>
+          <a href="/admin/audit" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/audit') }}">
+            <i class="bi bi-journal-text text-secondary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Audit Trail</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Inspect tamper-proof action logs</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      {% else %}
+      {# ---------------- ANNOTATOR MENU ---------------- #}
+      <div class="mb-3">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Annotator Workspace</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/annotator/" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/annotator/' }}">
+            <i class="bi bi-speedometer2 text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Work Dashboard</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Claim available campaigns</div>
+            </div>
+          </a>
+          <a href="/annotator/tasks" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/annotator/tasks' }}">
+            <i class="bi bi-list-check text-success fs-6"></i>
+            <div>
+              <div class="fw-semibold small">My Active Tasks</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Work claimed and in-progress</div>
+            </div>
+          </a>
+          <a href="/annotator/history" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/annotator/history' }}">
+            <i class="bi bi-clock-history text-info fs-6"></i>
+            <div>
+              <div class="fw-semibold small">My Submission History</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Approved tasks &amp; earned bounties</div>
+            </div>
+          </a>
+          <a href="/annotator/profile" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/annotator/profile' }}">
+            <i class="bi bi-person text-dark fs-6"></i>
+            <div>
+              <div class="fw-semibold small">My Profile &amp; Bank Details</div>
+              <div class="text-muted" style="font-size: 0.75rem;">NUBAN payout settings &amp; stats</div>
+            </div>
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Universal Support Links #}
+      <div class="mt-4">
+        <p class="text-uppercase small fw-bold text-muted px-3 mb-2 tracking-wide" style="font-size: 0.72rem;">Communications</p>
+        <div class="list-group list-group-flush rounded-3 overflow-hidden shadow-xs border">
+          <a href="/feedback" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/feedback' }}">
+            <i class="bi bi-chat-dots text-primary fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Staff Messages &amp; Feedback</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Direct channel with team leads</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# Drawer Footer #}
+    <div class="p-3 border-top bg-body-tertiary">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-lock-fill text-primary"></i>
+          <span class="small fw-semibold">v14-RedLab OS</span>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm px-2 py-1 rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#roleHandbook">
+          <i class="bi bi-book-half me-1"></i>SOP Guide
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

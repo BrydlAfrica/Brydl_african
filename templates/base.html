@@ -34,102 +34,119 @@
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark brydl-accent-border sticky-top">
     <div class="container">
-      <a class="navbar-brand fw-semibold d-inline-flex align-items-center gap-2"
-         href="{{ url_for('auth.login') }}">
-        <img src="{{ url_for('static', filename='brand/logo-64.png') }}"
-             alt="" width="24" height="24"
-             class="rounded brydl-brand-mark">Brydl
-        <span class="fw-normal opacity-75">Dashboard</span>
-      </a>
+      <div class="d-flex align-items-center">
+        {% if current_user.is_authenticated %}
+        <button class="btn btn-outline-light btn-sm me-2 d-inline-flex align-items-center gap-1 border-opacity-25" type="button" data-bs-toggle="offcanvas" data-bs-target="#staffSidebar" aria-controls="staffSidebar" title="Open tools &amp; navigation sidebar">
+          <i class="bi bi-grid-fill"></i>
+          <span class="d-none d-sm-inline small">Menu</span>
+        </button>
+        {% endif %}
+        <a class="navbar-brand fw-semibold d-inline-flex align-items-center gap-2"
+           href="{{ url_for('auth.login') }}">
+          <img src="{{ url_for('static', filename='brand/logo-64.png') }}"
+               alt="" width="24" height="24"
+               class="rounded brydl-brand-mark">Brydl
+          <span class="fw-normal opacity-75">Dashboard</span>
+        </a>
+      </div>
+
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
               data-bs-target="#mainNav" aria-controls="mainNav"
               aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
+
       <div class="collapse navbar-collapse" id="mainNav">
         {% if current_user.is_authenticated %}
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-2">
           {% if current_user.role == 'admin' %}
           <li class="nav-item">{{ nav_link('/admin/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/admin/projects', 'bi-kanban', 'Projects') }}</li>
           <li class="nav-item">{{ nav_link('/admin/tasks', 'bi-list-check', 'Tasks') }}</li>
           <li class="nav-item">{{ nav_link('/admin/review', 'bi-clipboard-check', 'Review') }}</li>
           <li class="nav-item">{{ nav_link('/admin/sft', 'bi-collection', 'SFT Data') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/payments', 'bi-cash-coin', 'Payments') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/users', 'bi-people-fill', 'Team') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/approvals', 'bi-clipboard2-check', 'Approvals') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/quality', 'bi-patch-check', 'Quality') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/review/conflicts', 'bi-diagram-3', 'Conflicts') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/audit', 'bi-journal-text', 'Audit') }}</li>
-          <li class="nav-item">{{ nav_link('/admin/settings', 'bi-gear', 'Settings') }}</li>
-          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-grid-3x3-gap me-1" aria-hidden="true"></i>More Tools
+            </a>
+            <ul class="dropdown-menu shadow border-0">
+              <li><a class="dropdown-item" href="/admin/users"><i class="bi bi-people-fill me-2 text-primary"></i>Team &amp; Users</a></li>
+              <li><a class="dropdown-item" href="/admin/payments"><i class="bi bi-cash-coin me-2 text-success"></i>Payments &amp; Disbursements</a></li>
+              <li><a class="dropdown-item" href="/admin/approvals"><i class="bi bi-clipboard2-check me-2 text-warning"></i>Project Approvals</a></li>
+              <li><a class="dropdown-item" href="/admin/quality"><i class="bi bi-patch-check me-2 text-info"></i>Quality Analytics</a></li>
+              <li><a class="dropdown-item" href="/admin/review/conflicts"><i class="bi bi-diagram-3 me-2 text-warning"></i>Consensus Arbitration</a></li>
+              <li><a class="dropdown-item" href="/admin/audit"><i class="bi bi-journal-text me-2 text-secondary"></i>Audit Trail</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/admin/settings"><i class="bi bi-gear me-2"></i>Platform Settings</a></li>
+            </ul>
+          </li>
           {% elif current_user.role == 'project_manager' %}
           <li class="nav-item">{{ nav_link('/pm/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/pm/projects', 'bi-kanban', 'My Projects') }}</li>
           <li class="nav-item">{{ nav_link('/pm/projects/new', 'bi-plus-circle', 'New Project') }}</li>
-          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
           {% elif current_user.role == 'qa' %}
           <li class="nav-item">{{ nav_link('/admin/review', 'bi-clipboard-check', 'QA Review') }}</li>
           <li class="nav-item">{{ nav_link('/admin/quality', 'bi-patch-check', 'Quality') }}</li>
-          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
           {% elif current_user.role == 'auditor' %}
           <li class="nav-item">{{ nav_link('/admin/review/conflicts', 'bi-diagram-3', 'Arbitration') }}</li>
           <li class="nav-item">{{ nav_link('/admin/audit', 'bi-journal-text', 'Audit Trail') }}</li>
-          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Messages</a></li>
           {% else %}
           <li class="nav-item">{{ nav_link('/annotator/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/annotator/tasks', 'bi-list-check', 'My Tasks') }}</li>
           <li class="nav-item">{{ nav_link('/annotator/history', 'bi-clock-history', 'My History') }}</li>
           <li class="nav-item">{{ nav_link('/annotator/profile', 'bi-person', 'Profile') }}</li>
-          <li class="nav-item">
-            <a class="nav-link position-relative" href="/annotator/notifications" aria-label="Notifications">
-              <i class="bi bi-bell me-1" aria-hidden="true"></i>Bell
-              {% if unread_notifications %}
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread_notifications }}</span>
-              {% endif %}
-            </a>
-          </li>
-          <li class="nav-item"><a class="nav-link position-relative" href="/feedback" aria-label="Messages"><i class="bi bi-chat-dots me-1" aria-hidden="true"></i>Feedback</a></li>
-          {% endif %}
-          {% if current_user.role != 'annotator' %}
-          <li class="nav-item">
-            <a class="nav-link position-relative" href="/notifications" aria-label="Notifications">
-              <i class="bi bi-bell me-1" aria-hidden="true"></i>Bell
-              {% if unread_notifications %}
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread_notifications }}</span>
-              {% endif %}
-            </a>
-          </li>
           {% endif %}
         </ul>
-        <ul class="navbar-nav ms-auto align-items-lg-center">
+
+        <ul class="navbar-nav ms-auto align-items-center flex-row gap-2">
+          {# In-App Role Operational Guide Button #}
           <li class="nav-item">
-            <span class="nav-link text-white-50 d-inline-flex align-items-center gap-1">
-              <i class="bi bi-person-circle" aria-hidden="true"></i>{{ current_user.name }}
-              {% if current_user.role == 'admin' %}
-              <span class="badge role-badge bg-warning text-dark">ADMIN</span>
-              {% elif current_user.role == 'project_manager' %}
-              <span class="badge role-badge bg-success text-white">PM</span>
-              {% elif current_user.role == 'qa' %}
-              <span class="badge role-badge bg-info text-dark">QA</span>
-              {% elif current_user.role == 'auditor' %}
-              <span class="badge role-badge bg-light text-dark">AUDITOR</span>
-              {% else %}
-              <span class="badge role-badge bg-secondary">ANNOTATOR</span>
-              {% endif %}
-            </span>
+            <button class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 fw-semibold shadow-xs px-2 py-1 rounded-pill" type="button" data-bs-toggle="offcanvas" data-bs-target="#roleHandbook" aria-controls="roleHandbook" title="Open role standard operating procedures">
+              <i class="bi bi-book-half"></i>
+              <span class="d-none d-md-inline small">SOP Guide</span>
+            </button>
           </li>
-          {% if current_user.role != 'annotator' %}
-          <li class="nav-item"><a class="nav-link text-white-50" href="/profile" title="Profile"><i class="bi bi-person" aria-hidden="true"></i></a></li>
-          {% endif %}
+
+          {# Quick Theme Switcher #}
           <li class="nav-item">
-            {# Logout is POST + CSRF: a plain GET link could be triggered by link previews or cross-site tags. #}
-            <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">
+            <form method="post" action="{{ url_for('auth.set_theme') }}" class="d-inline m-0">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btn btn-link nav-link text-white-50 py-lg-1">
-                <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Logout
+              <input type="hidden" name="theme" value="{% if current_user.theme == 'dark' %}light{% else %}dark{% endif %}">
+              <button type="submit" class="btn btn-link nav-link p-1 text-white-50" title="Switch to {% if current_user.theme == 'dark' %}Light{% else %}Dark{% endif %} Mode">
+                <i class="bi {% if current_user.theme == 'dark' %}bi-sun-fill text-warning fs-5{% else %}bi-moon-stars-fill text-info fs-5{% endif %}"></i>
               </button>
             </form>
+          </li>
+
+          {# Notification Bell #}
+          <li class="nav-item">
+            <a class="nav-link position-relative p-1 text-white-50" href="{% if current_user.role == 'annotator' %}/annotator/notifications{% else %}/notifications{% endif %}" aria-label="Notifications" title="Notifications">
+              <i class="bi bi-bell fs-5"></i>
+              {% if unread_notifications %}
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread_notifications }}</span>
+              {% endif %}
+            </a>
+          </li>
+
+          {# User Profile & Menu Dropdown #}
+          <li class="nav-item dropdown">
+            <button class="btn btn-link nav-link dropdown-toggle text-white d-inline-flex align-items-center gap-2 py-1 px-2 rounded-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle fs-5"></i>
+              <span class="d-none d-lg-inline small fw-medium">{{ current_user.name }}</span>
+              <span class="badge role-badge {% if current_user.role == 'admin' %}bg-warning text-dark{% elif current_user.role == 'project_manager' %}bg-success text-white{% elif current_user.role == 'qa' %}bg-info text-dark{% elif current_user.role == 'auditor' %}bg-light text-dark{% else %}bg-secondary{% endif %}">{{ current_user.role|upper }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+              <li><h6 class="dropdown-header text-uppercase small text-muted">{{ current_user.email }}</h6></li>
+              <li><a class="dropdown-item" href="{% if current_user.role == 'annotator' %}/annotator/profile{% else %}/profile{% endif %}"><i class="bi bi-person me-2 text-primary"></i>My Profile</a></li>
+              <li><a class="dropdown-item" href="/feedback"><i class="bi bi-chat-dots me-2 text-info"></i>Messages &amp; Feedback</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="post" action="{{ url_for('auth.logout') }}" class="m-0">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="dropdown-item text-danger d-flex align-items-center"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</button>
+                </form>
+              </li>
+            </ul>
           </li>
         </ul>
         {% endif %}
@@ -173,6 +190,11 @@
       </span>
     </div>
   </footer>
+
+  {% if current_user.is_authenticated %}
+    {% include "components/staff_sidebar.html" %}
+    {% include "components/role_handbook.html" %}
+  {% endif %}
 
   <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>

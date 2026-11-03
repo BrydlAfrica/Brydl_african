@@ -578,43 +578,123 @@ kbd {
 }
 
 /* ---- Dark theme (per-user preference, Bootstrap 5.3 data-bs-theme)
- * Bootstrap restyles its own components; we only need to re-map our
- * custom tokens and the few hard-tinted surfaces. */
+ * Bootstrap restyles its own components; we re-map custom tokens and
+ * enhance contrast, cards, forms, tables, and modal/offcanvas surfaces. */
 [data-bs-theme="dark"] {
-  --brydl-bg: #0f1523;
-  --brydl-surface: #182033;
-  --brydl-border: #2a3450;
-  --brydl-ink: #e7ebf6;
-  --brydl-muted: #9aa6c2;
-  --brydl-accent-soft: rgba(79, 127, 224, 0.16);
+  --brydl-bg: #0b0f19;
+  --brydl-surface: #121a2d;
+  --brydl-surface-elevated: #1a253f;
+  --brydl-border: #23314e;
+  --brydl-ink: #f0f4fc;
+  --brydl-muted: #9aa8c7;
+  --brydl-accent-soft: rgba(79, 127, 224, 0.18);
+  --bs-body-bg: #0b0f19;
+  --bs-body-color: #f0f4fc;
+  --bs-border-color: #23314e;
+  --bs-tertiary-bg: #121a2d;
+  --bs-secondary-bg: #182239;
   color-scheme: dark;
 }
 
 [data-bs-theme="dark"] body {
-  background-color: var(--brydl-bg);
+  background-color: var(--brydl-bg) !important;
   color: var(--brydl-ink);
 }
 
 [data-bs-theme="dark"] .card {
   background-color: var(--brydl-surface);
+  border-color: var(--brydl-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-footer,
 [data-bs-theme="dark"] .card-header.bg-white,
 [data-bs-theme="dark"] .card-footer.bg-white,
 [data-bs-theme="dark"] .brydl-footer {
   background-color: var(--brydl-surface) !important;
+  border-color: var(--brydl-border) !important;
 }
 
 [data-bs-theme="dark"] .table {
-  --bs-table-hover-bg: rgba(79, 127, 224, 0.08);
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--brydl-ink);
+  --bs-table-border-color: var(--brydl-border);
+  --bs-table-hover-bg: rgba(79, 127, 224, 0.12);
+  color: var(--brydl-ink);
+}
+
+[data-bs-theme="dark"] .table > :not(caption) > * > * {
+  background-color: transparent;
+  border-bottom-color: var(--brydl-border);
+  color: var(--brydl-ink);
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: #121a2d !important;
+  border-color: #23314e !important;
+  color: #f0f4fc !important;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+  background-color: #162038 !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+  color: #fff !important;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+  color: #64748b;
+}
+
+[data-bs-theme="dark"] .list-group-item {
+  background-color: var(--brydl-surface);
+  border-color: var(--brydl-border);
+  color: var(--brydl-ink);
+}
+
+[data-bs-theme="dark"] .list-group-item.list-group-item-action:hover {
+  background-color: var(--brydl-surface-elevated);
+  color: #fff;
+}
+
+[data-bs-theme="dark"] .list-group-item.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+[data-bs-theme="dark"] .offcanvas,
+[data-bs-theme="dark"] .modal-content {
+  background-color: #0e1526 !important;
+  border-color: #23314e !important;
+  color: var(--brydl-ink);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: #121a2d !important;
+  border: 1px solid #23314e !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+  color: var(--brydl-ink);
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+  background-color: var(--brydl-surface-elevated);
+  color: #fff;
 }
 
 [data-bs-theme="dark"] kbd {
-  background: #202a44;
-  border-color: #313d61;
+  background: #1a253f;
+  border-color: #2a3a60;
+  color: #93c5fd;
 }
 
-[data-bs-theme="dark"] .brydl-chips li { color: #9db9f0; }
+[data-bs-theme="dark"] .brydl-chips li { color: #9db9f0; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.25); }
 
 [data-bs-theme="dark"] .badge.bg-success {
   background-color: rgba(46, 158, 107, 0.2) !important;
@@ -623,32 +703,58 @@ kbd {
 
 [data-bs-theme="dark"] .badge.bg-warning,
 [data-bs-theme="dark"] .badge.bg-warning.text-dark {
-  background-color: rgba(224, 168, 0, 0.18) !important;
-  color: #ecc55a !important;
+  background-color: rgba(224, 168, 0, 0.22) !important;
+  color: #fcd34d !important;
 }
 
 [data-bs-theme="dark"] .badge.bg-danger {
-  background-color: rgba(217, 83, 79, 0.2) !important;
-  color: #f19995 !important;
+  background-color: rgba(217, 83, 79, 0.22) !important;
+  color: #fca5a5 !important;
 }
 
 [data-bs-theme="dark"] .badge.bg-info {
-  background-color: rgba(74, 163, 192, 0.2) !important;
-  color: #8ed0e5 !important;
+  background-color: rgba(74, 163, 192, 0.22) !important;
+  color: #7dd3fc !important;
 }
 
 [data-bs-theme="dark"] .badge.bg-secondary {
   background-color: rgba(154, 166, 194, 0.18) !important;
-  color: #b9c3da !important;
+  color: #cbd5e1 !important;
 }
 
 [data-bs-theme="dark"] .badge.bg-primary {
-  background-color: rgba(79, 127, 224, 0.2) !important;
-  color: #9db9f0 !important;
+  background-color: rgba(59, 130, 246, 0.22) !important;
+  color: #93c5fd !important;
 }
 
 [data-bs-theme="dark"] .navbar {
-  border-bottom-color: rgba(255, 255, 255, 0.12);
+  background-color: #0b0f19 !important;
+  border-bottom: 1px solid #23314e !important;
+}
+
+/* Modern staff navigation & drawer styling */
+.brydl-sidebar {
+  width: min(340px, 85vw);
+  border-right: 1px solid var(--bs-border-color);
+}
+
+.brydl-handbook-drawer {
+  border-left: 1px solid var(--bs-border-color);
+}
+
+.shadow-xs {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tracking-wide {
+  letter-spacing: 0.06em;
+}
+
+.role-badge {
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  padding: 0.25em 0.55em;
+  font-weight: 700;
 }
 
 
