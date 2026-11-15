@@ -1,5 +1,27 @@
 {% extends "base.html" %}
-{% block title %}Data Protection (NDPR) — Brydl{% endblock %}
+{% block title %}Data Protection &amp; NDPR Compliance — Brydl AI | Gretek Technologies{% endblock %}
+{% block meta_description %}Learn how Brydl AI and Gretek Technologies process, protect, and secure data under Nigeria Data Protection Regulation (NDPR) and international AI safety standards.{% endblock %}
+{% block og_description %}Learn how Brydl AI and Gretek Technologies process, protect, and secure data under Nigeria Data Protection Regulation (NDPR) and international AI safety standards.{% endblock %}
+{% block twitter_description %}Learn how Brydl AI and Gretek Technologies process, protect, and secure data under Nigeria Data Protection Regulation (NDPR) and international AI safety standards.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "{{ site_url }}/privacy#webpage",
+  "url": "{{ site_url }}/privacy",
+  "name": "Data Protection & NDPR Compliance — Brydl AI",
+  "description": "Data protection policy and privacy framework for Brydl AI under Nigeria Data Protection Regulation (NDPR).",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Gretek Technologies",
+    "url": "{{ site_url }}"
+  }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container" style="max-width: 860px;">
   <h1 class="h3 fw-bold mt-4 mb-1">Data Protection Notice</h1>

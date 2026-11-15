@@ -9,9 +9,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Brydl — AI data labelling dashboard for annotation teams.">
+  <meta name="description" content="{% block meta_description %}Brydl AI by Gretek Technologies — Enterprise African Language AI Safety, Adversarial Red-Teaming, Speech Corpora &amp; Multilingual Model Alignment Platform.{% endblock %}">
+  <meta name="robots" content="{% block meta_robots %}{% if request.path in ['/', '/privacy'] %}index, follow{% else %}noindex, nofollow{% endif %}{% endblock %}">
   <meta name="theme-color" content="#173363">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+  {% if request.path in ['/', '/privacy'] %}
+  {% block canonical %}<link rel="canonical" href="{{ site_url }}{{ request.path }}">{% endblock %}
+
+  {# Search Engine Verification Tags (Optional via config) #}
+  {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+  {% if bing_site_verification %}<meta name="msvalidate.01" content="{{ bing_site_verification }}">{% endif %}
+
+  {# Open Graph / Social Sharing Metadata #}
+  <meta property="og:site_name" content="Brydl AI">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}African Language AI Safety, Adversarial Red-Teaming &amp; Multilingual Alignment Platform | Gretek Technologies.{% endblock %}">
+  <meta property="og:url" content="{{ site_url }}{{ request.path }}">
+  <meta property="og:image" content="{{ site_url }}{{ url_for('static', filename='brand/hero-cover.jpg') }}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="en_NG">
+
+  {# Twitter Card Metadata #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block twitter_title %}{{ self.title() }}{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}African Language AI Safety, Adversarial Red-Teaming &amp; Multilingual Alignment Platform | Gretek Technologies.{% endblock %}">
+  <meta name="twitter:image" content="{{ site_url }}{{ url_for('static', filename='brand/hero-cover.jpg') }}">
+  {% endif %}
+
   <link rel="icon" type="image/png"
         href="{{ url_for('static', filename='brand/logo-64.png') }}">
   <link rel="apple-touch-icon"
@@ -22,6 +48,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pygments.css') }}">
+
+  {% block structured_data %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
   {% if boot_loader|default(false) %}{% include "_boot.html" %}{% endif %}

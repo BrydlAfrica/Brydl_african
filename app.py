@@ -262,6 +262,18 @@ def create_app(config_class: type = Config) -> Flask:
         response.headers["Content-Security-Policy"] = (
             CONTENT_SECURITY_POLICY
         )
+        # Search engine & AI crawler indexing directives (X-Robots-Tag)
+        public_indexable = {
+            "/",
+            "/privacy",
+            "/sitemap.xml",
+            "/robots.txt",
+        }
+        if request.path in public_indexable or request.path.startswith("/static/"):
+            response.headers["X-Robots-Tag"] = "index, follow"
+        else:
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+
         # HSTS only makes sense once TLS actually terminates in front of
         # us (i.e. on Render); locally it would do nothing.
         if os.environ.get("RENDER"):
@@ -445,11 +457,19 @@ def create_app(config_class: type = Config) -> Flask:
             except Exception:
                 # Context processor must never crash the page.
                 unread = 0
+        # Base deployment URL for canonical links, sitemaps, Open Graph
+        base_url = app.config.get("SITE_URL") or request.url_root.rstrip("/")
+        if request.headers.get("X-Forwarded-Proto") == "https" and base_url.startswith("http://"):
+            base_url = "https://" + base_url[len("http://"):]
+
         # Curry conversion so macros can call _ngn_convert(amount) without
         # depending on the caller importing usd_to_ngn directly.
         return {
             "current_user": current_user,
             "app_name": site_name,
+            "site_url": base_url,
+            "google_site_verification": app.config.get("GOOGLE_SITE_VERIFICATION", ""),
+            "bing_site_verification": app.config.get("BING_SITE_VERIFICATION", ""),
             "usd_to_ngn": usd_to_ngn,
             "unread_notifications": unread,
         }

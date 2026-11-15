@@ -2,6 +2,115 @@
 {% set boot_loader = true %}
 
 {% block title %}Brydl AI — African Language AI Safety, Red-Teaming & Speech Alignment | A Gretek Technologies Enterprise{% endblock %}
+{% block meta_description %}Brydl AI by Gretek Technologies is Africa's premier AI safety, adversarial red-teaming, and multilingual data platform covering Hausa, Yoruba, Igbo, Swahili, Amharic, and Pidgin.{% endblock %}
+{% block og_description %}Brydl AI by Gretek Technologies is Africa's premier AI safety, adversarial red-teaming, and multilingual data platform covering Hausa, Yoruba, Igbo, Swahili, Amharic, and Pidgin.{% endblock %}
+{% block twitter_description %}Brydl AI by Gretek Technologies is Africa's premier AI safety, adversarial red-teaming, and multilingual data platform covering Hausa, Yoruba, Igbo, Swahili, Amharic, and Pidgin.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "{{ site_url }}/#organization",
+      "name": "Gretek Technologies",
+      "legalName": "Gretek Technologies",
+      "url": "{{ site_url }}",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "{{ site_url }}/#logo",
+        "url": "{{ site_url }}/static/brand/logo-192.png",
+        "caption": "Gretek Technologies - Brydl AI"
+      },
+      "description": "Gretek Technologies develops Brydl AI, an enterprise-grade African language AI safety, adversarial red-teaming, and model alignment platform.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "NG"
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "{{ site_url }}/#webapp",
+      "name": "Brydl AI",
+      "alternateName": "Brydl",
+      "url": "{{ site_url }}/",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "All modern web browsers",
+      "description": "Enterprise African Language AI Safety, Adversarial Red-Teaming, Speech Corpora, and Multilingual Model Alignment Platform.",
+      "creator": {
+        "@id": "{{ site_url }}/#organization"
+      },
+      "publisher": {
+        "@id": "{{ site_url }}/#organization"
+      },
+      "featureList": [
+        "Adversarial Red-Teaming & Prompt Injection Testing",
+        "African Speech Corpora (Phoneme & Acoustic Alignment)",
+        "Cultural Human Preference Alignment (RLHF / DPO)",
+        "Zero Data Retention & AES-128 MultiFernet Encryption",
+        "NDPA & CAMA Regulatory Compliance Verification",
+        "Exact Decimal Financial Payout Engine"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "{{ site_url }}/#faq-schema",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Brydl?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Brydl (Brydl AI) is an enterprise-grade African Language AI Safety, Adversarial Red-Teaming, and Alignment Operating System developed by Gretek Technologies. It protects frontier artificial intelligence models and speech systems from cultural exploits, jailbreaks, and dialect failures across African languages."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does Brydl do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Brydl stress-tests large language models (LLMs) and voice agents through native African red-teaming, collects phoneme-aligned speech corpora across noisy acoustic environments, conducts cultural human-in-the-loop preference alignment (RLHF/DPO), and provides cryptographically audited compliance trails aligned with the Nigeria Data Protection Act (NDPA) and AU AI Framework."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who is Brydl designed for?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Brydl is designed for global foundation AI labs, enterprise technology companies, African fintechs and telecoms deploying voice/chat AI, as well as vetted native African linguists, security researchers, annotators, and compliance auditors."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What problems does Brydl solve?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Brydl solves critical failure modes in AI deployment across Africa: linguistic vulnerabilities where standard guardrails fail under low-resource language attacks, Western alignment bias that misinterprets cultural nuances, speech recognition breakdown under heavy accents and code-switching, and unfair workforce compensation through its exact Decimal payout engine."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why should someone choose Brydl?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Unlike generic crowd-working platforms, Brydl combines specialized African linguistic red-teaming expertise, strict enterprise security (Zero Data Retention, AES-128 MultiFernet encryption, SSRF protection, IDOR-safe authorization), and instant direct Nigerian bank disbursements."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where can someone access Brydl?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Brydl is accessible online through its secure web platform. Enterprise clients can request safety benchmarks and custom multilingual corpora, while native speakers and security researchers can sign in to participate in verified annotation and red-teaming campaigns."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
 
 {% block content %}
 {# ---------------------------------------------------------------- hero #}
@@ -400,6 +509,97 @@
         <h3 class="h6 fw-bold">Built for African teams</h3>
         <p class="text-muted small mb-0">Naira payouts, UTC everywhere, and lean pages that stay quick on low-bandwidth connections across the continent.</p>
       </div></div>
+    </div>
+  </div>
+</section>
+
+{# ---------------------------------------------------------------- FAQ (AEO & GEO) #}
+<section id="faq" class="mt-5 pt-3 brydl-reveal">
+  <div class="text-center mb-4">
+    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-semibold">
+      <i class="bi bi-question-diamond me-1" aria-hidden="true"></i>Knowledge &amp; Direct Answers
+    </span>
+    <h2 class="h3 fw-bold mt-2 mb-1">Frequently Asked Questions</h2>
+    <p class="text-muted small">Factual information for enterprise clients, AI safety researchers, and annotators.</p>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="h6 fw-bold text-primary mb-2">
+            <i class="bi bi-shield-check me-1" aria-hidden="true"></i>What is Brydl?
+          </h3>
+          <p class="text-muted small mb-0">
+            <strong>Brydl (Brydl AI)</strong> is an enterprise-grade African Language AI Safety, Adversarial Red-Teaming, and Model Alignment Operating System developed by <strong>Gretek Technologies</strong>. It protects frontier artificial intelligence models and speech systems from cultural exploits, jailbreaks, and dialect failures across major African languages.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="h6 fw-bold text-primary mb-2">
+            <i class="bi bi-cpu me-1" aria-hidden="true"></i>What does Brydl do?
+          </h3>
+          <p class="text-muted small mb-0">
+            Brydl stress-tests large language models (LLMs) and voice agents through live adversarial red-teaming (RedLab v14 OS), collects phoneme-aligned paired speech corpora across noisy African acoustic environments, conducts cultural human-in-the-loop preference alignment (RLHF/DPO), and generates verified NDPA compliance logs.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="h6 fw-bold text-primary mb-2">
+            <i class="bi bi-people me-1" aria-hidden="true"></i>Who is Brydl designed for?
+          </h3>
+          <p class="text-muted small mb-0">
+            Brydl is built for global foundation AI labs (OpenAI, Anthropic, Google, Meta, Mistral), enterprise technology firms, African fintechs and telecoms deploying voice/chat AI, as well as vetted native African linguists, security researchers, annotators, and compliance auditors.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="h6 fw-bold text-primary mb-2">
+            <i class="bi bi-tools me-1" aria-hidden="true"></i>What problems does Brydl solve?
+          </h3>
+          <p class="text-muted small mb-0">
+            Standard AI guardrails fail under low-resource language attacks (Hausa, Yoruba, Igbo, Swahili, Amharic, Pidgin), Western alignment bias misinterprets local legal/cultural proverbs, and speech models break under heavy accents. Brydl resolves these failures while ensuring exact Decimal compensation for African digital workers.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="h6 fw-bold text-primary mb-2">
+            <i class="bi bi-patch-check me-1" aria-hidden="true"></i>Why should someone choose Brydl?
+          </h3>
+          <p class="text-muted small mb-0">
+            Unlike generic crowd-working platforms, Brydl combines native African cultural grounding, a battle-tested dual-engine architecture (Flask + FastAPI RedLab), Zero Data Retention with AES-128 MultiFernet encryption, strict SSRF/IDOR protections, and instant direct Nigerian bank payouts.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="h6 fw-bold text-primary mb-2">
+            <i class="bi bi-globe2 me-1" aria-hidden="true"></i>Where and how can someone access Brydl?
+          </h3>
+          <p class="text-muted small mb-0">
+            Brydl is accessible online through its secure web portal. Enterprise clients can request custom safety benchmarks and corpora, while native linguists and security researchers can sign in to participate in verified annotation and red-teaming campaigns.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </section>

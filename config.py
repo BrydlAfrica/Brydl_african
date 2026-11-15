@@ -338,6 +338,9 @@ SFT_EXPORT_MAX_ROWS = _env_int("SFT_EXPORT_MAX_ROWS", 5000)
 # Public base URL of the deployment (no trailing slash). Notification
 # emails link here; unset = in-app only, emails without links.
 SITE_URL = os.environ.get("SITE_URL", "").strip().rstrip("/")
+# Search engine verification codes for Google Search Console & Bing Webmaster
+GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "").strip()
+BING_SITE_VERIFICATION = os.environ.get("BING_SITE_VERIFICATION", "").strip()
 # Key for encrypting bank account numbers at rest (Fernet key —
 # generate with: Fernet.generate_key()). Unset = derived
 # deterministically from SECRET_KEY (fine for dev; set a dedicated
@@ -442,6 +445,8 @@ class Config:
     # Tier 1 knobs (mirrored for templates).
     CLAIM_DAILY_CAP = CLAIM_DAILY_CAP
     SITE_URL = SITE_URL
+    GOOGLE_SITE_VERIFICATION = GOOGLE_SITE_VERIFICATION
+    BING_SITE_VERIFICATION = BING_SITE_VERIFICATION
     BANK_ENC_KEY = BANK_ENC_KEY
     TASK_MAX_REJECTIONS = TASK_MAX_REJECTIONS
     PREFERENCE_MIN_JUSTIFICATION = PREFERENCE_MIN_JUSTIFICATION

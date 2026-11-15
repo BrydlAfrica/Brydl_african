@@ -133,6 +133,155 @@ def privacy():
     return render_template("privacy.html")
 
 
+@public_bp.route("/robots.txt")
+def robots_txt():
+    """Serve dynamically configured robots.txt file for search & AI crawlers.
+
+    Allows indexing of public landing, privacy, and sitemap resources
+    while explicitly disallowing internal admin, annotator, PM, client,
+    and API endpoints. AI search and retrieval bots (GPTBot, PerplexityBot,
+    ClaudeBot, OAI-SearchBot) are explicitly accommodated.
+    """
+    base_url = current_app.config.get("SITE_URL") or request.url_root.rstrip("/")
+    if request.headers.get("X-Forwarded-Proto") == "https" and base_url.startswith("http://"):
+        base_url = "https://" + base_url[len("http://"):]
+
+    body = f"""# ==============================================================================
+# Robots.txt for Brydl AI (Gretek Technologies)
+# https://brydl.com
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+Disallow: /auth/
+Disallow: /login
+Disallow: /logout
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /backups/
+Disallow: /export/
+Disallow: /webhooks/
+
+# Generative & Answer Engine Crawlers (AEO & GEO Discoverability)
+User-agent: GPTBot
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+
+User-agent: Google-Extended
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+
+User-agent: Applebot
+Allow: /
+Allow: /privacy
+Allow: /sitemap.xml
+Allow: /static/
+Disallow: /admin/
+Disallow: /annotator/
+Disallow: /pm/
+Disallow: /staff/
+Disallow: /client/
+Disallow: /api/
+Disallow: /redlab/
+
+# Sitemap location
+Sitemap: {base_url}/sitemap.xml
+"""
+    return Response(body, mimetype="text/plain")
+
+
+@public_bp.route("/sitemap.xml")
+def sitemap_xml():
+    """Serve standard XML sitemap listing canonical public URLs."""
+    base_url = current_app.config.get("SITE_URL") or request.url_root.rstrip("/")
+    if request.headers.get("X-Forwarded-Proto") == "https" and base_url.startswith("http://"):
+        base_url = "https://" + base_url[len("http://"):]
+
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{base_url}/</loc>
+    <lastmod>2026-10-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>{base_url}/privacy</loc>
+    <lastmod>2026-09-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
+
+
 @public_bp.route("/webhooks/paystack", methods=["POST"])
 def paystack_webhook():
     """Settle Paystack Transfers webhooks (server-to-server, no auth).
