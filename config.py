@@ -90,16 +90,28 @@ def _load_database_uri() -> str:
 
     Priority order:
     1. The DATABASE_URL environment variable (how Render injects its
-       PostgreSQL credentials). Render's legacy ``postgres://`` scheme is
-       rewritten to SQLAlchemy's required ``postgresql://``. NOTE: a
-       PostgreSQL deployment also requires adding ``psycopg2-binary`` to
-       requirements.txt.
+       PostgreSQL credentials or Supabase URI). Render's legacy
+       ``postgres://`` scheme is rewritten to SQLAlchemy's required
+       ``postgresql://``. If the database password contains unencoded
+       special characters (such as ``@`` or ``#``), they are automatically
+       URL-encoded to prevent hostname parsing errors.
     2. SQLite in the instance folder (default: local / offline dev).
     """
+    import urllib.parse
     url = os.environ.get("DATABASE_URL", "").strip()
     if url:
         if url.startswith("postgres://"):
             url = "postgresql://" + url[len("postgres://"):]
+        if url.startswith("postgresql://") or url.startswith("postgresql+"):
+            prefix, rest = url.split("://", 1)
+            if "@" in rest:
+                userinfo, host_part = rest.rsplit("@", 1)
+                if ":" in userinfo:
+                    username, password = userinfo.split(":", 1)
+                    unquoted_pwd = urllib.parse.unquote(password)
+                    encoded_pwd = urllib.parse.quote(unquoted_pwd, safe="")
+                    encoded_user = urllib.parse.quote(urllib.parse.unquote(username), safe=".")
+                    return f"{prefix}://{encoded_user}:{encoded_pwd}@{host_part}"
         return url
     return "sqlite:///" + DB_PATH.replace(os.sep, "/")
 
