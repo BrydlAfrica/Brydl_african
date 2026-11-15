@@ -82,16 +82,19 @@ expect("100% { opacity: 0; visibility: hidden; }" in css,
 # ---- theme + chrome ----------------------------------------------------
 print("== Theme ==")
 base = open(os.path.join(ROOT, "templates/base.html")).read()
+landing_src = open(os.path.join(ROOT, "templates/landing.html")).read()
 expect('content="#173363"' in base and "logo-64.png" in base
        and "apple-touch-icon" in base,
        "brand favicon, touch icon and navy theme colour in base.html")
 expect("#173363" in css and "--brydl-navy" in css
        and "#2b5bba" in css, "style.css tokens use the logo palette")
 expect("Brydl © 2026" in base, "footer shows the brand mark + 2026")
+expect("Gretek Technologies" in base, "footer references Gretek Technologies")
+expect("Gretek Technologies" in landing_src, "landing page references Gretek Technologies")
+expect("Greywood" not in base and "Greywood" not in landing_src, "no legacy Greywood references in templates")
 
 # ---- CSP / hygiene ------------------------------------------------------
 print("== Hygiene ==")
-landing_src = open(os.path.join(ROOT, "templates/landing.html")).read()
 boot_src = open(os.path.join(ROOT, "templates/_boot.html")).read()
 pattern = re.compile(r"\son[a-z]+\s*=")
 expect(not pattern.search(landing_src)
