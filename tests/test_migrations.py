@@ -25,6 +25,8 @@ ROOT = os.environ.get("BRYDL_ROOT") or os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 )
 os.chdir(ROOT)
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 shutil.rmtree("instance", ignore_errors=True)
 shutil.rmtree("backups", ignore_errors=True)
 
