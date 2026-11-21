@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}LLM Targets · {{ project.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('admin.projects') }}">Projects</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('admin.edit_project', project_id=project.id) }}">{{ project.name }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">LLM Targets</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-1">
+      <i class="bi bi-cpu text-primary me-2" aria-hidden="true"></i>LLM Model Targets
+    </h1>
+    <p class="text-muted small mb-0">
+      Configure the AI model endpoints for project <strong>{{ project.name }}</strong> (RedLab dynamic red-teaming).
+    </p>
+  </div>
+  <div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#addTargetCollapse" aria-expanded="false" aria-controls="addTargetCollapse">
+      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add Model Target
+    </button>
+  </div>
+</div>
+
+{# --- ADD TARGET FORM (COLLAPSIBLE) --- #}
+<div class="collapse mb-4" id="addTargetCollapse">
+  <div class="card border-0 shadow-sm border-top border-4 border-primary">
+    <div class="card-header bg-white py-3">
+      <h2 class="h6 fw-bold mb-0">
+        <i class="bi bi-shield-lock text-primary me-1" aria-hidden="true"></i>Connect New Client Model Endpoint
+      </h2>
+    </div>
+    <div class="card-body p-4">
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-muted">Quick Presets (Click to autofill):</label>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-preset="anthropic">
+            <i class="bi bi-robot me-1"></i>Anthropic (Claude 3.5 Sonnet)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-preset="openai_gpt4o">
+            <i class="bi bi-chat-square-text me-1"></i>OpenAI (GPT-4o)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-preset="openai_mini">
+            <i class="bi bi-lightning-charge me-1"></i>OpenAI (GPT-4o-mini)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-preset="mistral">
+            <i class="bi bi-cpu me-1"></i>Mistral AI (Large)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-preset="custom">
+            <i class="bi bi-hdd-network me-1"></i>Custom / Private Server
+          </button>
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('admin.project_add_target', project_id=project.id) }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="name" class="form-label fw-semibold small">Target Display Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="target_name" name="name" required placeholder="e.g. Anthropic Claude 3.5 Sonnet (Hausa Benchmark)">
+            <div class="form-text">Internal label shown to PMs and admins.</div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="model_name" class="form-label fw-semibold small">Model ID / Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control font-monospace" id="target_model" name="model_name" required placeholder="e.g. claude-3-5-sonnet-20241022 or gpt-4o">
+            <div class="form-text">Exact model parameter passed to the provider.</div>
+          </div>
+
+          <div class="col-12">
+            <label for="endpoint" class="form-label fw-semibold small">Endpoint URL <span class="text-danger">*</span></label>
+            <input type="url" class="form-control font-monospace" id="target_endpoint" name="endpoint" required placeholder="https://api.anthropic.com/v1/messages">
+            <div class="form-text">Must be public HTTPS. Private IPs and cloud metadata addresses are blocked by SSRF defense.</div>
+          </div>
+
+          <div class="col-12">
+            <label for="api_key" class="form-label fw-semibold small">Client API Key / Bearer Token <span class="text-danger">*</span></label>
+            <input type="password" class="form-control font-monospace" id="target_api_key" name="api_key" required placeholder="sk-ant-... or sk-proj-...">
+            <div class="form-text">
+              <i class="bi bi-lock-fill text-success me-1"></i>
+              Encrypted at rest with AES-128 MultiFernet. Plaintext is never stored, displayed, or logged.
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-shield-check me-1" aria-hidden="true"></i>Validate &amp; Connect Target
+          </button>
+          <button type="button" class="btn btn-light border" data-bs-toggle="collapse" data-bs-target="#addTargetCollapse">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# --- EXISTING TARGETS LIST --- #}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <h2 class="h6 fw-bold mb-0">Configured Endpoints ({{ targets|length }})</h2>
+    <span class="badge bg-light text-dark border">
+      <i class="bi bi-shield-fill-check text-success me-1"></i>SSRF Guard Active
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light small">
+        <tr>
+          <th>Target Name</th>
+          <th>Model ID</th>
+          <th>Endpoint URL</th>
+          <th>Key Fingerprint</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tgt in targets %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ tgt.name }}</div>
+            <small class="text-muted">Added {{ tgt.created_at.strftime('%Y-%m-%d %H:%M') if tgt.created_at else 'recently' }} UTC</small>
+          </td>
+          <td>
+            <code class="bg-light px-2 py-1 rounded text-primary">{{ tgt.model_name }}</code>
+          </td>
+          <td class="text-truncate" style="max-width: 260px;" title="{{ tgt.endpoint }}">
+            <span class="small font-monospace">{{ tgt.endpoint }}</span>
+          </td>
+          <td>
+            <code class="text-muted small">{{ tgt.key_fingerprint }}</code>
+          </td>
+          <td>
+            {% if tgt.active %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle">
+              <i class="bi bi-check-circle-fill me-1"></i>Active
+            </span>
+            {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+              <i class="bi bi-pause-circle me-1"></i>Disabled
+            </span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              {# Toggle Active Form #}
+              <form method="post" action="{{ url_for('admin.project_toggle_target', project_id=project.id, target_id=tgt.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if tgt.active else 'btn-outline-success' }}" title="{{ 'Disable target' if tgt.active else 'Enable target' }}">
+                  <i class="bi {{ 'bi-pause-fill' if tgt.active else 'bi-play-fill' }}"></i>
+                </button>
+              </form>
+
+              {# Delete Form #}
+              <form method="post" action="{{ url_for('admin.project_delete_target', project_id=project.id, target_id=tgt.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete target" data-confirm="Are you sure you want to delete target endpoint: {{ tgt.name }}?">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-5">
+            <i class="bi bi-cpu fs-1 d-block mb-2 text-secondary opacity-50" aria-hidden="true"></i>
+            <p class="mb-2">No LLM targets connected to this project yet.</p>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#addTargetCollapse">
+              <i class="bi bi-plus-lg me-1"></i>Connect First Model Endpoint
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var nameEl = document.getElementById('target_name');
+  var modelEl = document.getElementById('target_model');
+  var endpointEl = document.getElementById('target_endpoint');
+  var keyEl = document.getElementById('target_api_key');
+
+  document.querySelectorAll('button[data-preset]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var preset = btn.getAttribute('data-preset');
+      if (preset === 'anthropic') {
+        nameEl.value = 'Anthropic Claude 3.5 Sonnet';
+        modelEl.value = 'claude-3-5-sonnet-20241022';
+        endpointEl.value = 'https://api.anthropic.com/v1/messages';
+        keyEl.placeholder = 'sk-ant-api03-...';
+      } else if (preset === 'openai_gpt4o') {
+        nameEl.value = 'OpenAI GPT-4o';
+        modelEl.value = 'gpt-4o';
+        endpointEl.value = 'https://api.openai.com/v1/chat/completions';
+        keyEl.placeholder = 'sk-proj-...';
+      } else if (preset === 'openai_mini') {
+        nameEl.value = 'OpenAI GPT-4o-mini';
+        modelEl.value = 'gpt-4o-mini';
+        endpointEl.value = 'https://api.openai.com/v1/chat/completions';
+        keyEl.placeholder = 'sk-proj-...';
+      } else if (preset === 'mistral') {
+        nameEl.value = 'Mistral Large 2';
+        modelEl.value = 'mistral-large-latest';
+        endpointEl.value = 'https://api.mistral.ai/v1/chat/completions';
+        keyEl.placeholder = 'sk-mistral-...';
+      } else if (preset === 'custom') {
+        nameEl.value = 'Client Custom Model API';
+        modelEl.value = 'custom-model-v1';
+        endpointEl.value = 'https://client-api.example.com/v1/chat/completions';
+        keyEl.placeholder = 'Bearer token or API key';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -5497,6 +5497,130 @@ def media_serve(asset_id: int):
     )
 
 
+@admin_bp.route("/projects/<int:project_id>/targets", methods=["GET"])
+@admin_required
+def project_targets(project_id: int):
+    """View and manage LLM model targets connected to a project."""
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+    from redlab.integration import get_project_targets
+    targets = get_project_targets(project.id)
+    return render_template(
+        "admin/targets.html",
+        project=project,
+        targets=targets,
+    )
+
+
+@admin_bp.route("/projects/<int:project_id>/targets/new", methods=["POST"])
+@admin_required
+def project_add_target(project_id: int):
+    """Connect a new client LLM target endpoint to a project."""
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.project_targets", project_id=project.id))
+
+    name = request.form.get("name", "").strip()
+    endpoint = request.form.get("endpoint", "").strip()
+    model_name = request.form.get("model_name", "").strip()
+    api_key = request.form.get("api_key", "").strip()
+
+    if not name or not endpoint or not model_name or not api_key:
+        flash("All fields (Name, Model ID, Endpoint URL, API Key) are required.", "danger")
+        return redirect(url_for("admin.project_targets", project_id=project.id))
+
+    from redlab.integration import create_target_for_project
+    ok, msg, target = create_target_for_project(
+        project_id=project.id,
+        name=name,
+        endpoint=endpoint,
+        model_name=model_name,
+        api_key=api_key,
+    )
+
+    if not ok:
+        flash(msg, "danger")
+        return redirect(url_for("admin.project_targets", project_id=project.id))
+
+    log_event(
+        "redlab.target_create",
+        actor=current_user,
+        entity_type="project",
+        entity_id=project.id,
+        detail={"target_id": target.id, "name": name, "model": model_name, "fingerprint": target.key_fingerprint},
+    )
+    flash(f"Model target '{name}' ({model_name}) connected successfully!", "success")
+    return redirect(url_for("admin.project_targets", project_id=project.id))
+
+
+@admin_bp.route("/projects/<int:project_id>/targets/<target_id>/toggle", methods=["POST"])
+@admin_required
+def project_toggle_target(project_id: int, target_id: str):
+    """Enable or disable a target endpoint."""
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.project_targets", project_id=project.id))
+
+    from redlab.integration import toggle_target_active
+    target = toggle_target_active(project.id, target_id)
+    if target is None:
+        abort(404)
+
+    log_event(
+        "redlab.target_toggle",
+        actor=current_user,
+        entity_type="target",
+        entity_id=target.id,
+        detail={"active": target.active},
+    )
+    status_label = "enabled" if target.active else "disabled"
+    flash(f"Target '{target.name}' is now {status_label}.", "info")
+    return redirect(url_for("admin.project_targets", project_id=project.id))
+
+
+@admin_bp.route("/projects/<int:project_id>/targets/<target_id>/delete", methods=["POST"])
+@admin_required
+def project_delete_target(project_id: int, target_id: str):
+    """Delete a target endpoint from a project."""
+    project = db.session.get(Project, project_id)
+    if project is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.project_targets", project_id=project.id))
+
+    from redlab.integration import delete_target_from_project
+    ok, name_or_err = delete_target_from_project(project.id, target_id)
+    if not ok:
+        abort(404)
+
+    log_event(
+        "redlab.target_delete",
+        actor=current_user,
+        entity_type="project",
+        entity_id=project.id,
+        detail={"target_id": target_id, "name": name_or_err},
+    )
+    flash(f"Target '{name_or_err}' deleted.", "success")
+    return redirect(url_for("admin.project_targets", project_id=project.id))
+
+
 @admin_bp.route("/projects/<int:project_id>/media", methods=["GET", "POST"])
 @admin_required
 def project_media(project_id: int):

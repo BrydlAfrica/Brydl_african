@@ -71,6 +71,12 @@
                  aria-label="Export {{ p.name }}">
                 <i class="bi bi-box-arrow-down" aria-hidden="true"></i> Export
               </a>
+              {% if p.task_type == 'dynamic_red_team' %}
+              <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin.project_targets', project_id=p.id) }}"
+                 title="Configure LLM Model Targets">
+                <i class="bi bi-cpu" aria-hidden="true"></i> Targets
+              </a>
+              {% endif %}
               <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.edit_project', project_id=p.id) }}"
                  aria-label="Edit {{ p.name }}">
                 <i class="bi bi-pencil" aria-hidden="true"></i> Edit

@@ -95,3 +95,43 @@ def seed_admin_command(email: str | None, password: str | None):
     )
     click.echo(f"Admin account created: {email}")
     click.echo("Next: sign in and use the Team page to add annotators.")
+
+
+@click.command("add-target")
+@click.option("--project-id", required=True, type=int, help="Target project ID")
+@click.option("--name", required=True, type=str, help="Target display name")
+@click.option("--endpoint", required=True, type=str, help="Model endpoint URL")
+@click.option("--model", required=True, type=str, help="Model ID/name")
+@click.option("--api-key", required=True, type=str, help="Client API key/token")
+@with_appcontext
+def add_target_command(project_id: int, name: str, endpoint: str, model: str, api_key: str):
+    """Register and connect an LLM model target for a red-team project."""
+    from models import Project, utc_now
+    from redlab.models import Target
+    from redlab.crypto import encrypt_secret, mask_key_fingerprint
+    from redlab.ssrf import validate_target_url
+
+    project = db.session.get(Project, project_id)
+    if not project:
+        raise click.ClickException(f"Project #{project_id} not found.")
+
+    is_valid, _, reason = validate_target_url(endpoint)
+    if not is_valid:
+        raise click.ClickException(f"Invalid endpoint URL: {reason}")
+
+    ciphertext = encrypt_secret(api_key)
+    fp = mask_key_fingerprint(api_key)
+
+    tgt = Target(
+        project_ref=str(project.id),
+        name=name,
+        endpoint=endpoint,
+        model_name=model,
+        api_key_ciphertext=ciphertext,
+        key_fingerprint=fp,
+        ssrf_validated_at=utc_now(),
+        active=True,
+    )
+    db.session.add(tgt)
+    db.session.commit()
+    click.echo(f"Successfully connected target '{name}' ({model}) to Project #{project.id} [Key: {fp}]")

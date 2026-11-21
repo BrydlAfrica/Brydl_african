@@ -23,7 +23,7 @@ from audit import (
 )
 from backup import backup_cli
 from config import Config
-from seed_admin import seed_admin_command
+from seed_admin import add_target_command, seed_admin_command
 from extensions import db, migrate, login_manager
 from models import User
 from routes.admin import admin_bp
@@ -129,6 +129,8 @@ def create_app(config_class: type = Config) -> Flask:
     app.cli.add_command(backup_cli)
     # First-admin bootstrap: `flask --app app seed-admin`.
     app.cli.add_command(seed_admin_command)
+    # RedLab LLM target registration CLI: `flask --app app add-target`.
+    app.cli.add_command(add_target_command)
 
     # Phase 10: background job runner (in-process thread; the
     # battery sets BRYDL_DISABLE_JOBS=1, a dedicated worker service

@@ -482,6 +482,87 @@ def get_seed_prompts(
     return _gsp(category)
 
 
+def get_project_targets(project_id: int) -> list[Any]:
+    """Return all Target models configured for a project."""
+    from redlab.models import Target
+    return (
+        Target.query
+        .filter(Target.project_ref == str(project_id))
+        .order_by(Target.created_at.desc())
+        .all()
+    )
+
+
+def create_target_for_project(
+    project_id: int,
+    name: str,
+    endpoint: str,
+    model_name: str,
+    api_key: str,
+) -> tuple[bool, str, Any]:
+    """Validate SSRF, encrypt API key, and create Target model."""
+    from extensions import db
+    from models import utc_now
+    from redlab.crypto import encrypt_secret, mask_key_fingerprint
+    from redlab.models import Target
+    from redlab.ssrf import validate_target_url
+
+    is_valid, _, reason = validate_target_url(endpoint)
+    if not is_valid:
+        return False, f"SSRF check failed: {reason or 'Invalid or forbidden endpoint URL'}", None
+
+    try:
+        ciphertext = encrypt_secret(api_key)
+        fingerprint = mask_key_fingerprint(api_key)
+    except Exception as e:
+        return False, f"Encryption error: {e}", None
+
+    target = Target(
+        project_ref=str(project_id),
+        name=name,
+        endpoint=endpoint,
+        model_name=model_name,
+        api_key_ciphertext=ciphertext,
+        key_fingerprint=fingerprint,
+        ssrf_validated_at=utc_now(),
+        active=True,
+    )
+    db.session.add(target)
+    try:
+        db.session.commit()
+        return True, "Target created successfully", target
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Database error: {e}", None
+
+
+def toggle_target_active(project_id: int, target_id: str) -> Optional[Any]:
+    """Toggle a target's active flag."""
+    from extensions import db
+    from redlab.models import Target
+
+    target = db.session.get(Target, target_id)
+    if target is None or target.project_ref != str(project_id):
+        return None
+    target.active = not target.active
+    db.session.commit()
+    return target
+
+
+def delete_target_from_project(project_id: int, target_id: str) -> tuple[bool, str]:
+    """Delete a target from a project."""
+    from extensions import db
+    from redlab.models import Target
+
+    target = db.session.get(Target, target_id)
+    if target is None or target.project_ref != str(project_id):
+        return False, "Target not found"
+    name = target.name
+    db.session.delete(target)
+    db.session.commit()
+    return True, name
+
+
 __all__ = [
     "MIN_CONCLUDE_TURNS", "QA_REVIEWERS_PER_SESSION",
     "register_integration_handlers", "get_session_transcript",
@@ -489,4 +570,6 @@ __all__ = [
     "pick_active_target", "get_redteam_quota_stats",
     "toggle_qa_message_flag", "count_confirmed_breaches",
     "get_session_export_data", "get_seed_prompts",
+    "get_project_targets", "create_target_for_project",
+    "toggle_target_active", "delete_target_from_project",
 ]
