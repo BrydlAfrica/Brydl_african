@@ -96,6 +96,14 @@
           <td>
             {% if u.role == 'admin' %}
             <span class="badge role-badge bg-warning text-dark">ADMIN</span>
+            {% elif u.role == 'project_manager' %}
+            <span class="badge role-badge bg-primary">PM</span>
+            {% elif u.role == 'qa' %}
+            <span class="badge role-badge bg-info text-dark">QA</span>
+            {% elif u.role == 'auditor' %}
+            <span class="badge role-badge bg-dark">AUDITOR</span>
+            {% elif u.role == 'hr' %}
+            <span class="badge role-badge bg-success">HR</span>
             {% else %}
             <span class="badge role-badge bg-secondary">ANNOTATOR</span>
             {% endif %}

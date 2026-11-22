@@ -4117,6 +4117,7 @@ class UserCreateForm(FlaskForm):
             ("project_manager", "Project Manager"),
             ("qa", "QA reviewer"),
             ("auditor", "Auditor"),
+            ("hr", "HR Screening Specialist"),
             ("admin", "Admin"),
         ],
         validators=[DataRequired(message="Choose a role.")],

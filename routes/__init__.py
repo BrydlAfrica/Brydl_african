@@ -57,7 +57,7 @@ def admin_required(view):
 
 
 def staff_required(view):
-    """Allow any staff role (admin / project_manager / qa / auditor).
+    """Allow any staff role (admin / project_manager / qa / auditor / hr).
 
     Annotators are excluded. Used by cross-staff surfaces: messages,
     feedback composer, profile page, notifications.
@@ -68,7 +68,7 @@ def staff_required(view):
     Returns:
         The protected view.
     """
-    return role_required("admin", "project_manager", "qa", "auditor")(view)
+    return role_required("admin", "project_manager", "qa", "auditor", "hr")(view)
 
 
 def pm_required(view):

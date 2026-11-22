@@ -32,6 +32,13 @@ ADMIN_EMAIL = "admin@brydl.com"
 ADMIN_PASSWORD = "admin123"
 ANNOTATOR_PASSWORD = "annotator123"
 
+STAFF_ACCOUNTS = [
+    ("Fatima HR Lead", "hr@brydl.com", "hr123", "hr"),
+    ("Kalu Project Manager", "pm@brydl.com", "pm123", "project_manager"),
+    ("Senior QA Reviewer", "qa@brydl.com", "qa123", "qa"),
+    ("Chief Compliance Auditor", "auditor@brydl.com", "auditor123", "auditor"),
+]
+
 ANNOTATORS = [
     ("Chinedu Okafor", "annotator1@brydl.com"),
     ("Amina Bello", "annotator2@brydl.com"),
@@ -147,6 +154,11 @@ def main() -> None:
             "Brydl Admin", ADMIN_EMAIL, ADMIN_PASSWORD, "admin"
         )
         created_users += int(made)
+
+        for name, email, password, role in STAFF_ACCOUNTS:
+            _, made = _get_or_create_user(name, email, password, role)
+            created_users += int(made)
+
         annotators = []
         for name, email in ANNOTATORS:
             annotator, made = _get_or_create_user(
@@ -258,6 +270,10 @@ def main() -> None:
         print()
         print("Sign-in credentials (DEVELOPMENT ONLY):")
         print(f"  admin      {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
+        print(f"  hr         hr@brydl.com / hr123")
+        print(f"  pm         pm@brydl.com / pm123")
+        print(f"  qa         qa@brydl.com / qa123")
+        print(f"  auditor    auditor@brydl.com / auditor123")
         print(
             "  annotators annotator1@brydl.com … annotator5@brydl.com"
             f" / {ANNOTATOR_PASSWORD}"
