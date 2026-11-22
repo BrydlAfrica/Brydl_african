@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
 from flask_login import UserMixin
-from sqlalchemy import case, func, select, text
+from sqlalchemy import case, false, func, select, text, true
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import TERMS_VERSION
@@ -239,7 +239,7 @@ class User(UserMixin, db.Model):
     # Default False — transactional mail (password reset) is always
     # sent; bell-feed notifications only email when the user opts in.
     email_notifications_opt_in = db.Column(
-        db.Boolean, nullable=False, default=False, server_default=text("0")
+        db.Boolean, nullable=False, default=False, server_default=false()
     )
     # Self-service password reset: the SHA-256 hash of a one-off token
     # (never the token itself) plus its UTC expiry. Nullable = no reset
@@ -279,11 +279,11 @@ class User(UserMixin, db.Model):
     # Workforce verification & account cutover tracking:
     # is_verified: True = Official Enterprise Workforce; False = Provisional Contributor.
     is_verified = db.Column(
-        db.Boolean, nullable=False, default=False, server_default=text("0")
+        db.Boolean, nullable=False, default=False, server_default=false()
     )
     # is_archived: True when an old provisional account has been migrated and retired.
     is_archived = db.Column(
-        db.Boolean, nullable=False, default=False, server_default=text("0")
+        db.Boolean, nullable=False, default=False, server_default=false()
     )
     verified_at = db.Column(db.DateTime, nullable=True)
     verified_by_id = db.Column(
@@ -306,7 +306,7 @@ class User(UserMixin, db.Model):
     )
     specialist_badge = db.Column(db.String(100), nullable=True)
     is_pod_lead = db.Column(
-        db.Boolean, nullable=False, default=False, server_default=text("0")
+        db.Boolean, nullable=False, default=False, server_default=false()
     )
     assigned_pod = db.Column(db.String(100), nullable=True)
 
@@ -538,7 +538,7 @@ class Project(db.Model):
     # Workforce eligibility: whether provisional (unverified) annotators may work on this project.
     # Production-sensitive or confidential client datasets set this to False.
     allows_provisional = db.Column(
-        db.Boolean, nullable=False, default=True, server_default=text("1")
+        db.Boolean, nullable=False, default=True, server_default=true()
     )
 
     # Minimum QA quality threshold percentage required for task acceptance (default 90.0%)

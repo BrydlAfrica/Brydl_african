@@ -18,10 +18,10 @@ def upgrade() -> None:
     # 1. Update users table with verification, archive, lineage and activation columns, plus HR role
     with op.batch_alter_table("users", schema=None) as batch_op:
         batch_op.add_column(
-            sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+            sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.false())
         )
         batch_op.add_column(
-            sa.Column("is_archived", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+            sa.Column("is_archived", sa.Boolean(), nullable=False, server_default=sa.false())
         )
         batch_op.add_column(
             sa.Column("verified_at", sa.DateTime(), nullable=True)
@@ -65,7 +65,7 @@ def upgrade() -> None:
     # 2. Update projects table with allows_provisional flag
     with op.batch_alter_table("projects", schema=None) as batch_op:
         batch_op.add_column(
-            sa.Column("allows_provisional", sa.Boolean(), nullable=False, server_default=sa.text("1"))
+            sa.Column("allows_provisional", sa.Boolean(), nullable=False, server_default=sa.true())
         )
         batch_op.create_index(
             "ix_projects_allows_provisional", ["allows_provisional"], unique=False

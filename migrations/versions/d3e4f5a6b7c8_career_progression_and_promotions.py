@@ -24,7 +24,7 @@ def upgrade() -> None:
             sa.Column("specialist_badge", sa.String(length=100), nullable=True)
         )
         batch_op.add_column(
-            sa.Column("is_pod_lead", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+            sa.Column("is_pod_lead", sa.Boolean(), nullable=False, server_default=sa.false())
         )
         batch_op.add_column(
             sa.Column("assigned_pod", sa.String(length=100), nullable=True)
