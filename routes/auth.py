@@ -644,3 +644,79 @@ def reset_token(token: str):
     return render_template(
         "reset_password.html", form=form, token=token
     )
+
+
+class ActivateAccountForm(FlaskForm):
+    """Form for setting password upon official workforce account verification."""
+
+    password = PasswordField(
+        "New Password",
+        validators=[
+            DataRequired(message="Password is required."),
+            Length(min=8, max=128, message="Password must be at least 8 characters."),
+        ],
+    )
+    confirm_password = PasswordField(
+        "Confirm Password",
+        validators=[
+            DataRequired(message="Please confirm your password."),
+            EqualTo("password", message="Passwords must match."),
+        ],
+    )
+    submit = SubmitField("Activate Official Account")
+
+
+@auth_bp.route("/activate/<token>", methods=["GET", "POST"])
+def activate_account(token: str):
+    """Consume a single-use activation token, set password, and activate official account.
+
+    Args:
+        token: The raw token from the verification email link.
+
+    Returns:
+        The activation form or redirect to official dashboard.
+    """
+    if current_user.is_authenticated:
+        logout_user()
+
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    now = utc_now()
+    user = db.session.scalar(
+        select(User).where(User.activation_token_hash == token_hash)
+    )
+    if (
+        user is None
+        or user.activation_token_expires is None
+        or user.activation_token_expires <= now
+    ):
+        flash(
+            "This activation link is invalid or has expired. Please contact support or your administrator.",
+            "warning",
+        )
+        return redirect(url_for("auth.login"))
+
+    form = ActivateAccountForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        user.activation_token_hash = None
+        user.activation_token_expires = None
+        user.auth_version += 1
+        db.session.commit()
+
+        login_user(user)
+        log_event(
+            "auth.account_activated",
+            actor=user,
+            entity_type="user",
+            entity_id=user.id,
+            commit=True,
+        )
+        flash(
+            "Your official Brydl annotator account has been successfully activated! Welcome to the verified workspace.",
+            "success",
+        )
+        return redirect(url_for("annotator.dashboard"))
+
+    return render_template(
+        "activate_account.html", form=form, token=token, user=user
+    )

@@ -145,3 +145,62 @@ def send_notification_email(recipient: str, subject: str, body: str) -> bool:
             "Notification email to %s could not be sent.", recipient
         )
         return False
+
+
+def send_verification_activation_email(
+    recipient: str, name: str, activation_url: str, track_label: str
+) -> bool:
+    """Send official workforce verification & account activation email.
+
+    Args:
+        recipient: The annotator's email address.
+        name: The annotator's full name.
+        activation_url: The secure 48h single-use activation link.
+        track_label: The specialization track title.
+
+    Returns:
+        True when delivered (sent or dev-logged), False on failure.
+    """
+    subject = "Official Workforce Verification & Account Activation — Brydl"
+    body = (
+        f"Dear {name},\n\n"
+        f"Congratulations! You have been officially verified as a Brydl Workforce Annotator "
+        f"in the {track_label} pod.\n\n"
+        f"All your historical provisional tasks, approved submissions, and earnings have been "
+        f"safely transitioned to your official production account.\n\n"
+        f"To activate your official account and set your password, visit this secure link within 48 hours:\n\n"
+        f"{activation_url}\n\n"
+        f"Once activated, your provisional login credentials will be retired.\n\n"
+        f"— The Brydl Team"
+    )
+    if not mail_enabled():
+        logger.warning(
+            "SMTP not configured; DEV-FALLBACK verification activation link for %s: %s",
+            recipient,
+            activation_url,
+        )
+        return True
+
+    message = EmailMessage()
+    message["From"] = MAIL_FROM
+    message["To"] = recipient
+    message["Subject"] = subject
+    message.set_content(body)
+
+    try:
+        if SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                if SMTP_USERNAME:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                if SMTP_STARTTLS:
+                    server.starttls()
+                if SMTP_USERNAME:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(message)
+        return True
+    except OSError:
+        logger.exception("Verification email to %s could not be sent.", recipient)
+        return False

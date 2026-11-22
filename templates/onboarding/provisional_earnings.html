@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Provisional Earnings Ledger · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-1 text-dark">
+        <i class="bi bi-wallet2 text-success me-2"></i>Provisional Pay Ledger
+      </h1>
+      <p class="text-muted small mb-0">Track your approved task earnings, pending reviews, and payment distributions.</p>
+    </div>
+    <a href="{{ url_for('provisional.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to Hub
+    </a>
+  </div>
+
+  <div class="row g-4 mb-4">
+    {# Total Approved Earnings #}
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">Approved Earnings</div>
+        <div class="h2 fw-bold text-success mb-1">${{ "%.2f"|format(perf.total_approved_earnings) }}</div>
+        <div class="text-muted small">Approx. ₦{{ "{:,.2f}".format(usd_to_ngn(perf.total_approved_earnings)) }}</div>
+      </div>
+    </div>
+    {# Approved Submissions Count #}
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">Approved Submissions</div>
+        <div class="h2 fw-bold text-primary mb-1">{{ perf.approved_submissions }}</div>
+        <div class="text-muted small">Out of {{ perf.total_submissions }} total submissions</div>
+      </div>
+    </div>
+    {# Pending Reviews #}
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">Pending QA Review</div>
+        <div class="h2 fw-bold text-warning mb-1">{{ perf.pending_submissions }}</div>
+        <div class="text-muted small">Tasks currently undergoing evaluation</div>
+      </div>
+    </div>
+  </div>
+
+  {# Approved Submissions Breakdown #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white py-3 border-0">
+      <h2 class="h6 fw-bold mb-0 text-dark">
+        <i class="bi bi-list-check text-success me-2"></i>Approved Tasks Breakdown
+      </h2>
+    </div>
+    <div class="card-body p-0">
+      {% if approved_submissions %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase">
+              <tr>
+                <th>Task ID</th>
+                <th>Project</th>
+                <th>Submitted</th>
+                <th>QA Score</th>
+                <th class="text-end">Earned (USD)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in approved_submissions %}
+              <tr>
+                <td class="fw-semibold text-muted">#{{ s.task_id }}</td>
+                <td class="fw-medium text-dark">{{ s.task.project.name if s.task and s.task.project else '-' }}</td>
+                <td class="small text-muted">{{ s.submitted_at.strftime('%b %d, %Y') if s.submitted_at else '-' }}</td>
+                <td>
+                  <span class="badge bg-success-subtle text-success fw-bold">{{ s.qa_score or 100 }}%</span>
+                </td>
+                <td class="text-end fw-bold text-success">
+                  {% if s.task and s.task.project and s.task.project.pay_per_task %}
+                    ${{ "%.2f"|format(s.task.project.pay_per_task) }}
+                  {% else %}
+                    $0.00
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-4 text-center text-muted small">
+          No approved submissions in this period yet.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Payout History #}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0">
+      <h2 class="h6 fw-bold mb-0 text-dark">
+        <i class="bi bi-cash-stack text-primary me-2"></i>Disbursement &amp; Payment Runs
+      </h2>
+    </div>
+    <div class="card-body p-0">
+      {% if payments %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase">
+              <tr>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Tasks</th>
+                <th>Paid Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td class="font-monospace small">{{ p.paystack_reference or p.id }}</td>
+                <td class="fw-bold text-dark">${{ "%.2f"|format(p.amount) }}</td>
+                <td>{{ p.tasks_count }}</td>
+                <td class="small text-muted">{{ p.paid_at.strftime('%b %d, %Y') if p.paid_at else '-' }}</td>
+                <td>
+                  {% if p.status == 'paid' %}
+                    <span class="badge bg-success-subtle text-success">Paid</span>
+                  {% elif p.status == 'pending' %}
+                    <span class="badge bg-warning-subtle text-warning">Processing</span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger">Failed</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-4 text-center text-muted small">
+          No payouts recorded yet. Payments run on the standard cycle once tasks are QA-approved.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

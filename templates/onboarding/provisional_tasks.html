@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}My Provisional Tasks · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-1 text-dark">
+        <i class="bi bi-list-check text-primary me-2"></i>Assigned Provisional Tasks
+      </h1>
+      <p class="text-muted small mb-0">Complete assigned tasks with high accuracy to advance your verification readiness.</p>
+    </div>
+    <a href="{{ url_for('provisional.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to Hub
+    </a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      {% if tasks %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase">
+              <tr>
+                <th>Task ID</th>
+                <th>Project</th>
+                <th>Task Type</th>
+                <th>Pay Rate</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in tasks %}
+              <tr>
+                <td class="fw-semibold text-muted">#{{ t.id }}</td>
+                <td class="fw-medium text-dark">{{ t.project.name }}</td>
+                <td>
+                  <span class="badge bg-secondary-subtle text-secondary">{{ t.project.task_type }}</span>
+                </td>
+                <td class="text-success fw-semibold">
+                  {% if t.project.pay_per_task %}
+                    ${{ "%.2f"|format(t.project.pay_per_task) }}
+                  {% else %}
+                    Standard
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-info-subtle text-info">{{ t.status|capitalize }}</span>
+                </td>
+                <td class="text-end">
+                  <a href="{{ url_for('provisional.task_detail', task_id=t.id) }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil-square me-1"></i>Start Working
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-5 text-center text-muted">
+          <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+          <h5 class="fw-semibold text-dark">No open tasks assigned</h5>
+          <p class="small text-muted mb-3">You have completed all currently assigned tasks on your provisional projects.</p>
+          <a href="{{ url_for('provisional.dashboard') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-house me-1"></i>Return to Dashboard
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

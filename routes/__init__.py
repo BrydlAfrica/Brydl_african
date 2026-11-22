@@ -98,16 +98,67 @@ def auditor_required(view):
     return role_required("admin", "auditor")(view)
 
 
-def annotator_required(view):
-    """Allow only role='annotator' (see role_required).
+def hr_required(view):
+    """Allow admin or HR: candidate screening & verification clearance."""
+    return role_required("admin", "hr")(view)
 
-    Also enforces applicant quarantine: if current_user has an active
-    applicant_profile that has not graduated to 'trial' or 'active',
-    redirect to their onboarding status view.
+
+def annotator_required(view):
+    """Allow only officially verified annotators into the production workspace.
+
+    If the user is archived (migrated), force logout.
+    If the user has an applicant profile that is not yet verified:
+        - If stage is not in ('trial', 'active'): redirect to onboard.status.
+        - If is_verified is False: redirect to the provisional annotator workspace (/onboard/workspace/).
     """
     @wraps(view)
     @login_required
     def wrapped(*args, **kwargs):
+        if getattr(current_user, "is_archived", False):
+            from flask_login import logout_user
+            from flask import flash, redirect, url_for
+            logout_user()
+            flash(
+                "This provisional account has been migrated to an official verified account. "
+                "Please log in with your verified credentials.",
+                "info",
+            )
+            return redirect(url_for("auth.login"))
+        if current_user.role != "annotator":
+            abort(403)
+        applicant = getattr(current_user, "applicant_profile", None)
+        if applicant is not None:
+            if applicant.stage not in ("trial", "active"):
+                from flask import redirect, url_for
+                return redirect(url_for("onboard.status"))
+            if not getattr(current_user, "is_verified", False):
+                from flask import redirect, url_for
+                return redirect(url_for("provisional.dashboard"))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def provisional_required(view):
+    """Allow provisional or verified annotators into the provisional workspace.
+
+    Provisional annotators can work on allowed projects and calibration tasks.
+    If user is archived, logs out.
+    If applicant stage is not in ('trial', 'active'), redirects to onboard.status.
+    """
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if getattr(current_user, "is_archived", False):
+            from flask_login import logout_user
+            from flask import flash, redirect, url_for
+            logout_user()
+            flash(
+                "This provisional account has been migrated to an official verified account. "
+                "Please log in with your verified credentials.",
+                "info",
+            )
+            return redirect(url_for("auth.login"))
         if current_user.role != "annotator":
             abort(403)
         applicant = getattr(current_user, "applicant_profile", None)
@@ -157,6 +208,12 @@ def dashboard_endpoint_for_role(role: str) -> str:
         return "admin.review"
     if role == "auditor":
         return "admin.consensus_conflicts"
+    if role == "hr":
+        return "hr.candidates"
+    if current_user.is_authenticated:
+        applicant = getattr(current_user, "applicant_profile", None)
+        if applicant is not None and not getattr(current_user, "is_verified", False):
+            return "provisional.dashboard"
     return "annotator.dashboard"
 
 

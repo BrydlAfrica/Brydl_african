@@ -57,13 +57,14 @@ PROJECT_STATUSES = ("draft", "pending_approval", "active", "paused", "completed"
 #                      approve/reject submissions
 #   qa               = submission review + quality scoring
 #   auditor          = arbitration + audit trail
+#   hr               = candidate screening, interviews & verification clearance
 #   annotator        = the workspace (claim + do + submit work)
 # Drives ck_users_role.
-ROLES = ("admin", "project_manager", "qa", "auditor", "annotator")
+ROLES = ("admin", "project_manager", "qa", "auditor", "hr", "annotator")
 # Staff roles that log into the management side of the app (not the
 # annotator workspace) — used by the post-login dashboard router and
 # the navbar rendering so new staff links auto-appear.
-STAFF_ROLES = ("admin", "project_manager", "qa", "auditor")
+STAFF_ROLES = ("admin", "project_manager", "qa", "auditor", "hr")
 # Feedback thread lifecycle:
 #   new        = submitted, waiting on admin
 #   reviewed   = admin has seen it, working on it
@@ -100,6 +101,13 @@ APPLICANT_TRACKS = (
     "rlhf_preference",
     "audio_speech",
     "general_labeling",
+)
+APPLICANT_VERIFICATION_STATUSES = (
+    "provisional",
+    "pending_hr",
+    "hr_cleared",
+    "verified",
+    "rejected",
 )
 
 # Labelling task taxonomy. Drives the project form's SelectField choices.
@@ -250,8 +258,32 @@ class User(UserMixin, db.Model):
         db.Integer, nullable=False, default=0, server_default="0"
     )
 
+    # Workforce verification & account cutover tracking:
+    # is_verified: True = Official Enterprise Workforce; False = Provisional Contributor.
+    is_verified = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=text("0")
+    )
+    # is_archived: True when an old provisional account has been migrated and retired.
+    is_archived = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=text("0")
+    )
+    verified_at = db.Column(db.DateTime, nullable=True)
+    verified_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    # Lineage pointers for atomic account cutover
+    migrated_to_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    migrated_from_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    # Secure single-use 48h account activation token (SHA-256 hash)
+    activation_token_hash = db.Column(db.String(128), nullable=True)
+    activation_token_expires = db.Column(db.DateTime, nullable=True)
+
     __table_args__ = (
-        # Enforce the two valid roles at the database level, not just in
+        # Enforce the valid roles at the database level, not just in
         # form validation, so a bug can never write an unknown role.
         db.CheckConstraint(
             _in_constraint("role", ROLES), name="ck_users_role"
@@ -260,6 +292,10 @@ class User(UserMixin, db.Model):
         db.Index("ix_users_role_active", "role", "is_active"),
         # Password-reset links look users up by hashed token.
         db.Index("ix_users_reset_token_hash", "reset_token_hash"),
+        # Workforce analytics and verification filter on verified & active.
+        db.Index("ix_users_verified_active", "is_verified", "is_active"),
+        # Account activation links look users up by hashed activation token.
+        db.Index("ix_users_activation_token_hash", "activation_token_hash"),
     )
 
     # Related objects exposed by backrefs defined on the other models:
@@ -464,6 +500,12 @@ class Project(db.Model):
         db.Integer, nullable=False, default=0, server_default=text("0")
     )
 
+    # Workforce eligibility: whether provisional (unverified) annotators may work on this project.
+    # Production-sensitive or confidential client datasets set this to False.
+    allows_provisional = db.Column(
+        db.Boolean, nullable=False, default=True, server_default=text("1")
+    )
+
     # project.creator -> User; user.projects_created -> list[Project]
     creator = db.relationship("User", foreign_keys=[created_by], backref="projects_created")
     approver = db.relationship("User", foreign_keys=[approved_by])
@@ -479,6 +521,7 @@ class Project(db.Model):
             _in_constraint("status", PROJECT_STATUSES),
             name="ck_projects_status",
         ),
+        db.Index("ix_projects_allows_provisional", "allows_provisional"),
         # pay_per_task may be NULL while the project is in draft / pending
         # approval / rejected; once live it must be > 0.
         db.CheckConstraint(
@@ -1617,6 +1660,11 @@ class Applicant(db.Model):
     trial_passed = db.Column(db.Boolean, nullable=False, default=False)
     trial_completed_at = db.Column(db.DateTime, nullable=True)
 
+    # Workforce Verification Pipeline status (provisional -> pending_hr -> hr_cleared -> verified -> rejected)
+    verification_status = db.Column(
+        db.String(30), nullable=False, default="provisional", server_default="provisional"
+    )
+
     # Metadata
     created_at = db.Column(
         db.DateTime, nullable=False, default=utc_now
@@ -1643,12 +1691,77 @@ class Applicant(db.Model):
             _in_constraint("specialization_track", APPLICANT_TRACKS),
             name="ck_applicants_specialization_track",
         ),
+        db.CheckConstraint(
+            _in_constraint("verification_status", APPLICANT_VERIFICATION_STATUSES),
+            name="ck_applicants_verification_status",
+        ),
         db.Index("ix_applicants_stage_language", "stage", "primary_language"),
         db.Index("ix_applicants_track_stage", "specialization_track", "stage"),
+        db.Index("ix_applicants_verification_status", "verification_status"),
     )
 
     def __repr__(self) -> str:
         return f"<Applicant id={self.id} user={self.user_id} stage={self.stage!r}>"
+
+
+class HRScreening(db.Model):
+    """HR Screening, interview, and professional suitability evaluation.
+
+    Tracks the HR review, candidate interview, communication & reliability score,
+    and formal recommendation prior to official workforce verification.
+    """
+
+    __tablename__ = "hr_screenings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    applicant_id = db.Column(
+        db.Integer,
+        db.ForeignKey("applicants.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    hr_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    interview_date = db.Column(db.DateTime, nullable=False, default=utc_now)
+    communication_score = db.Column(db.Integer, nullable=False, default=3)
+    professionalism_score = db.Column(db.Integer, nullable=False, default=3)
+    availability_confirmed_hours = db.Column(db.Integer, nullable=False, default=15)
+    notes = db.Column(db.Text, nullable=False)
+    recommendation = db.Column(
+        db.String(30), nullable=False, default="recommended"
+    )
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now
+    )
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    applicant = db.relationship(
+        "Applicant",
+        backref=db.backref("hr_screening", uselist=False, cascade="all, delete-orphan"),
+    )
+    hr_user = db.relationship("User", foreign_keys=[hr_user_id])
+
+    __table_args__ = (
+        db.CheckConstraint(
+            "communication_score BETWEEN 1 AND 5",
+            name="ck_hr_screening_comm_score",
+        ),
+        db.CheckConstraint(
+            "professionalism_score BETWEEN 1 AND 5",
+            name="ck_hr_screening_prof_score",
+        ),
+        db.CheckConstraint(
+            "recommendation IN ('recommended', 'needs_practice', 'disqualified')",
+            name="ck_hr_screening_rec",
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return f"<HRScreening id={self.id} applicant={self.applicant_id} rec={self.recommendation!r}>"
 
 
 class ApplicantTrialSubmission(db.Model):

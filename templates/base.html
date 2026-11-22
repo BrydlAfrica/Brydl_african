@@ -100,6 +100,7 @@
             <ul class="dropdown-menu shadow border-0">
               <li><a class="dropdown-item" href="/admin/users"><i class="bi bi-people-fill me-2 text-primary"></i>Team &amp; Users</a></li>
               <li><a class="dropdown-item" href="/admin/applicants"><i class="bi bi-person-check-fill me-2 text-primary"></i>Onboarding &amp; Applicants</a></li>
+              <li><a class="dropdown-item" href="/hr/candidates"><i class="bi bi-person-lines-fill me-2 text-info"></i>HR Screening Desk</a></li>
               <li><a class="dropdown-item" href="/admin/payments"><i class="bi bi-cash-coin me-2 text-success"></i>Payments &amp; Disbursements</a></li>
               <li><a class="dropdown-item" href="/admin/approvals"><i class="bi bi-clipboard2-check me-2 text-warning"></i>Project Approvals</a></li>
               <li><a class="dropdown-item" href="/admin/quality"><i class="bi bi-patch-check me-2 text-info"></i>Quality Analytics</a></li>
@@ -120,6 +121,15 @@
           {% elif current_user.role == 'auditor' %}
           <li class="nav-item">{{ nav_link('/admin/review/conflicts', 'bi-diagram-3', 'Arbitration') }}</li>
           <li class="nav-item">{{ nav_link('/admin/audit', 'bi-journal-text', 'Audit Trail') }}</li>
+          {% elif current_user.role == 'hr' %}
+          <li class="nav-item">{{ nav_link('/hr/candidates', 'bi-person-lines-fill', 'HR Screening Desk') }}</li>
+          <li class="nav-item">{{ nav_link('/admin/applicants', 'bi-people', 'All Applicants') }}</li>
+          {% elif current_user.role == 'annotator' and not current_user.is_verified %}
+          <li class="nav-item">{{ nav_link('/onboard/workspace/dashboard', 'bi-speedometer2', 'Provisional Hub', exact=True) }}</li>
+          <li class="nav-item">{{ nav_link('/onboard/workspace/tasks', 'bi-list-check', 'Tasks') }}</li>
+          <li class="nav-item">{{ nav_link('/onboard/workspace/history', 'bi-clock-history', 'Submissions') }}</li>
+          <li class="nav-item">{{ nav_link('/onboard/workspace/earnings', 'bi-cash-stack', 'Earnings') }}</li>
+          <li class="nav-item">{{ nav_link('/annotator/profile', 'bi-person', 'Profile') }}</li>
           {% else %}
           <li class="nav-item">{{ nav_link('/annotator/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/annotator/tasks', 'bi-list-check', 'My Tasks') }}</li>
@@ -163,7 +173,15 @@
             <button class="btn btn-link nav-link dropdown-toggle text-white d-inline-flex align-items-center gap-2 py-1 px-2 rounded-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-person-circle fs-5"></i>
               <span class="d-none d-lg-inline small fw-medium">{{ current_user.name }}</span>
-              <span class="badge role-badge {% if current_user.role == 'admin' %}bg-warning text-dark{% elif current_user.role == 'project_manager' %}bg-success text-white{% elif current_user.role == 'qa' %}bg-info text-dark{% elif current_user.role == 'auditor' %}bg-light text-dark{% else %}bg-secondary{% endif %}">{{ current_user.role|upper }}</span>
+              <span class="badge role-badge {% if current_user.role == 'admin' %}bg-warning text-dark{% elif current_user.role == 'project_manager' %}bg-success text-white{% elif current_user.role == 'qa' %}bg-info text-dark{% elif current_user.role == 'auditor' %}bg-light text-dark{% elif current_user.role == 'hr' %}bg-primary text-white{% elif current_user.role == 'annotator' and not current_user.is_verified %}bg-secondary text-white{% else %}bg-success text-white{% endif %}">
+                {% if current_user.role == 'annotator' and not current_user.is_verified %}
+                  PROVISIONAL
+                {% elif current_user.role == 'annotator' and current_user.is_verified %}
+                  VERIFIED
+                {% else %}
+                  {{ current_user.role|upper }}
+                {% endif %}
+              </span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
               <li><h6 class="dropdown-header text-uppercase small text-muted">{{ current_user.email }}</h6></li>

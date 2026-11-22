@@ -527,7 +527,20 @@ def dashboard():
         stats["active_annotators"] = (
             db.session.scalar(
                 select(func.count(User.id)).where(
-                    User.role == "annotator", User.is_active.is_(True)
+                    User.role == "annotator",
+                    User.is_active.is_(True),
+                    User.is_verified.is_(True),
+                )
+            )
+            or 0
+        )
+        stats["provisional_annotators"] = (
+            db.session.scalar(
+                select(func.count(User.id)).where(
+                    User.role == "annotator",
+                    User.is_active.is_(True),
+                    User.is_verified.is_(False),
+                    User.is_archived.is_(False),
                 )
             )
             or 0
@@ -6825,7 +6838,8 @@ def applicants():
 @admin_bp.route("/applicants/<int:applicant_id>", methods=["GET"])
 @admin_required
 def applicant_detail(applicant_id: int):
-    """View an applicant's complete profile, test answers and trial submissions."""
+    """View an applicant's complete profile, test answers, trial submissions, and verification dossier."""
+    from cutover import compute_provisional_performance
     from models import Applicant, ApplicantTrialSubmission
     from onboarding_bank import SPECIALIZATION_TRACKS_META
 
@@ -6851,13 +6865,49 @@ def applicant_detail(applicant_id: int):
         .all()
     )
 
+    perf = compute_provisional_performance(applicant.id)
+    screening = applicant.hr_screening
+
     return render_template(
         "admin/applicant_detail.html",
         applicant=applicant,
         track_meta=track_meta,
         test_answers=test_answers,
         trial_subs=trial_subs,
+        perf=perf,
+        screening=screening,
     )
+
+
+@admin_bp.route("/applicants/<int:applicant_id>/verify-cutover", methods=["POST"])
+@admin_required
+def applicant_verify_cutover(applicant_id: int):
+    """Execute official workforce verification and atomic account cutover."""
+    from cutover import dispatch_verification_email, execute_annotator_cutover
+    from models import Applicant
+
+    applicant = db.session.get(Applicant, applicant_id)
+    if applicant is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.applicant_detail", applicant_id=applicant.id))
+
+    try:
+        new_user, token = execute_annotator_cutover(applicant.id, current_user)
+        dispatch_verification_email(new_user, token, applicant)
+        flash(
+            f"Official workforce verification completed for {new_user.name}! Official account provisioned and activation email dispatched.",
+            "success",
+        )
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Verification cutover failed: {e}", "danger")
+
+    return redirect(url_for("admin.applicant_detail", applicant_id=applicant.id))
 
 
 @admin_bp.route("/applicants/<int:applicant_id>/decision", methods=["POST"])

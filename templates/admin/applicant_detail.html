@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Applicant Dossier #{{ applicant.id }} &bull; {{ applicant.user.name }} | Admin{% endblock %}
+{% block title %}Applicant Dossier #{{ applicant.id }} &bull; {{ applicant.user.name if applicant.user else 'Candidate' }} | Admin{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
@@ -9,9 +9,9 @@
       &larr; Back to Applicant Directory
     </a>
     <h1 class="h3 fw-bold mb-1">
-      <i class="bi bi-file-earmark-person-fill text-primary me-2"></i>Applicant Dossier #{{ applicant.id }} &bull; {{ applicant.user.name }}
+      <i class="bi bi-file-earmark-person-fill text-primary me-2"></i>Applicant Dossier #{{ applicant.id }} &bull; {{ applicant.user.name if applicant.user else 'Candidate' }}
     </h1>
-    <p class="text-muted small mb-0">Candidate email: {{ applicant.user.email }} &bull; Applied: {{ applicant.created_at.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+    <p class="text-muted small mb-0">Email: {{ applicant.user.email if applicant.user else '-' }} &bull; Applied: {{ applicant.created_at.strftime('%Y-%m-%d %H:%M') }} UTC</p>
   </div>
 
   <div class="d-flex align-items-center gap-2">
@@ -19,15 +19,49 @@
       <i class="bi {{ track_meta.icon if track_meta else 'bi-tag' }} me-1"></i>{{ track_meta.short_title if track_meta else applicant.specialization_track }}
     </span>
     <span class="badge bg-light text-dark border fs-6">Stage: {{ applicant.stage|capitalize }}</span>
-    {% if applicant.admin_decision == 'approved' %}
-      <span class="badge bg-success-subtle text-success border border-success-subtle fs-6">Approved</span>
-    {% elif applicant.admin_decision == 'waitlisted' %}
-      <span class="badge bg-warning-subtle text-warning border border-warning-subtle fs-6">Waitlisted</span>
-    {% elif applicant.admin_decision == 'declined' %}
-      <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-6">Declined</span>
+    {% if applicant.verification_status == 'verified' %}
+      <span class="badge bg-success text-white fs-6"><i class="bi bi-patch-check-fill me-1"></i>Officially Verified</span>
+    {% elif applicant.verification_status == 'hr_cleared' %}
+      <span class="badge bg-info text-dark fs-6"><i class="bi bi-person-check-fill me-1"></i>HR Cleared</span>
+    {% elif applicant.verification_status == 'pending_hr' %}
+      <span class="badge bg-warning text-dark fs-6"><i class="bi bi-telephone-inbound me-1"></i>Pending HR Screen</span>
     {% else %}
-      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-6">Pending Decision</span>
+      <span class="badge bg-secondary-subtle text-secondary border fs-6">Provisional Active</span>
     {% endif %}
+  </div>
+</div>
+
+{# Multi-Department Workforce Verification Banner / Action #}
+<div class="card border-0 shadow-sm mb-4 bg-light border-start border-4 {% if applicant.verification_status == 'verified' %}border-success{% elif applicant.verification_status == 'hr_cleared' %}border-info{% else %}border-warning{% endif %}">
+  <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h2 class="h5 fw-bold mb-0 text-dark">Workforce Accreditation &amp; Account Status</h2>
+        <span class="badge {% if applicant.verification_status == 'verified' %}bg-success{% else %}bg-secondary{% endif %}">
+          {{ applicant.verification_status|upper }}
+        </span>
+      </div>
+      <p class="text-muted small mb-0">
+        {% if applicant.verification_status == 'verified' %}
+          This worker is an <strong>Officially Verified Brydl Workforce Annotator</strong>. Access granted to restricted production and client datasets.
+        {% elif applicant.verification_status == 'hr_cleared' %}
+          <strong>HR Clearance Complete!</strong> Candidate has been screened, verified, and recommended for official workforce cutover.
+        {% else %}
+          Candidate is currently a <strong>Provisional Contributor</strong>. Work and earnings are active on provisional-eligible projects.
+        {% endif %}
+      </p>
+    </div>
+    <div>
+      {% if current_user.role == 'admin' and applicant.verification_status != 'verified' %}
+        <button type="button" class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#verifyCutoverModal">
+          <i class="bi bi-shield-check me-1"></i>Verify &amp; Execute Official Cutover
+        </button>
+      {% elif applicant.verification_status == 'verified' %}
+        <span class="text-success fw-semibold small">
+          <i class="bi bi-check-circle-fill me-1"></i>Official Account Active
+        </span>
+      {% endif %}
+    </div>
   </div>
 </div>
 
@@ -76,48 +110,79 @@
       </div>
     </div>
 
-    {# Scorecard #}
+    {# Real-World Performance Dossier #}
+    {% if perf %}
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-header bg-white py-3">
-        <h2 class="h6 fw-bold mb-0">Assessment Scorecard</h2>
+        <h2 class="h6 fw-bold mb-0">Production Performance Dossier</h2>
       </div>
       <div class="card-body p-3 text-center">
         <div class="row g-2 mb-3">
           <div class="col-6">
             <div class="p-2 border rounded bg-light">
-              <div class="text-muted small">Guidelines Quiz</div>
-              <div class="fs-5 fw-bold {{ 'text-success' if applicant.guidelines_passed else 'text-danger' }}">
-                {{ applicant.guidelines_quiz_score }}%
+              <div class="text-muted small">QA Average</div>
+              <div class="fs-5 fw-bold {% if perf.qa_average_percent >= 85 %}text-success{% else %}text-danger{% endif %}">
+                {{ perf.qa_average_percent }}%
               </div>
             </div>
           </div>
           <div class="col-6">
             <div class="p-2 border rounded bg-light">
-              <div class="text-muted small">Test Composite</div>
-              <div class="fs-5 fw-bold {{ 'text-success' if applicant.test_score_composite >= 85 else ('text-warning' if applicant.test_score_composite >= 70 else 'text-danger') }}">
-                {{ applicant.test_score_composite }}%
-              </div>
+              <div class="text-muted small">Projects</div>
+              <div class="fs-5 fw-bold text-dark">{{ perf.distinct_projects_count }}</div>
             </div>
           </div>
-        </div>
-
-        <div class="p-2 border rounded bg-light mb-2 text-start small">
-          <div class="d-flex justify-content-between">
-            <span class="text-muted">Auto Objective Score:</span>
-            <strong>{{ applicant.test_score_auto }}%</strong>
+          <div class="col-6">
+            <div class="p-2 border rounded bg-light">
+              <div class="text-muted small">Approved Tasks</div>
+              <div class="fs-5 fw-bold text-primary">{{ perf.approved_submissions }}</div>
+            </div>
           </div>
-          <div class="d-flex justify-content-between">
-            <span class="text-muted">Practical Grade:</span>
-            <strong>{{ applicant.test_score_reviewer or 0 }}%</strong>
+          <div class="col-6">
+            <div class="p-2 border rounded bg-light">
+              <div class="text-muted small">Earnings</div>
+              <div class="fs-5 fw-bold text-success">${{ "%.2f"|format(perf.total_approved_earnings) }}</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+    {% endif %}
 
-    {# Decision Form #}
+    {# HR Screening Dossier #}
+    {% if screening %}
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h2 class="h6 fw-bold mb-0">HR Screening Report</h2>
+        <span class="badge {% if screening.recommendation == 'recommended' %}bg-success{% elif screening.recommendation == 'needs_practice' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+          {{ screening.recommendation|capitalize }}
+        </span>
+      </div>
+      <div class="card-body p-3 small">
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Communication:</span>
+          <strong>{{ screening.communication_score }}/5</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Professionalism:</span>
+          <strong>{{ screening.professionalism_score }}/5</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Availability:</span>
+          <strong>{{ screening.availability_confirmed_hours }} hrs/wk</strong>
+        </div>
+        <div class="p-2 bg-light border rounded mt-2">
+          <strong>HR Notes:</strong>
+          <p class="mb-0 text-muted" style="white-space: pre-wrap;">{{ screening.notes }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Decision Form (Stage 6) #}
     <div class="card border-0 shadow-sm rounded-3">
       <div class="card-header bg-dark text-white py-3">
-        <h2 class="h6 fw-bold mb-0">Take Decision (Stage 6)</h2>
+        <h2 class="h6 fw-bold mb-0">Initial Stage 6 Decision</h2>
       </div>
       <div class="card-body p-3">
         <form method="post" action="{{ url_for('admin.applicant_decision' if current_user.role == 'admin' else 'pm.applicant_decision', applicant_id=applicant.id) }}" novalidate>
@@ -241,4 +306,44 @@
     </div>
   </div>
 </div>
+
+{# Modal: Verify & Execute Cutover #}
+{% if current_user.role == 'admin' and applicant.verification_status != 'verified' %}
+<div class="modal fade" id="verifyCutoverModal" tabindex="-1" aria-labelledby="verifyCutoverModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="verifyCutoverModalLabel">
+          <i class="bi bi-shield-check me-2"></i>Official Workforce Cutover
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="mb-3">You are about to officially verify <strong>{{ applicant.user.name }}</strong> ({{ applicant.primary_language|capitalize }} · {{ applicant.specialization_track }}):</p>
+        
+        <ul class="list-group list-group-flush small mb-3">
+          <li class="list-group-item px-0"><i class="bi bi-check2 text-success me-2"></i>Provision new verified User account (<code>is_verified=True</code>).</li>
+          <li class="list-group-item px-0"><i class="bi bi-check2 text-success me-2"></i>Atomically transfer all historical tasks, submissions, and earnings.</li>
+          <li class="list-group-item px-0"><i class="bi bi-check2 text-success me-2"></i>Archive and deactivate old provisional account login.</li>
+          <li class="list-group-item px-0"><i class="bi bi-check2 text-success me-2"></i>Dispatch single-use 48-hour activation link (no plaintext passwords).</li>
+        </ul>
+
+        <div class="alert alert-warning py-2 small mb-0">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>
+          This action will officially include the candidate in Brydl's enterprise verified workforce analytics.
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{{ url_for('admin.applicant_verify_cutover', applicant_id=applicant.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-primary btn-sm fw-bold">
+            <i class="bi bi-patch-check-fill me-1"></i>Confirm &amp; Execute Cutover
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

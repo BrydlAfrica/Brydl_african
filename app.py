@@ -32,6 +32,8 @@ from routes.public import public_bp
 from routes.api import api_bp
 from routes.client_portal import client_bp
 from routes.onboard import onboard_bp
+from routes.provisional import provisional_bp
+from routes.hr import hr_bp
 from routes.pm import pm_bp
 from routes.staff import staff_bp
 from client_portal import redact_client_path
@@ -120,6 +122,8 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(annotator_bp, url_prefix="/annotator")
     app.register_blueprint(onboard_bp, url_prefix="/onboard")  # /onboard/ — Annotator recruitment & onboarding funnel
+    app.register_blueprint(provisional_bp)  # /onboard/workspace/ — Provisional Annotator Workspace
+    app.register_blueprint(hr_bp)           # /hr/ — Human Resources screening desk & clearance
     app.register_blueprint(pm_bp)        # /pm/ — Project Manager workspace
     # /profile, /feedback, /notifications (shared)
     app.register_blueprint(staff_bp)

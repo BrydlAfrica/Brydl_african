@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}HR Screening Desk · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-1 text-dark">
+        <i class="bi bi-person-lines-fill text-primary me-2"></i>HR Screening &amp; Verification Clearance
+      </h1>
+      <p class="text-muted small mb-0">Review provisional workforce performance dossiers, conduct interviews, and submit accreditation recommendations.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 fs-6">
+        <i class="bi bi-shield-check me-1"></i>Multi-Department Trust Gate
+      </span>
+    </div>
+  </div>
+
+  {# Pipeline KPI Cards #}
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="card border-0 shadow-sm p-3 text-center bg-light">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">Active Provisional</div>
+        <div class="h3 fw-bold text-dark mb-0">{{ total_provisional }}</div>
+        <div class="small text-muted mt-1">Contributing on tasks</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="card border-0 shadow-sm p-3 text-center bg-light">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">Pending HR Screen</div>
+        <div class="h3 fw-bold text-warning mb-0">{{ total_pending_hr }}</div>
+        <div class="small text-warning mt-1">Ready for interview</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="card border-0 shadow-sm p-3 text-center bg-light">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">HR Cleared</div>
+        <div class="h3 fw-bold text-info mb-0">{{ total_hr_cleared }}</div>
+        <div class="small text-info mt-1">Pending Admin cutover</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="card border-0 shadow-sm p-3 text-center bg-light">
+        <div class="text-muted small text-uppercase fw-semibold mb-1">Verified Workforce</div>
+        <div class="h3 fw-bold text-success mb-0">{{ total_verified }}</div>
+        <div class="small text-success mt-1">Official workforce</div>
+      </div>
+    </div>
+  </div>
+
+  {# Filter Bar #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-3">
+          <select name="track" class="form-select form-select-sm" id="trackFilter">
+            <option value="">All Specialization Tracks</option>
+            {% for t_id, t_info in tracks_meta.items() %}
+              <option value="{{ t_id }}" {% if track_filter == t_id %}selected{% endif %}>{{ t_info.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select name="status" class="form-select form-select-sm" id="statusFilter">
+            <option value="">All Verification Statuses</option>
+            <option value="provisional" {% if status_filter == 'provisional' %}selected{% endif %}>Provisional Active</option>
+            <option value="pending_hr" {% if status_filter == 'pending_hr' %}selected{% endif %}>Pending HR Screen</option>
+            <option value="hr_cleared" {% if status_filter == 'hr_cleared' %}selected{% endif %}>HR Cleared</option>
+            <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Officially Verified</option>
+            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Disqualified / Rejected</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="lang" class="form-control form-control-sm" placeholder="Filter by language (e.g. Hausa)..." value="{{ lang_filter }}">
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary flex-fill">Apply Filters</button>
+          <a href="{{ url_for('hr.candidates') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# Candidates Directory Table #}
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      {% if candidates %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase">
+              <tr>
+                <th>Candidate</th>
+                <th>Track &amp; Language</th>
+                <th>QA Accuracy</th>
+                <th>Projects / Tasks</th>
+                <th>Verification Readiness</th>
+                <th>HR Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rec in candidates %}
+              {% set app = rec.applicant %}
+              {% set p = rec.perf %}
+              {% set scr = rec.screening %}
+              <tr>
+                <td>
+                  <div class="fw-semibold text-dark">{{ app.user.name if app.user else 'Unknown' }}</div>
+                  <div class="text-muted small">{{ app.user.email if app.user else '-' }} · {{ app.phone_whatsapp or '-' }}</div>
+                </td>
+                <td>
+                  <div class="fw-medium text-dark">{{ app.primary_language|title }}</div>
+                  <span class="badge bg-secondary-subtle text-secondary small">{{ app.specialization_track.replace('_', ' ')|title }}</span>
+                </td>
+                <td>
+                  <div class="fw-bold {% if p.qa_average_percent >= 85 %}text-success{% elif p.qa_average_percent >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ p.qa_average_percent }}%
+                  </div>
+                  <div class="text-muted small">{{ p.approved_submissions }} approved</div>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ p.distinct_projects_count }} projects</div>
+                  <div class="text-muted small">{{ p.total_submissions }} total subs</div>
+                </td>
+                <td>
+                  {% if p.is_eligible %}
+                    <span class="badge bg-success-subtle text-success border border-success">
+                      <i class="bi bi-check-circle me-1"></i>Eligible
+                    </span>
+                  {% else %}
+                    <span class="badge bg-light text-muted border">
+                      <i class="bi bi-clock me-1"></i>In Progress
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if app.verification_status == 'verified' %}
+                    <span class="badge bg-success-subtle text-success px-2 py-1"><i class="bi bi-patch-check-fill me-1"></i>Verified</span>
+                  {% elif app.verification_status == 'hr_cleared' %}
+                    <span class="badge bg-info-subtle text-info px-2 py-1"><i class="bi bi-person-check-fill me-1"></i>HR Cleared</span>
+                  {% elif app.verification_status == 'pending_hr' %}
+                    <span class="badge bg-warning-subtle text-warning px-2 py-1"><i class="bi bi-telephone-inbound me-1"></i>Interview Needed</span>
+                  {% elif app.verification_status == 'rejected' %}
+                    <span class="badge bg-danger-subtle text-danger px-2 py-1"><i class="bi bi-x-circle me-1"></i>Disqualified</span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>Provisional</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{{ url_for('hr.candidate_detail', applicant_id=app.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-clipboard2-check me-1"></i>Screen Candidate
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-5 text-center text-muted">
+          <i class="bi bi-people fs-1 text-muted d-block mb-3"></i>
+          <h5 class="fw-semibold text-dark">No Candidates Found</h5>
+          <p class="small text-muted">Try adjusting your filters above.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

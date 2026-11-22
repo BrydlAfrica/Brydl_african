@@ -31,6 +31,8 @@ import sys
 ROOT = os.environ.get("BRYDL_ROOT") or os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 )
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from app import create_app
 from extensions import db
@@ -90,6 +92,8 @@ def login(client, email, password):
 
 # ---- seed minimal-but-complete data so every page has content -------
 with app.app_context():
+    db.drop_all()
+    db.create_all()
     admin = User(name="Ada Admin", email="admin@brydl.ng", role="admin")
     admin.set_password("admin-pass-1")
     ann_a = User(name="Tunde A", email="a@brydl.ng", role="annotator")
