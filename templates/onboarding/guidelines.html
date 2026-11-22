@@ -8,7 +8,10 @@
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
         <div>
-          <span class="badge bg-primary mb-1">Stage 2 of 9</span>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-primary">Stage 2 of 9</span>
+            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }} Track</span>
+          </div>
           <h1 class="h4 mb-0 fw-bold">Brydl AI Quality Standards &amp; Honor Code</h1>
         </div>
         <i class="bi bi-shield-lock-fill fs-2 text-primary" aria-hidden="true"></i>
@@ -18,12 +21,67 @@
         <div class="alert alert-warning border-warning-subtle d-flex align-items-center gap-3 mb-4">
           <i class="bi bi-exclamation-triangle-fill fs-3 text-warning flex-shrink-0" aria-hidden="true"></i>
           <div>
-            <strong>Mandatory Passing Requirement:</strong>
-            You must carefully read these 4 core operational principles. You will take an 8-question gating quiz and must achieve a <strong>100% pass score</strong> to unlock the Stage 3 qualification test.
+            <strong>Mandatory Passing Requirement for {{ track_meta.short_title }}:</strong>
+            Carefully review the operational principles below tailored to your specialization track. You will take an 8-question gating quiz and must achieve a <strong>100% pass mark</strong> to unlock your Stage 3 timed qualification test.
           </div>
         </div>
 
-        {# Rule 1 #}
+        {# Track Specific Principle #}
+        {% if applicant.specialization_track == 'red_teaming' %}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-danger-subtle">
+          <h2 class="h5 fw-bold text-danger d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-shield-slash-fill"></i>1. RedLab Adversarial Ethics &amp; Responsible Probing
+          </h2>
+          <p class="mb-2">
+            Red-teaming requires probing target LLMs to identify vulnerabilities (e.g. prompt injections, jailbreaks, persona overrides, system prompt extraction, cultural evasion in African dialects).
+          </p>
+          <ul class="text-muted small mb-0">
+            <li><strong>Non-Destructive Constraint:</strong> All attacks must test safety filters within the sandbox; executing real-world fraud, malware dissemination, or live exploitation is strictly prohibited.</li>
+            <li><strong>Nuanced Refusal Auditing:</strong> Evaluators must distinguish true safety violations from false-positive over-refusals on benign cultural discussions.</li>
+          </ul>
+        </div>
+        {% elif applicant.specialization_track == 'rlhf_preference' %}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-success-subtle">
+          <h2 class="h5 fw-bold text-success d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-sliders2-vertical"></i>1. Objective Multi-Axis Ranking &amp; Anti-Bias Standards
+          </h2>
+          <p class="mb-2">
+            Evaluating pairwise model responses (Response A vs Response B) requires rigorous adherence to multi-dimensional rubrics:
+          </p>
+          <ul class="text-muted small mb-0">
+            <li><strong>Zero Length Bias:</strong> Never prefer a completion simply because it is verbose or filled with decorative bullet points. Factual accuracy and conciseness outweigh fluff.</li>
+            <li><strong>Sycophancy Penalty:</strong> Penalize models that falsely agree with user misconceptions rather than providing objective ground truth.</li>
+            <li><strong>Mandatory Rationales:</strong> Every preference ranking must include a detailed comparative justification citing specific paragraphs.</li>
+          </ul>
+        </div>
+        {% elif applicant.specialization_track == 'audio_speech' %}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-warning-subtle">
+          <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-mic-fill text-warning"></i>1. Strict Verbatim &amp; Acoustic Tagging Conventions
+          </h2>
+          <p class="mb-2">
+            Speech recognition models rely on exact acoustic-phonetic alignment between audio and transcript text:
+          </p>
+          <ul class="text-muted small mb-0">
+            <li><strong>Verbatim Fidelity:</strong> Capture every spoken word, stutter, filler ('um', 'uh'), and false start without editing for grammar.</li>
+            <li><strong>Acoustic Event Tags:</strong> Accurately insert standard bracketed tags (<code>[laughter]</code>, <code>[applause]</code>, <code>[inaudible 00:03]</code>, <code>[crosstalk]</code>).</li>
+            <li><strong>Code-Switching Boundaries:</strong> Transcribe multi-language transitions exactly as spoken in African dialects.</li>
+          </ul>
+        </div>
+        {% elif applicant.specialization_track == 'general_labeling' %}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-info-subtle">
+          <h2 class="h5 fw-bold text-info d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-tags-fill"></i>1. NER Boundary Precision &amp; Intent Taxonomy Adherence
+          </h2>
+          <p class="mb-2">
+            High-quality entity labeling and text classification require strict adherence to project schemas:
+          </p>
+          <ul class="text-muted small mb-0">
+            <li><strong>Boundary Precision:</strong> Select exact entity tokens (e.g. Person, Org, Location) without including leading/trailing whitespace or extraneous punctuation.</li>
+            <li><strong>Contextual Disambiguation:</strong> Use surrounding syntactic context to resolve ambiguous African location and institutional names.</li>
+          </ul>
+        </div>
+        {% else %}
         <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
           <h2 class="h5 fw-bold text-danger d-flex align-items-center gap-2 mb-3">
             <i class="bi bi-x-octagon-fill"></i>1. Zero-Tolerance AI &amp; Machine-Translation Rule
@@ -36,6 +94,7 @@
             <li>Violations trigger immediate account disqualification, forfeiture of pending payouts, and permanent blacklisting across our platform.</li>
           </ul>
         </div>
+        {% endif %}
 
         {# Rule 2 #}
         <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
@@ -71,13 +130,13 @@
         {# Rule 4 #}
         <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
           <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-sliders text-info"></i>4. Multi-Dimensional Rubric Scoring &amp; Continuous Quality
+            <i class="bi bi-patch-check-fill text-info"></i>4. Dual-Blind Review &amp; Automated Bank Settlements
           </h2>
           <p class="mb-2">
-            When evaluating AI outputs, you must score each response objectively across multiple dimensions (Helpfulness, Harmlessness, Factuality, Cultural Authenticity) on standard 1–5 or 1–7 continuous sliders.
+            Submissions undergo blind dual-review and continuous gold-standard calibration. High-quality annotators receive higher task limits, priority pod assignments, and bonus reward rates.
           </p>
           <p class="text-muted small mb-0">
-            Submissions undergo blind dual-review and continuous gold-standard calibration. High-quality annotators receive higher task limits, priority pod assignments, and bonus reward rates.
+            Earnings accrue per approved task in USD and are settled directly to verified Nigerian bank accounts via automated Paystack NGN disbursements.
           </p>
         </div>
 

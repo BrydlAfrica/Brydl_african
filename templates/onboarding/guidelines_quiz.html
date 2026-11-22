@@ -8,15 +8,18 @@
     <div class="card border-0 shadow-sm rounded-3">
       <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
         <div>
-          <span class="badge bg-primary mb-1">Stage 2 of 9 &bull; Gating Quiz</span>
-          <h1 class="h4 mb-0 fw-bold">Guidelines &amp; Integrity Quiz</h1>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-primary">Stage 2 of 9 &bull; Gating Quiz</span>
+            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }} Track</span>
+          </div>
+          <h1 class="h4 mb-0 fw-bold">{{ track_meta.short_title }} Guidelines &amp; Integrity Quiz</h1>
         </div>
         <i class="bi bi-patch-question-fill fs-2 text-primary" aria-hidden="true"></i>
       </div>
 
       <div class="card-body p-4 p-md-5">
         <p class="text-muted mb-4">
-          Answer all 8 questions below based on the Brydl AI Quality Mandate. You must score <strong>100%</strong> to proceed to Stage 3.
+          Answer all 8 questions below based on the Brydl AI Quality Mandate for the <strong>{{ track_meta.title }}</strong> track. You must score <strong>100%</strong> to proceed to Stage 3.
         </p>
 
         <form method="post" action="{{ url_for('onboard.guidelines_quiz') }}" novalidate>

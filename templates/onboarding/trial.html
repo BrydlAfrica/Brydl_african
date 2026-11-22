@@ -1,6 +1,6 @@
 {% extends "onboarding/base_onboarding.html" %}
 
-{% block title %}Stage 8: Calibration Trial Batch Sandbox | Brydl AI{% endblock %}
+{% block title %}Stage 8: {{ track_meta.short_title }} Calibration Trial Batch | Brydl AI{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -8,7 +8,10 @@
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
         <div>
-          <span class="badge bg-info text-dark mb-1">Stage 8 of 9 &bull; Calibration Trial</span>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-info text-dark">Stage 8 of 9 &bull; Calibration Trial</span>
+            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }}</span>
+          </div>
           <h1 class="h4 mb-0 fw-bold">10-Task Supervised Calibration Sandbox</h1>
         </div>
         <div class="text-end">
@@ -28,7 +31,7 @@
         {% if next_task %}
         <div class="border rounded-3 p-4 bg-white shadow-sm mb-4">
           <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-            <span class="badge bg-primary px-3 py-2 fw-bold">Calibration Task #{{ next_task.index }} ({{ next_task.type|replace('_', ' ')|capitalize }})</span>
+            <span class="badge bg-primary px-3 py-2 fw-bold">Calibration Task #{{ next_task.index }} &bull; {{ next_task.type }}</span>
             <small class="text-muted"><i class="bi bi-eye-fill me-1"></i>Dual QA Review Calibration</small>
           </div>
 
@@ -39,10 +42,10 @@
             <input type="hidden" name="task_index" value="{{ next_task.index }}">
             <input type="hidden" name="task_prompt" value="{{ next_task.prompt }}">
 
-            {# Special Character Toolbar #}
+            {# Special Character / Tag Toolbar #}
             <div class="mb-2 p-2 bg-light border rounded-2 d-flex flex-wrap align-items-center gap-1">
-              <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Special Characters:</small>
-              {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń'] %}
+              <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Insert Character / Tag:</small>
+              {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń', '[inaudible]', '[laughter]', '[crosstalk]'] %}
               <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0 fw-bold font-monospace char-btn" data-char="{{ char }}">
                 {{ char }}
               </button>
@@ -52,7 +55,7 @@
             <div class="mb-3">
               <label for="trial_response" class="form-label small fw-semibold">Your Annotated Response / Evaluation <span class="text-danger">*</span></label>
               <textarea class="form-control font-monospace" id="trial_response" name="response_text" rows="5" required
-                        placeholder="Provide your complete annotation or evaluation response here..."></textarea>
+                        placeholder="Provide your complete annotation or evaluation response here adhering to {{ track_meta.short_title }} standards..."></textarea>
             </div>
 
             <div class="d-grid">
@@ -66,7 +69,7 @@
         <div class="text-center py-5">
           <i class="bi bi-award fs-1 text-success mb-3 d-block"></i>
           <h2 class="h4 fw-bold text-success mb-2">All 10 Calibration Tasks Completed!</h2>
-          <p class="text-muted mb-4">You have successfully graduated to the Stage 9 Active Annotator Workforce.</p>
+          <p class="text-muted mb-4">You have successfully graduated to the Stage 9 Active Annotator Workforce in the <strong>{{ track_meta.title }}</strong> track.</p>
           <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-success btn-lg px-4 fw-bold">
             <i class="bi bi-grid-fill me-1"></i>Enter Production Annotator Workspace &rarr;
           </a>
@@ -119,8 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (textarea && char) {
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
-        var text = textarea.value;
-        textarea.value = text.substring(0, start) + char + text.substring(end);
+        var val = textarea.value;
+        textarea.value = val.substring(0, start) + char + val.substring(end);
         textarea.selectionStart = textarea.selectionEnd = start + char.length;
         textarea.focus();
       }

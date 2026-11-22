@@ -8,7 +8,7 @@
     <h1 class="h3 fw-bold mb-1">
       <i class="bi bi-people-fill text-primary me-2" aria-hidden="true"></i>Workforce Onboarding &amp; Talent Hub
     </h1>
-    <p class="text-muted small mb-0">Screening, qualification scoring, and 9-stage lifecycle gating for African language annotators.</p>
+    <p class="text-muted small mb-0">Screening, qualification scoring, and 9-stage lifecycle gating for specialized African language annotators.</p>
   </div>
   <a href="{{ url_for('onboard.apply') }}" target="_blank" class="btn btn-outline-primary btn-sm">
     <i class="bi bi-box-arrow-up-right me-1"></i>Open Public Application Portal
@@ -63,6 +63,16 @@
         <input type="text" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search name, email, dialect...">
       </div>
       <div class="col-md-2">
+        <select class="form-select form-select-sm" name="track">
+          <option value="">All Tracks</option>
+          <option value="red_teaming" {% if track_filter == 'red_teaming' %}selected{% endif %}>Red-Teaming &amp; Safety</option>
+          <option value="translation" {% if track_filter == 'translation' %}selected{% endif %}>Translation &amp; MTQE</option>
+          <option value="rlhf_preference" {% if track_filter == 'rlhf_preference' %}selected{% endif %}>RLHF &amp; Preference</option>
+          <option value="audio_speech" {% if track_filter == 'audio_speech' %}selected{% endif %}>Audio &amp; Speech</option>
+          <option value="general_labeling" {% if track_filter == 'general_labeling' %}selected{% endif %}>NER &amp; Classification</option>
+        </select>
+      </div>
+      <div class="col-md-2">
         <select class="form-select form-select-sm" name="language">
           <option value="">All Languages</option>
           <option value="hausa" {% if lang_filter == 'hausa' %}selected{% endif %}>Hausa</option>
@@ -70,7 +80,7 @@
           <option value="igbo" {% if lang_filter == 'igbo' %}selected{% endif %}>Igbo</option>
           <option value="pidgin" {% if lang_filter == 'pidgin' %}selected{% endif %}>Nigerian Pidgin</option>
           <option value="swahili" {% if lang_filter == 'swahili' %}selected{% endif %}>Swahili</option>
-          <option value="general" {% if lang_filter == 'general' %}selected{% endif %}>General / RedTeam</option>
+          <option value="general" {% if lang_filter == 'general' %}selected{% endif %}>English / General</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -83,15 +93,6 @@
           <option value="agreement" {% if stage_filter == 'agreement' %}selected{% endif %}>7. Agreement</option>
           <option value="trial" {% if stage_filter == 'trial' %}selected{% endif %}>8. Trial</option>
           <option value="active" {% if stage_filter == 'active' %}selected{% endif %}>9. Active</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <select class="form-select form-select-sm" name="decision">
-          <option value="">All Decisions</option>
-          <option value="pending" {% if decision_filter == 'pending' %}selected{% endif %}>Pending</option>
-          <option value="approved" {% if decision_filter == 'approved' %}selected{% endif %}>Approved</option>
-          <option value="waitlisted" {% if decision_filter == 'waitlisted' %}selected{% endif %}>Waitlisted</option>
-          <option value="declined" {% if decision_filter == 'declined' %}selected{% endif %}>Declined</option>
         </select>
       </div>
       <div class="col-md-3 d-flex gap-2">
@@ -109,6 +110,7 @@
       <thead class="table-light small">
         <tr>
           <th>Applicant</th>
+          <th>Specialization Track</th>
           <th>Language &amp; Dialect</th>
           <th>Domain / Device</th>
           <th>Test Score</th>
@@ -121,51 +123,62 @@
         {% for app in applicants %}
         <tr>
           <td>
-            <div class="fw-semibold">{{ app.user.name }}</div>
-            <small class="text-muted">{{ app.user.email }}</small>
+            <div class="fw-semibold text-dark">{{ app.user.name }}</div>
+            <div class="text-muted small">{{ app.user.email }}</div>
           </td>
           <td>
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ app.primary_language|capitalize }}</span>
-            <div class="small text-muted">{{ app.dialect }}</div>
+            {% set tmeta = tracks.get(app.specialization_track) if tracks else none %}
+            <span class="badge bg-{{ tmeta.badge_color if tmeta else 'secondary' }} small">
+              <i class="bi {{ tmeta.icon if tmeta else 'bi-tag' }} me-1"></i>
+              {{ tmeta.short_title if tmeta else app.specialization_track|replace('_', ' ')|capitalize }}
+            </span>
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border">{{ app.primary_language|capitalize }}</span>
+            <div class="text-muted small">{{ app.dialect }}</div>
           </td>
           <td>
             <div class="small fw-semibold">{{ app.domain_expertise or 'General' }}</div>
-            <small class="text-muted">{{ app.device_type|capitalize }} &bull; {{ app.weekly_hours }}h/wk</small>
+            <div class="text-muted small"><i class="bi bi-laptop me-1"></i>{{ app.device_type }}</div>
           </td>
           <td>
-            {% if app.test_score_composite > 0 %}
-              <span class="fw-bold font-monospace {{ 'text-success' if app.test_score_composite >= 85 else ('text-warning' if app.test_score_composite >= 70 else 'text-danger') }}">
+            {% if app.test_submitted_at %}
+              <div class="fw-bold {{ 'text-success' if app.test_score_composite >= 80 else ('text-warning' if app.test_score_composite >= 65 else 'text-danger') }}">
                 {{ app.test_score_composite }}%
-              </span>
+              </div>
+              <div class="text-muted small" style="font-size: 0.7rem;">Auto: {{ app.test_score_auto }}%</div>
             {% else %}
-              <span class="text-muted small">Not tested</span>
+              <span class="text-muted small">Not submitted</span>
             {% endif %}
           </td>
           <td>
-            <span class="badge bg-light text-dark border">{{ app.stage|capitalize }}</span>
+            <span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.7rem;">
+              {{ app.stage }}
+            </span>
           </td>
           <td>
             {% if app.admin_decision == 'approved' %}
               <span class="badge bg-success-subtle text-success border border-success-subtle">Approved</span>
-            {% elif app.admin_decision == 'waitlisted' %}
-              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Waitlisted</span>
             {% elif app.admin_decision == 'declined' %}
               <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Declined</span>
+            {% elif app.admin_decision == 'waitlisted' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Waitlisted</span>
             {% else %}
-              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Pending</span>
+              <span class="badge bg-secondary-subtle text-secondary border">Pending</span>
             {% endif %}
           </td>
           <td class="text-end">
-            <a href="{{ url_for('admin.applicant_detail' if current_user.role == 'admin' else 'pm.applicant_detail', applicant_id=app.id) }}" class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-file-earmark-person me-1"></i>Inspect
+            <a href="{% if current_user.role == 'admin' %}{{ url_for('admin.applicant_detail', applicant_id=app.id) }}{% else %}{{ url_for('pm.applicant_detail', applicant_id=app.id) }}{% endif %}"
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-card-checklist me-1"></i>Inspect
             </a>
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" class="text-center text-muted py-5">
-            <i class="bi bi-people fs-1 d-block mb-2 opacity-50" aria-hidden="true"></i>
-            <p class="mb-0">No applicants matching the selected filters.</p>
+          <td colspan="8" class="text-center py-5 text-muted">
+            <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
+            No applicants found matching the current filter criteria.
           </td>
         </tr>
         {% endfor %}

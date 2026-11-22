@@ -94,6 +94,13 @@ APPLICANT_STAGES = (
 )
 APPLICANT_DECISIONS = ("pending", "approved", "waitlisted", "declined")
 APPLICANT_TRIAL_STATUSES = ("submitted", "reviewed", "passed", "failed")
+APPLICANT_TRACKS = (
+    "red_teaming",
+    "translation",
+    "rlhf_preference",
+    "audio_speech",
+    "general_labeling",
+)
 
 # Labelling task taxonomy. Drives the project form's SelectField choices.
 # Deliberately NOT enforced by a database constraint: this taxonomy grows
@@ -1554,6 +1561,9 @@ class Applicant(db.Model):
     )
 
     # Stage 1: Linguistic Profiling & Metadata
+    specialization_track = db.Column(
+        db.String(50), nullable=False, default="translation", index=True
+    )
     primary_language = db.Column(
         db.String(50), nullable=False, default="hausa"
     )
@@ -1629,7 +1639,12 @@ class Applicant(db.Model):
             _in_constraint("admin_decision", APPLICANT_DECISIONS),
             name="ck_applicants_admin_decision",
         ),
+        db.CheckConstraint(
+            _in_constraint("specialization_track", APPLICANT_TRACKS),
+            name="ck_applicants_specialization_track",
+        ),
         db.Index("ix_applicants_stage_language", "stage", "primary_language"),
+        db.Index("ix_applicants_track_stage", "specialization_track", "stage"),
     )
 
     def __repr__(self) -> str:

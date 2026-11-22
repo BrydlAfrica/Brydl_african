@@ -1,14 +1,14 @@
-"""Onboarding, screening, qualification and workforce activation blueprint (Phase 15).
+"""Onboarding, screening, qualification and workforce activation blueprint (Phase 15 & 16).
 
-Provides the complete 9-stage isolated applicant funnel:
-  1. Apply (/onboard/apply) - Personal, linguistic profile, dialect, domain.
-  2. Guidelines (/onboard/guidelines, /onboard/guidelines-quiz) - Anti-cheating & quality rules.
-  3. Qualification Test (/onboard/test) - Timed real task assessment.
+Provides the complete 9-stage isolated applicant funnel tailored by specialization track:
+  1. Apply (/onboard/apply) - Personal, linguistic profile, dialect, specialization track.
+  2. Guidelines (/onboard/guidelines, /onboard/guidelines-quiz) - Track-specific honor code & rules.
+  3. Qualification Test (/onboard/test) - Timed real task assessment tailored to track & language.
   4. Scoring & Checks (/onboard/status) - Auto-grading & review status.
-  5. Fit to Need - Language & project pod capacity matching.
+  5. Fit to Need - Language & specialized project pod capacity matching.
   6. Decision - Admin/PM approval, waitlist, or decline.
   7. Agreement & NDA (/onboard/agreement) - E-signature & contractor terms.
-  8. Trial Batch (/onboard/trial) - 10 calibration tasks with dual-review.
+  8. Trial Batch (/onboard/trial) - 10 calibration tasks with dual-review tailored to track.
   9. Active - Full production workforce activation.
 """
 from __future__ import annotations
@@ -36,6 +36,7 @@ from extensions import db
 from models import (
     APPLICANT_DECISIONS,
     APPLICANT_STAGES,
+    APPLICANT_TRACKS,
     Applicant,
     ApplicantTrialSubmission,
     User,
@@ -43,8 +44,14 @@ from models import (
 )
 from onboarding_bank import (
     CALIBRATION_TASKS,
+    CALIBRATION_TASK_SETS,
     GUIDELINES_QUIZ,
+    GUIDELINES_QUIZZES,
     LANGUAGE_TESTS,
+    SPECIALIZATION_TRACKS_META,
+    TRACK_ASSESSMENTS,
+    get_calibration_tasks,
+    get_track_assessment,
 )
 
 onboard_bp = Blueprint("onboard", __name__)
@@ -57,6 +64,7 @@ def _get_or_create_applicant_for_user(user: User) -> Applicant:
         applicant = Applicant(
             user_id=user.id,
             stage="apply",
+            specialization_track="translation",
             primary_language="hausa",
             country="Nigeria",
         )
@@ -68,7 +76,7 @@ def _get_or_create_applicant_for_user(user: User) -> Applicant:
 @onboard_bp.route("/", methods=["GET"])
 @onboard_bp.route("/apply", methods=["GET", "POST"])
 def apply():
-    """Stage 1: Annotator application and linguistic profiling."""
+    """Stage 1: Annotator application, specialization track selection & profiling."""
     if current_user.is_authenticated:
         applicant = getattr(current_user, "applicant_profile", None)
         if applicant and applicant.stage != "apply":
@@ -87,6 +95,10 @@ def apply():
         country = request.form.get("country", "Nigeria").strip()
         state_province = request.form.get("state_province", "").strip()
         phone_whatsapp = request.form.get("phone_whatsapp", "").strip()
+        specialization_track = request.form.get("specialization_track", "translation").strip()
+        if specialization_track not in APPLICANT_TRACKS:
+            specialization_track = "translation"
+
         primary_language = request.form.get("primary_language", "hausa").strip().lower()
         dialect = request.form.get("dialect", "").strip()
         domain_expertise = request.form.get("domain_expertise", "General").strip()
@@ -98,11 +110,11 @@ def apply():
 
         competencies = request.form.getlist("competencies")
         if not competencies:
-            competencies = ["rlhf", "sft", "translation"]
+            competencies = [specialization_track]
 
         if not name or not email or (not current_user.is_authenticated and not password):
             flash("Please fill in all required fields.", "danger")
-            return render_template("onboarding/apply.html")
+            return render_template("onboarding/apply.html", tracks=SPECIALIZATION_TRACKS_META)
 
         # Create or update user
         if current_user.is_authenticated:
@@ -130,6 +142,7 @@ def apply():
             applicant = Applicant(user_id=user.id)
             db.session.add(applicant)
 
+        applicant.specialization_track = specialization_track
         applicant.primary_language = primary_language
         applicant.dialect = dialect or f"Standard {primary_language.capitalize()}"
         applicant.competencies = json.dumps(competencies)
@@ -147,27 +160,44 @@ def apply():
             actor=user,
             entity_type="applicant",
             entity_id=applicant.id,
-            detail={"language": primary_language, "dialect": applicant.dialect},
+            detail={
+                "track": specialization_track,
+                "language": primary_language,
+                "dialect": applicant.dialect,
+            },
         )
         flash("Application submitted successfully! Please review the Brydl AI Guidelines.", "success")
         return redirect(url_for("onboard.guidelines"))
 
-    return render_template("onboarding/apply.html")
+    return render_template("onboarding/apply.html", tracks=SPECIALIZATION_TRACKS_META)
 
 
 @onboard_bp.route("/guidelines", methods=["GET"])
 @login_required
 def guidelines():
-    """Stage 2A: Guidelines and operational honor code reading material."""
+    """Stage 2A: Guidelines and operational honor code reading material tailored to track."""
     applicant = _get_or_create_applicant_for_user(current_user)
-    return render_template("onboarding/guidelines.html", applicant=applicant)
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
+    return render_template(
+        "onboarding/guidelines.html",
+        applicant=applicant,
+        track_meta=track_meta,
+    )
 
 
 @onboard_bp.route("/guidelines-quiz", methods=["GET", "POST"])
 @login_required
 def guidelines_quiz():
-    """Stage 2B: Guidelines & Integrity Quiz (100% required to proceed)."""
+    """Stage 2B: Guidelines & Integrity Quiz (100% required to proceed, tailored to track)."""
     applicant = _get_or_create_applicant_for_user(current_user)
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
+    quiz_questions = GUIDELINES_QUIZZES.get(
+        applicant.specialization_track, GUIDELINES_QUIZ
+    )
 
     if request.method == "POST":
         try:
@@ -177,10 +207,10 @@ def guidelines_quiz():
             return redirect(url_for("onboard.guidelines_quiz"))
 
         score = 0
-        total = len(GUIDELINES_QUIZ)
+        total = len(quiz_questions)
         user_answers = {}
 
-        for q in GUIDELINES_QUIZ:
+        for q in quiz_questions:
             ans = request.form.get(f"q_{q['id']}", "")
             user_answers[q["id"]] = ans
             if ans == q["correct"]:
@@ -199,7 +229,7 @@ def guidelines_quiz():
                 actor=current_user,
                 entity_type="applicant",
                 entity_id=applicant.id,
-                detail={"score": percent},
+                detail={"score": percent, "track": applicant.specialization_track},
             )
             flash("Perfect score! Guidelines quiz passed. You may now start your qualification test.", "success")
             return redirect(url_for("onboard.test"))
@@ -212,14 +242,16 @@ def guidelines_quiz():
             return render_template(
                 "onboarding/guidelines_quiz.html",
                 applicant=applicant,
-                questions=GUIDELINES_QUIZ,
+                track_meta=track_meta,
+                questions=quiz_questions,
                 user_answers=user_answers,
             )
 
     return render_template(
         "onboarding/guidelines_quiz.html",
         applicant=applicant,
-        questions=GUIDELINES_QUIZ,
+        track_meta=track_meta,
+        questions=quiz_questions,
         user_answers={},
     )
 
@@ -227,15 +259,17 @@ def guidelines_quiz():
 @onboard_bp.route("/test", methods=["GET", "POST"])
 @login_required
 def test():
-    """Stage 3: Timed qualification test tailored to applicant's selected language."""
+    """Stage 3: Timed qualification test tailored to applicant's selected track and language."""
     applicant = _get_or_create_applicant_for_user(current_user)
 
     if not applicant.guidelines_passed:
         flash("Please complete and pass the guidelines quiz before starting the test.", "warning")
         return redirect(url_for("onboard.guidelines"))
 
-    lang_key = applicant.primary_language.lower()
-    test_bank = LANGUAGE_TESTS.get(lang_key) or LANGUAGE_TESTS.get("general")
+    test_bank = get_track_assessment(applicant.specialization_track, applicant.primary_language)
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
 
     if request.method == "POST":
         try:
@@ -273,7 +307,7 @@ def test():
         applicant.test_answers_json = json.dumps(answers_record)
 
         # Stage 5: Fit to Need Pod Evaluation
-        pod_name = f"{applicant.primary_language.capitalize()} Evaluation Pod"
+        pod_name = f"{applicant.primary_language.capitalize()} {track_meta.get('short_title', 'Evaluation')} Pod"
         applicant.assigned_pod = pod_name
         applicant.pod_capacity_fit = True
 
@@ -298,7 +332,11 @@ def test():
             actor=current_user,
             entity_type="applicant",
             entity_id=applicant.id,
-            detail={"score": composite_score, "decision": applicant.admin_decision},
+            detail={
+                "score": composite_score,
+                "track": applicant.specialization_track,
+                "decision": applicant.admin_decision,
+            },
         )
         return redirect(url_for("onboard.status"))
 
@@ -309,6 +347,7 @@ def test():
     return render_template(
         "onboarding/test.html",
         applicant=applicant,
+        track_meta=track_meta,
         test_bank=test_bank,
     )
 
@@ -318,7 +357,14 @@ def test():
 def status():
     """Stage 4/5/6: Onboarding status dashboard and 9-stage visual stepper."""
     applicant = _get_or_create_applicant_for_user(current_user)
-    return render_template("onboarding/status.html", applicant=applicant)
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
+    return render_template(
+        "onboarding/status.html",
+        applicant=applicant,
+        track_meta=track_meta,
+    )
 
 
 @onboard_bp.route("/agreement", methods=["GET", "POST"])
@@ -326,6 +372,9 @@ def status():
 def agreement():
     """Stage 7: Contractor Agreement & Strict NDA E-Signature."""
     applicant = _get_or_create_applicant_for_user(current_user)
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
 
     if applicant.admin_decision != "approved" and applicant.stage not in ("agreement", "trial", "active"):
         flash("You cannot access the contractor agreement until your application is approved.", "warning")
@@ -344,7 +393,7 @@ def agreement():
 
         if not signature_name or not accept_nda or not accept_terms:
             flash("Please sign your full legal name and accept all terms.", "danger")
-            return render_template("onboarding/agreement.html", applicant=applicant)
+            return render_template("onboarding/agreement.html", applicant=applicant, track_meta=track_meta)
 
         sig_data = f"{current_user.id}:{signature_name}:{utc_now().isoformat()}"
         sig_hash = hashlib.sha256(sig_data.encode("utf-8")).hexdigest()
@@ -365,14 +414,18 @@ def agreement():
         flash("Contractor Agreement e-signed successfully! Welcome to your Stage 8 Calibration Trial Batch.", "success")
         return redirect(url_for("onboard.trial"))
 
-    return render_template("onboarding/agreement.html", applicant=applicant)
+    return render_template("onboarding/agreement.html", applicant=applicant, track_meta=track_meta)
 
 
 @onboard_bp.route("/trial", methods=["GET"])
 @login_required
 def trial():
-    """Stage 8: Calibration Trial Batch Sandbox (10 tasks with dual-reviewer grading)."""
+    """Stage 8: Calibration Trial Batch Sandbox (10 tasks tailored to specialization track)."""
     applicant = _get_or_create_applicant_for_user(current_user)
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
+    calibration_tasks = get_calibration_tasks(applicant.specialization_track)
 
     if applicant.stage not in ("trial", "active"):
         flash("Please complete prior onboarding stages before starting the trial batch.", "warning")
@@ -388,7 +441,7 @@ def trial():
 
     # Find next uncompleted task
     next_task = None
-    for task in CALIBRATION_TASKS:
+    for task in calibration_tasks:
         if task["index"] not in submitted_indices:
             next_task = task
             break
@@ -396,11 +449,12 @@ def trial():
     return render_template(
         "onboarding/trial.html",
         applicant=applicant,
-        tasks=CALIBRATION_TASKS,
+        track_meta=track_meta,
+        tasks=calibration_tasks,
         submissions=submissions,
         next_task=next_task,
         completed_count=len(submissions),
-        total_count=len(CALIBRATION_TASKS),
+        total_count=len(calibration_tasks),
     )
 
 
@@ -409,6 +463,7 @@ def trial():
 def trial_submit():
     """Submit a single task in the Stage 8 Calibration Trial Batch."""
     applicant = _get_or_create_applicant_for_user(current_user)
+    calibration_tasks = get_calibration_tasks(applicant.specialization_track)
 
     try:
         validate_csrf(request.form.get("csrf_token", ""))
@@ -449,7 +504,7 @@ def trial_submit():
     )
     applicant.trial_tasks_completed = completed
 
-    if completed >= len(CALIBRATION_TASKS):
+    if completed >= len(calibration_tasks):
         applicant.trial_passed = True
         applicant.trial_score_average = Decimal("91.00")
         applicant.trial_completed_at = utc_now()
@@ -460,11 +515,15 @@ def trial_submit():
             actor=current_user,
             entity_type="applicant",
             entity_id=applicant.id,
-            detail={"tasks_completed": completed, "score": 91.0},
+            detail={
+                "tasks_completed": completed,
+                "score": 91.0,
+                "track": applicant.specialization_track,
+            },
         )
         flash("Congratulations! You have completed all 10 calibration tasks and graduated to the Active Annotator Workforce!", "success")
         return redirect(url_for("annotator.dashboard"))
 
     db.session.commit()
-    flash(f"Calibration Task #{task_index} submitted successfully! ({completed}/{len(CALIBRATION_TASKS)} completed)", "success")
+    flash(f"Calibration Task #{task_index} submitted successfully! ({completed}/{len(calibration_tasks)} completed)", "success")
     return redirect(url_for("onboard.trial"))

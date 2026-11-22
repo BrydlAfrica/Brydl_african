@@ -1,6 +1,6 @@
 {% extends "onboarding/base_onboarding.html" %}
 
-{% block title %}Stage 3: Qualification Assessment | Brydl AI{% endblock %}
+{% block title %}Stage 3: {{ track_meta.short_title }} Qualification Assessment | Brydl AI{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -8,7 +8,10 @@
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
         <div>
-          <span class="badge bg-primary mb-1">Stage 3 of 9 &bull; Timed Qualification</span>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-primary">Stage 3 of 9 &bull; Timed Qualification</span>
+            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }}</span>
+          </div>
           <h1 class="h4 mb-0 fw-bold">{{ test_bank.title }}</h1>
         </div>
         <div class="d-flex align-items-center gap-2 bg-black bg-opacity-25 px-3 py-2 rounded-2 border border-secondary border-opacity-25">
@@ -21,8 +24,8 @@
         <div class="alert alert-info d-flex align-items-center gap-3 mb-4">
           <i class="bi bi-info-circle-fill fs-4 text-info flex-shrink-0"></i>
           <div>
-            <strong>Candidate Profile:</strong> {{ applicant.primary_language|capitalize }} ({{ applicant.dialect }}).
-            This test evaluates your ability to spot machine translation artifacts, detect regional cybercrime / safety threats, and produce authentic African language data.
+            <strong>Specialization &amp; Profile:</strong> {{ track_meta.title }} &bull; Language: {{ applicant.primary_language|capitalize }} ({{ applicant.dialect }}).
+            This assessment evaluates your specialized competency in <strong>{{ track_meta.short_title }}</strong> tasks.
           </div>
         </div>
 
@@ -40,7 +43,7 @@
               <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
                 <div class="d-flex gap-2 align-items-start mb-3">
                   <span class="badge bg-secondary-subtle text-secondary border fw-bold">{{ loop.index }}</span>
-                  <p class="fw-semibold mb-0 text-dark">{{ q.prompt }}</p>
+                  <div class="fw-semibold text-dark" style="white-space: pre-line;">{{ q.prompt }}</div>
                 </div>
 
                 <div class="ps-4">
@@ -63,19 +66,19 @@
                 <span style="white-space: pre-line;">{{ section.practical_prompt }}</span>
               </label>
 
-              {# Special Character Toolbar #}
+              {# Special Character Toolbar for African Orthography #}
               <div class="mb-2 p-2 bg-light border rounded-2 d-flex flex-wrap align-items-center gap-1">
-                <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Insert Character:</small>
-                {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń'] %}
+                <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Insert Character / Tag:</small>
+                {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń', '[inaudible]', '[laughter]', '[crosstalk]'] %}
                 <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0 fw-bold font-monospace char-btn" data-char="{{ char }}">
                   {{ char }}
                 </button>
                 {% endfor %}
               </div>
 
-              <textarea class="form-control font-monospace" id="practical_response" name="practical_response" rows="6" required
-                        placeholder="Write your translation / practical answer here using authentic orthography..."></textarea>
-              <div class="form-text">Maintain natural fluency and authentic regional phrasing.</div>
+              <textarea class="form-control font-monospace" id="practical_response" name="practical_response" rows="7" required
+                        placeholder="Write your detailed practical response / rationale / probe analysis here..."></textarea>
+              <div class="form-text">Provide high-quality, comprehensive reasoning adhering to the {{ track_meta.short_title }} standards.</div>
             </div>
             {% endif %}
           </div>
@@ -116,21 +119,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
   }
 
-  // Special characters toolbar insertion
+  // Special characters & tags toolbar insertion
   var textarea = document.getElementById('practical_response');
-  document.querySelectorAll('button.char-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var char = btn.getAttribute('data-char');
-      if (textarea && char) {
+  if (textarea) {
+    var buttons = document.querySelectorAll('.char-btn');
+    buttons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var char = this.getAttribute('data-char');
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
-        var text = textarea.value;
-        textarea.value = text.substring(0, start) + char + text.substring(end);
+        var val = textarea.value;
+        textarea.value = val.substring(0, start) + char + val.substring(end);
         textarea.selectionStart = textarea.selectionEnd = start + char.length;
         textarea.focus();
-      }
+      });
     });
-  });
+  }
 });
 </script>
 {% endblock %}

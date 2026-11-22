@@ -1252,8 +1252,10 @@ def media(project_id: int):
 def applicants():
     """PM view of the applicant directory and pod talent pool."""
     from models import Applicant, User
+    from onboarding_bank import SPECIALIZATION_TRACKS_META
     import json
 
+    track_filter = request.args.get("track", "").strip().lower()
     lang_filter = request.args.get("language", "").strip().lower()
     stage_filter = request.args.get("stage", "").strip().lower()
     decision_filter = request.args.get("decision", "").strip().lower()
@@ -1261,6 +1263,8 @@ def applicants():
 
     query = db.session.query(Applicant).join(User, Applicant.user_id == User.id)
 
+    if track_filter:
+        query = query.filter(Applicant.specialization_track == track_filter)
     if lang_filter:
         query = query.filter(Applicant.primary_language == lang_filter)
     if stage_filter:
@@ -1287,9 +1291,11 @@ def applicants():
         "admin/applicants.html",
         applicants=all_applicants,
         metrics=metrics,
+        track_filter=track_filter,
         lang_filter=lang_filter,
         stage_filter=stage_filter,
         decision_filter=decision_filter,
+        tracks=SPECIALIZATION_TRACKS_META,
         q=q,
     )
 
@@ -1299,11 +1305,16 @@ def applicants():
 def applicant_detail(applicant_id: int):
     """PM view of an applicant's complete profile and trial submissions."""
     from models import Applicant, ApplicantTrialSubmission
+    from onboarding_bank import SPECIALIZATION_TRACKS_META
     import json
 
     applicant = db.session.get(Applicant, applicant_id)
     if applicant is None:
         abort(404)
+
+    track_meta = SPECIALIZATION_TRACKS_META.get(
+        applicant.specialization_track, SPECIALIZATION_TRACKS_META["translation"]
+    )
 
     test_answers = {}
     if applicant.test_answers_json:
@@ -1322,6 +1333,7 @@ def applicant_detail(applicant_id: int):
     return render_template(
         "admin/applicant_detail.html",
         applicant=applicant,
+        track_meta=track_meta,
         test_answers=test_answers,
         trial_subs=trial_subs,
     )
