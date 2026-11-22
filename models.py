@@ -78,6 +78,23 @@ SFT_STATUSES = ("draft", "ready", "exported")
 # submission > gold key > typed by hand).
 SFT_SOURCES = ("consensus", "approved", "gold", "manual")
 
+# 9-Stage Onboarding & Recruitment Pipeline statuses (Phase 15):
+APPLICANT_STAGES = (
+    "apply",
+    "guidelines",
+    "test",
+    "scoring",
+    "fit_to_need",
+    "decision",
+    "agreement",
+    "trial",
+    "active",
+    "waitlisted",
+    "declined",
+)
+APPLICANT_DECISIONS = ("pending", "approved", "waitlisted", "declined")
+APPLICANT_TRIAL_STATUSES = ("submitted", "reviewed", "passed", "failed")
+
 # Labelling task taxonomy. Drives the project form's SelectField choices.
 # Deliberately NOT enforced by a database constraint: this taxonomy grows
 # faster than the schema, so it is validated at the form layer instead.
@@ -1507,3 +1524,171 @@ class BackgroundJob(db.Model):
             f"<BackgroundJob id={self.id} kind={self.kind!r} "
             f"status={self.status!r} attempts={self.attempts}>"
         )
+
+
+class Applicant(db.Model):
+    """An applicant in the recruitment, screening, qualification and onboarding pipeline (Phase 15).
+
+    Tracks the applicant through the 9-stage lifecycle:
+      1. apply: Form, personal/contact info, linguistic matrix, background, tech check.
+      2. guidelines: Anti-cheating & quality rules guidelines quiz (100% required).
+      3. test: Timed real-world qualification assessment tailored to language.
+      4. scoring: Automated checks + reviewer grading.
+      5. fit_to_need: Language & project pod capacity matching.
+      6. decision: Admin/PM decision (Approve, Waitlist, Decline).
+      7. agreement: Contractor agreement & NDA e-signed, credentials provisioned.
+      8. trial: 10 calibration tasks graded by 2 blind reviewers.
+      9. active: Full production task access + monthly quality review.
+    """
+
+    __tablename__ = "applicants"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, unique=True, index=True
+    )
+
+    # 9-stage lifecycle tracker
+    stage = db.Column(
+        db.String(30), nullable=False, default="apply", index=True
+    )
+
+    # Stage 1: Linguistic Profiling & Metadata
+    primary_language = db.Column(
+        db.String(50), nullable=False, default="hausa"
+    )
+    dialect = db.Column(db.String(100), nullable=False, default="")
+    secondary_languages = db.Column(db.Text, nullable=True)
+    competencies = db.Column(db.Text, nullable=True)  # JSON list
+    domain_expertise = db.Column(db.String(100), nullable=True)
+    country = db.Column(db.String(100), nullable=False, default="Nigeria")
+    state_province = db.Column(db.String(100), nullable=True)
+    phone_whatsapp = db.Column(db.String(50), nullable=True)
+    device_type = db.Column(db.String(50), nullable=True)
+    weekly_hours = db.Column(db.Integer, nullable=True, default=15)
+
+    # Stage 2: Guidelines & Integrity Quiz
+    guidelines_quiz_score = db.Column(db.Integer, nullable=False, default=0)
+    guidelines_passed = db.Column(db.Boolean, nullable=False, default=False)
+    guidelines_passed_at = db.Column(db.DateTime, nullable=True)
+
+    # Stage 3 & 4: Qualification Test & Scoring
+    test_started_at = db.Column(db.DateTime, nullable=True)
+    test_submitted_at = db.Column(db.DateTime, nullable=True)
+    test_score_auto = db.Column(db.Integer, nullable=False, default=0)
+    test_score_reviewer = db.Column(db.Integer, nullable=True)
+    test_score_composite = db.Column(db.Integer, nullable=False, default=0)
+    test_answers_json = db.Column(db.Text, nullable=True)
+    test_passed = db.Column(db.Boolean, nullable=False, default=False)
+
+    # Stage 5: Fit to Need / Pod Allocation
+    assigned_pod = db.Column(db.String(100), nullable=True)
+    pod_capacity_fit = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Stage 6: Admin Decision
+    admin_decision = db.Column(
+        db.String(20), nullable=False, default="pending", index=True
+    )
+    admin_decision_by = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    admin_decision_at = db.Column(db.DateTime, nullable=True)
+    admin_notes = db.Column(db.Text, nullable=True)
+
+    # Stage 7: Agreement & NDA E-Signature
+    agreement_signed_at = db.Column(db.DateTime, nullable=True)
+    agreement_signature_name = db.Column(db.String(120), nullable=True)
+    agreement_signature_hash = db.Column(db.String(128), nullable=True)
+
+    # Stage 8: Trial Batch (10 Calibration Tasks)
+    trial_tasks_assigned = db.Column(db.Integer, nullable=False, default=10)
+    trial_tasks_completed = db.Column(db.Integer, nullable=False, default=0)
+    trial_score_average = db.Column(db.Numeric(5, 2), nullable=True)
+    trial_passed = db.Column(db.Boolean, nullable=False, default=False)
+    trial_completed_at = db.Column(db.DateTime, nullable=True)
+
+    # Metadata
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now
+    )
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    user = db.relationship(
+        "User", foreign_keys=[user_id], backref=db.backref("applicant_profile", uselist=False)
+    )
+    decision_maker = db.relationship("User", foreign_keys=[admin_decision_by])
+
+    __table_args__ = (
+        db.CheckConstraint(
+            _in_constraint("stage", APPLICANT_STAGES),
+            name="ck_applicants_stage",
+        ),
+        db.CheckConstraint(
+            _in_constraint("admin_decision", APPLICANT_DECISIONS),
+            name="ck_applicants_admin_decision",
+        ),
+        db.Index("ix_applicants_stage_language", "stage", "primary_language"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Applicant id={self.id} user={self.user_id} stage={self.stage!r}>"
+
+
+class ApplicantTrialSubmission(db.Model):
+    """One submission in an applicant's Stage 8 calibration trial batch.
+
+    Graded by two independent QA reviewers before graduation to active status.
+    """
+
+    __tablename__ = "applicant_trial_submissions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    applicant_id = db.Column(
+        db.Integer, db.ForeignKey("applicants.id"), nullable=False, index=True
+    )
+    task_index = db.Column(db.Integer, nullable=False)
+    task_prompt = db.Column(db.Text, nullable=False)
+    response_text = db.Column(db.Text, nullable=False)
+    submitted_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now
+    )
+
+    # Reviewer 1
+    reviewer_1_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    reviewer_1_score = db.Column(db.Integer, nullable=True)
+    reviewer_1_notes = db.Column(db.Text, nullable=True)
+    reviewer_1_graded_at = db.Column(db.DateTime, nullable=True)
+
+    # Reviewer 2
+    reviewer_2_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    reviewer_2_score = db.Column(db.Integer, nullable=True)
+    reviewer_2_notes = db.Column(db.Text, nullable=True)
+    reviewer_2_graded_at = db.Column(db.DateTime, nullable=True)
+
+    status = db.Column(
+        db.String(20), nullable=False, default="submitted"
+    )
+
+    applicant = db.relationship(
+        "Applicant", backref=db.backref("trial_submissions", cascade="all, delete-orphan")
+    )
+    reviewer_1 = db.relationship("User", foreign_keys=[reviewer_1_id])
+    reviewer_2 = db.relationship("User", foreign_keys=[reviewer_2_id])
+
+    __table_args__ = (
+        db.CheckConstraint(
+            _in_constraint("status", APPLICANT_TRIAL_STATUSES),
+            name="ck_applicant_trial_status",
+        ),
+        db.Index("ix_trial_sub_applicant_task", "applicant_id", "task_index"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<ApplicantTrialSubmission id={self.id} applicant={self.applicant_id} task={self.task_index}>"
+

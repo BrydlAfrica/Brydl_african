@@ -1,0 +1,131 @@
+{% extends "onboarding/base_onboarding.html" %}
+
+{% block title %}Stage 8: Calibration Trial Batch Sandbox | Brydl AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
+        <div>
+          <span class="badge bg-info text-dark mb-1">Stage 8 of 9 &bull; Calibration Trial</span>
+          <h1 class="h4 mb-0 fw-bold">10-Task Supervised Calibration Sandbox</h1>
+        </div>
+        <div class="text-end">
+          <span class="badge bg-light text-dark fs-6 font-monospace border">
+            {{ completed_count }} / {{ total_count }} Tasks Completed
+          </span>
+        </div>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+        <div class="progress mb-4" style="height: 10px;">
+          <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar"
+               style="width: {{ (completed_count / total_count) * 100 }}%;"
+               aria-valuenow="{{ completed_count }}" aria-valuemin="0" aria-valuemax="{{ total_count }}"></div>
+        </div>
+
+        {% if next_task %}
+        <div class="border rounded-3 p-4 bg-white shadow-sm mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <span class="badge bg-primary px-3 py-2 fw-bold">Calibration Task #{{ next_task.index }} ({{ next_task.type|replace('_', ' ')|capitalize }})</span>
+            <small class="text-muted"><i class="bi bi-eye-fill me-1"></i>Dual QA Review Calibration</small>
+          </div>
+
+          <div class="fw-bold text-dark mb-3" style="white-space: pre-line;">{{ next_task.prompt }}</div>
+
+          <form method="post" action="{{ url_for('onboard.trial_submit') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="task_index" value="{{ next_task.index }}">
+            <input type="hidden" name="task_prompt" value="{{ next_task.prompt }}">
+
+            {# Special Character Toolbar #}
+            <div class="mb-2 p-2 bg-light border rounded-2 d-flex flex-wrap align-items-center gap-1">
+              <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Special Characters:</small>
+              {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń'] %}
+              <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0 fw-bold font-monospace char-btn" data-char="{{ char }}">
+                {{ char }}
+              </button>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label for="trial_response" class="form-label small fw-semibold">Your Annotated Response / Evaluation <span class="text-danger">*</span></label>
+              <textarea class="form-control font-monospace" id="trial_response" name="response_text" rows="5" required
+                        placeholder="Provide your complete annotation or evaluation response here..."></textarea>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                Submit Task #{{ next_task.index }} &amp; Proceed &rarr;
+              </button>
+            </div>
+          </form>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-award fs-1 text-success mb-3 d-block"></i>
+          <h2 class="h4 fw-bold text-success mb-2">All 10 Calibration Tasks Completed!</h2>
+          <p class="text-muted mb-4">You have successfully graduated to the Stage 9 Active Annotator Workforce.</p>
+          <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-success btn-lg px-4 fw-bold">
+            <i class="bi bi-grid-fill me-1"></i>Enter Production Annotator Workspace &rarr;
+          </a>
+        </div>
+        {% endif %}
+
+        {# Previous Trial Submissions Table #}
+        {% if submissions %}
+        <h3 class="h6 fw-bold mt-5 mb-3 text-muted text-uppercase tracking-wider">Completed Calibration Log</h3>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th>Task #</th>
+                <th>Prompt Excerpt</th>
+                <th>Your Submission</th>
+                <th>QA Review Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in submissions %}
+              <tr>
+                <td><span class="badge bg-secondary">#{{ sub.task_index }}</span></td>
+                <td class="text-truncate" style="max-width: 200px;">{{ sub.task_prompt }}</td>
+                <td class="text-truncate font-monospace" style="max-width: 250px;">{{ sub.response_text }}</td>
+                <td>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    <i class="bi bi-check-circle-fill me-1"></i>Graded ({{ sub.reviewer_1_score }}%)
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var textarea = document.getElementById('trial_response');
+  document.querySelectorAll('button.char-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var char = btn.getAttribute('data-char');
+      if (textarea && char) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        textarea.value = text.substring(0, start) + char + text.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + char.length;
+        textarea.focus();
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

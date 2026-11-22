@@ -99,8 +99,24 @@ def auditor_required(view):
 
 
 def annotator_required(view):
-    """Allow only role='annotator' (see role_required)."""
-    return role_required("annotator")(view)
+    """Allow only role='annotator' (see role_required).
+
+    Also enforces applicant quarantine: if current_user has an active
+    applicant_profile that has not graduated to 'trial' or 'active',
+    redirect to their onboarding status view.
+    """
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if current_user.role != "annotator":
+            abort(403)
+        applicant = getattr(current_user, "applicant_profile", None)
+        if applicant is not None and applicant.stage not in ("trial", "active"):
+            from flask import redirect, url_for
+            return redirect(url_for("onboard.status"))
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 def pm_can_access_project(project) -> bool:

@@ -1,0 +1,93 @@
+{% extends "onboarding/base_onboarding.html" %}
+
+{% block title %}Stage 2: Operational Guidelines &amp; Quality Mandate | Brydl AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
+        <div>
+          <span class="badge bg-primary mb-1">Stage 2 of 9</span>
+          <h1 class="h4 mb-0 fw-bold">Brydl AI Quality Standards &amp; Honor Code</h1>
+        </div>
+        <i class="bi bi-shield-lock-fill fs-2 text-primary" aria-hidden="true"></i>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+        <div class="alert alert-warning border-warning-subtle d-flex align-items-center gap-3 mb-4">
+          <i class="bi bi-exclamation-triangle-fill fs-3 text-warning flex-shrink-0" aria-hidden="true"></i>
+          <div>
+            <strong>Mandatory Passing Requirement:</strong>
+            You must carefully read these 4 core operational principles. You will take an 8-question gating quiz and must achieve a <strong>100% pass score</strong> to unlock the Stage 3 qualification test.
+          </div>
+        </div>
+
+        {# Rule 1 #}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+          <h2 class="h5 fw-bold text-danger d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-x-octagon-fill"></i>1. Zero-Tolerance AI &amp; Machine-Translation Rule
+          </h2>
+          <p class="mb-2">
+            Brydl AI produces human-aligned evaluation data for frontier AI labs. <strong>Using Google Translate, DeepL, ChatGPT, or any automated tool to translate or generate responses is strictly prohibited.</strong>
+          </p>
+          <ul class="text-muted small mb-0">
+            <li>Submissions containing machine translation artifacts, unnatural English calques, or AI watermarks are flagged automatically.</li>
+            <li>Violations trigger immediate account disqualification, forfeiture of pending payouts, and permanent blacklisting across our platform.</li>
+          </ul>
+        </div>
+
+        {# Rule 2 #}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+          <h2 class="h5 fw-bold text-primary d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-type"></i>2. Authentic Native Orthography &amp; Special Characters
+          </h2>
+          <p class="mb-2">
+            African languages must be written with authentic phonetics and proper orthography:
+          </p>
+          <div class="p-3 bg-light rounded-2 font-monospace mb-2 text-dark small">
+            <strong>Hausa Hooked Consonants:</strong> ɓ (Ɓ), ɗ (Ɗ), ƙ (Ƙ), ƴ (Ƴ)<br>
+            <strong>Yoruba &amp; Igbo Tone Accents:</strong> à, á, è, é, ọ, ẹ, ụ, ị, ń
+          </div>
+          <p class="text-muted small mb-0">
+            Always use the on-screen special character toolbar inside the task workspace rather than substituting standard Latin letters (e.g. do not write 'kudin' when the word is 'kuɗin').
+          </p>
+        </div>
+
+        {# Rule 3 #}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+          <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-lock-fill text-success"></i>3. Absolute Client Confidentiality &amp; NDA
+          </h2>
+          <p class="mb-2">
+            All prompts, AI model outputs, benchmark evaluation questions, and client names are strictly confidential trade secrets.
+          </p>
+          <ul class="text-muted small mb-0">
+            <li>Never take screenshots or post task content on WhatsApp, Telegram, Twitter, or Discord.</li>
+            <li>All annotators execute a legally binding digital Non-Disclosure Agreement (NDA) in Stage 7 before active production work.</li>
+          </ul>
+        </div>
+
+        {# Rule 4 #}
+        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+          <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-sliders text-info"></i>4. Multi-Dimensional Rubric Scoring &amp; Continuous Quality
+          </h2>
+          <p class="mb-2">
+            When evaluating AI outputs, you must score each response objectively across multiple dimensions (Helpfulness, Harmlessness, Factuality, Cultural Authenticity) on standard 1–5 or 1–7 continuous sliders.
+          </p>
+          <p class="text-muted small mb-0">
+            Submissions undergo blind dual-review and continuous gold-standard calibration. High-quality annotators receive higher task limits, priority pod assignments, and bonus reward rates.
+          </p>
+        </div>
+
+        <div class="text-center pt-2">
+          <a href="{{ url_for('onboard.guidelines_quiz') }}" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm">
+            I Understand the Rules — Take Gating Quiz &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

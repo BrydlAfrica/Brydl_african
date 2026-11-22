@@ -1,0 +1,136 @@
+{% extends "onboarding/base_onboarding.html" %}
+
+{% block title %}Stage 3: Qualification Assessment | Brydl AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
+        <div>
+          <span class="badge bg-primary mb-1">Stage 3 of 9 &bull; Timed Qualification</span>
+          <h1 class="h4 mb-0 fw-bold">{{ test_bank.title }}</h1>
+        </div>
+        <div class="d-flex align-items-center gap-2 bg-black bg-opacity-25 px-3 py-2 rounded-2 border border-secondary border-opacity-25">
+          <i class="bi bi-stopwatch text-warning fs-5"></i>
+          <span class="fw-bold font-monospace text-white" id="test-timer" data-minutes="{{ test_bank.time_limit_minutes|default(30) }}">30:00</span>
+        </div>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+        <div class="alert alert-info d-flex align-items-center gap-3 mb-4">
+          <i class="bi bi-info-circle-fill fs-4 text-info flex-shrink-0"></i>
+          <div>
+            <strong>Candidate Profile:</strong> {{ applicant.primary_language|capitalize }} ({{ applicant.dialect }}).
+            This test evaluates your ability to spot machine translation artifacts, detect regional cybercrime / safety threats, and produce authentic African language data.
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('onboard.test') }}" id="qualification-test-form" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          {% for section in test_bank.sections %}
+          <div class="mb-5">
+            <h2 class="h5 fw-bold text-primary border-bottom pb-2 mb-3">
+              {{ section.title }}
+            </h2>
+
+            {% if section.questions %}
+              {% for q in section.questions %}
+              <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+                <div class="d-flex gap-2 align-items-start mb-3">
+                  <span class="badge bg-secondary-subtle text-secondary border fw-bold">{{ loop.index }}</span>
+                  <p class="fw-semibold mb-0 text-dark">{{ q.prompt }}</p>
+                </div>
+
+                <div class="ps-4">
+                  {% for opt in q.options %}
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="test_q_{{ q.id }}" id="test_opt_{{ q.id }}_{{ opt.id }}" value="{{ opt.id }}" required>
+                    <label class="form-check-label small" for="test_opt_{{ q.id }}_{{ opt.id }}">
+                      {{ opt.text }}
+                    </label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            {% endif %}
+
+            {% if section.practical_prompt %}
+            <div class="border rounded-3 p-4 bg-white shadow-sm">
+              <label for="practical_response" class="form-label fw-bold text-dark mb-2">
+                <span style="white-space: pre-line;">{{ section.practical_prompt }}</span>
+              </label>
+
+              {# Special Character Toolbar #}
+              <div class="mb-2 p-2 bg-light border rounded-2 d-flex flex-wrap align-items-center gap-1">
+                <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Insert Character:</small>
+                {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń'] %}
+                <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0 fw-bold font-monospace char-btn" data-char="{{ char }}">
+                  {{ char }}
+                </button>
+                {% endfor %}
+              </div>
+
+              <textarea class="form-control font-monospace" id="practical_response" name="practical_response" rows="6" required
+                        placeholder="Write your translation / practical answer here using authentic orthography..."></textarea>
+              <div class="form-text">Maintain natural fluency and authentic regional phrasing.</div>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <div class="d-grid pt-3">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm" id="submit-test-btn">
+              Complete Assessment &amp; Calculate Score &rarr;
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Timer countdown
+  var timerEl = document.getElementById('test-timer');
+  if (timerEl) {
+    var minutes = parseInt(timerEl.getAttribute('data-minutes') || '30', 10);
+    var seconds = minutes * 60;
+    var interval = setInterval(function() {
+      seconds--;
+      if (seconds <= 0) {
+        clearInterval(interval);
+        timerEl.textContent = '00:00';
+        var form = document.getElementById('qualification-test-form');
+        if (form) { form.submit(); }
+      } else {
+        var m = Math.floor(seconds / 60);
+        var s = seconds % 60;
+        timerEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+    }, 1000);
+  }
+
+  // Special characters toolbar insertion
+  var textarea = document.getElementById('practical_response');
+  document.querySelectorAll('button.char-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var char = btn.getAttribute('data-char');
+      if (textarea && char) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        textarea.value = text.substring(0, start) + char + text.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + char.length;
+        textarea.focus();
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

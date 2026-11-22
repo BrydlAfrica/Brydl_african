@@ -99,6 +99,7 @@
             </a>
             <ul class="dropdown-menu shadow border-0">
               <li><a class="dropdown-item" href="/admin/users"><i class="bi bi-people-fill me-2 text-primary"></i>Team &amp; Users</a></li>
+              <li><a class="dropdown-item" href="/admin/applicants"><i class="bi bi-person-check-fill me-2 text-primary"></i>Onboarding &amp; Applicants</a></li>
               <li><a class="dropdown-item" href="/admin/payments"><i class="bi bi-cash-coin me-2 text-success"></i>Payments &amp; Disbursements</a></li>
               <li><a class="dropdown-item" href="/admin/approvals"><i class="bi bi-clipboard2-check me-2 text-warning"></i>Project Approvals</a></li>
               <li><a class="dropdown-item" href="/admin/quality"><i class="bi bi-patch-check me-2 text-info"></i>Quality Analytics</a></li>
@@ -111,6 +112,7 @@
           {% elif current_user.role == 'project_manager' %}
           <li class="nav-item">{{ nav_link('/pm/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/pm/projects', 'bi-kanban', 'My Projects') }}</li>
+          <li class="nav-item">{{ nav_link('/pm/applicants', 'bi-people', 'Applicants') }}</li>
           <li class="nav-item">{{ nav_link('/pm/projects/new', 'bi-plus-circle', 'New Project') }}</li>
           {% elif current_user.role == 'qa' %}
           <li class="nav-item">{{ nav_link('/admin/review', 'bi-clipboard-check', 'QA Review') }}</li>

@@ -1,0 +1,59 @@
+{% extends "onboarding/base_onboarding.html" %}
+
+{% block title %}Stage 2: Guidelines &amp; Integrity Gating Quiz | Brydl AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
+        <div>
+          <span class="badge bg-primary mb-1">Stage 2 of 9 &bull; Gating Quiz</span>
+          <h1 class="h4 mb-0 fw-bold">Guidelines &amp; Integrity Quiz</h1>
+        </div>
+        <i class="bi bi-patch-question-fill fs-2 text-primary" aria-hidden="true"></i>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+        <p class="text-muted mb-4">
+          Answer all 8 questions below based on the Brydl AI Quality Mandate. You must score <strong>100%</strong> to proceed to Stage 3.
+        </p>
+
+        <form method="post" action="{{ url_for('onboard.guidelines_quiz') }}" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          {% for q in questions %}
+          <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+            <div class="d-flex gap-2 align-items-start mb-3">
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">{{ loop.index }}</span>
+              <p class="fw-semibold mb-0 text-dark">{{ q.question }}</p>
+            </div>
+
+            <div class="ps-4">
+              {% for opt in q.options %}
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="q_{{ q.id }}" id="opt_{{ q.id }}_{{ opt.id }}" value="{{ opt.id }}"
+                       {% if user_answers.get(q.id) == opt.id %}checked{% endif %} required>
+                <label class="form-check-label small" for="opt_{{ q.id }}_{{ opt.id }}">
+                  {{ opt.text }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="d-flex justify-content-between align-items-center pt-3">
+            <a href="{{ url_for('onboard.guidelines') }}" class="btn btn-outline-secondary">
+              &larr; Review Guidelines
+            </a>
+            <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+              Submit Answers &amp; Verify Score &rarr;
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

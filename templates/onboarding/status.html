@@ -1,0 +1,196 @@
+{% extends "onboarding/base_onboarding.html" %}
+
+{% block title %}Onboarding Status Tracker | Brydl AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    {# Candidate Header #}
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <span class="badge bg-light text-dark border mb-1">Applicant Dossier #{{ applicant.id }}</span>
+            <h1 class="h4 mb-1 fw-bold">{{ applicant.user.name }}</h1>
+            <p class="text-muted small mb-0">
+              <i class="bi bi-translate me-1"></i>Primary Language: <strong>{{ applicant.primary_language|capitalize }}</strong> ({{ applicant.dialect }}) &bull;
+              <i class="bi bi-geo-alt me-1"></i>{{ applicant.state_province or 'Nigeria' }}, {{ applicant.country }}
+            </p>
+          </div>
+
+          <div class="text-end">
+            {% if applicant.stage == 'active' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+                <i class="bi bi-check-circle-fill me-1"></i>Stage 9: Active Workforce
+              </span>
+            {% elif applicant.stage == 'trial' %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 fs-6">
+                <i class="bi bi-hourglass-split me-1"></i>Stage 8: Calibration Trial Batch
+              </span>
+            {% elif applicant.admin_decision == 'approved' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+                <i class="bi bi-shield-check me-1"></i>Stage 6: Approved by Admin
+              </span>
+            {% elif applicant.admin_decision == 'waitlisted' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fs-6">
+                <i class="bi bi-pause-circle me-1"></i>Stage 5/6: Talent Pool Waitlisted
+              </span>
+            {% elif applicant.admin_decision == 'declined' %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6">
+                <i class="bi bi-x-circle me-1"></i>Stage 6: Application Declined
+              </span>
+            {% else %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6">
+                <i class="bi bi-clock me-1"></i>Stage 4: Scoring &amp; Review
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# 9-Stage Visual Lifecycle Stepper #}
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-header bg-white py-3">
+        <h2 class="h6 fw-bold mb-0">9-Stage Workforce Qualification Stepper</h2>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-2 text-center small font-monospace">
+          {# Stage 1 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded bg-success-subtle text-success">
+              <i class="bi bi-check-circle-fill d-block mb-1 fs-5"></i>
+              <strong>1. Apply</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">Profile Created</div>
+            </div>
+          </div>
+
+          {# Stage 2 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.guidelines_passed else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.guidelines_passed else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>2. Guidelines</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.guidelines_quiz_score }}% Score</div>
+            </div>
+          </div>
+
+          {# Stage 3 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.test_submitted_at else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.test_submitted_at else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>3. Test</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.primary_language|capitalize }} Assessment</div>
+            </div>
+          </div>
+
+          {# Stage 4 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.test_score_composite > 0 else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.test_score_composite > 0 else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>4. Score</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.test_score_composite }}% Composite</div>
+            </div>
+          </div>
+
+          {# Stage 5 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.assigned_pod else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.assigned_pod else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>5. Fit to Need</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">Pod Match</div>
+            </div>
+          </div>
+
+          {# Stage 6 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.admin_decision == 'approved' else ('bg-danger-subtle text-danger' if applicant.admin_decision == 'declined' else 'bg-light text-muted') }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.admin_decision == 'approved' else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>6. Decision</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.admin_decision|capitalize }}</div>
+            </div>
+          </div>
+
+          {# Stage 7 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.agreement_signed_at else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.agreement_signed_at else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>7. Agreement</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">NDA E-Signed</div>
+            </div>
+          </div>
+
+          {# Stage 8 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.trial_passed else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-check-circle-fill' if applicant.trial_passed else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>8. Trial</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">10 Tasks</div>
+            </div>
+          </div>
+
+          {# Stage 9 #}
+          <div class="col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.stage == 'active' else 'bg-light text-muted' }}">
+              <i class="bi {{ 'bi-award-fill' if applicant.stage == 'active' else 'bi-circle' }} d-block mb-1 fs-5"></i>
+              <strong>9. Active</strong>
+              <div class="text-muted" style="font-size: 0.75rem;">Production</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Current Action Callout #}
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-body p-4 text-center">
+        {% if applicant.stage == 'active' %}
+          <div class="py-4">
+            <i class="bi bi-award fs-1 text-success mb-2 d-block"></i>
+            <h2 class="h5 fw-bold text-success mb-2">You are an Active Brydl AI Annotator</h2>
+            <p class="text-muted mb-4">You have graduated through all 9 onboarding &amp; calibration gates. Your production workspace is ready.</p>
+            <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-success btn-lg px-4 fw-bold">
+              <i class="bi bi-grid-fill me-1"></i>Open Production Annotator Dashboard &rarr;
+            </a>
+          </div>
+        {% elif applicant.stage == 'trial' %}
+          <div class="py-4">
+            <i class="bi bi-hourglass-split fs-1 text-info mb-2 d-block"></i>
+            <h2 class="h5 fw-bold mb-2">Stage 8: Calibration Trial Batch In Progress</h2>
+            <p class="text-muted mb-4">Complete your 10 calibration tasks to achieve full activation.</p>
+            <a href="{{ url_for('onboard.trial') }}" class="btn btn-info btn-lg px-4 text-white fw-bold">
+              <i class="bi bi-play-circle-fill me-1"></i>Continue Trial Tasks ({{ applicant.trial_tasks_completed }}/10) &rarr;
+            </a>
+          </div>
+        {% elif applicant.admin_decision == 'approved' %}
+          <div class="py-4">
+            <i class="bi bi-shield-check fs-1 text-success mb-2 d-block"></i>
+            <h2 class="h5 fw-bold text-success mb-2">Application Approved &bull; Ready for Agreement</h2>
+            <p class="text-muted mb-4">Your qualification assessment passed. Please e-sign the Contractor Agreement and NDA to enter the Stage 8 Calibration Trial Batch.</p>
+            <a href="{{ url_for('onboard.agreement') }}" class="btn btn-primary btn-lg px-4 fw-bold">
+              <i class="bi bi-pen-fill me-1"></i>Proceed to Stage 7 (E-Sign Agreement) &rarr;
+            </a>
+          </div>
+        {% elif applicant.admin_decision == 'waitlisted' %}
+          <div class="py-4">
+            <i class="bi bi-clock-history fs-1 text-warning mb-2 d-block"></i>
+            <h2 class="h5 fw-bold text-warning mb-2">Application Qualified &bull; Pod Waitlisted</h2>
+            <p class="text-muted mb-0">Your score ({{ applicant.test_score_composite }}%) qualifies for Brydl AI projects. You are currently in the talent pool for the next project pod opening.</p>
+          </div>
+        {% elif applicant.admin_decision == 'declined' %}
+          <div class="py-4">
+            <i class="bi bi-x-circle fs-1 text-danger mb-2 d-block"></i>
+            <h2 class="h5 fw-bold text-danger mb-2">Application Declined</h2>
+            <p class="text-muted mb-0">Your test score ({{ applicant.test_score_composite }}%) did not meet our current threshold. You may reapply after a 30-day cool-down period.</p>
+          </div>
+        {% else %}
+          <div class="py-4">
+            <i class="bi bi-hourglass-top fs-1 text-primary mb-2 d-block"></i>
+            <h2 class="h5 fw-bold mb-2">Stage 4 &amp; 5: Assessment Under Review</h2>
+            <p class="text-muted mb-0">Your qualification test (Score: {{ applicant.test_score_composite }}%) has been submitted and is currently being matched against project pod capacity.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

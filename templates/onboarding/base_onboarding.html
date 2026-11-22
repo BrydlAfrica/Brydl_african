@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#173363">
+  <title>{% block title %}Annotator Recruitment &amp; Qualification | Brydl AI{% endblock %}</title>
+
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='brand/logo-64.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/logo-192.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+  {# Isolated Candidate Navbar #}
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark brydl-accent-border sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('onboard.apply') }}">
+        <img src="{{ url_for('static', filename='brand/logo-64.png') }}"
+             alt="Brydl AI" width="28" height="28" class="d-inline-block">
+        <span class="fw-bold tracking-tight">Brydl AI</span>
+        <span class="badge bg-primary text-white ms-1 rounded-pill small">Talent Onboarding</span>
+      </a>
+
+      <div class="d-flex align-items-center gap-2">
+        {% if current_user.is_authenticated %}
+          <span class="text-white-50 small d-none d-sm-inline">Candidate: <strong class="text-white">{{ current_user.name }}</strong></span>
+          <a href="{{ url_for('onboard.status') }}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-clock-history me-1"></i>Status Tracker
+          </a>
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-light">Sign Out</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-light">Sign In</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {# Main Container #}
+  <main id="main" class="flex-grow-1 py-4">
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  {# Isolated Candidate Footer #}
+  <footer class="mt-auto py-3 bg-white border-top text-center text-muted small">
+    <div class="container">
+      <div>&copy; 2026 Brydl AI &bull; Enterprise African AI Alignment Platform</div>
+      <div class="text-secondary opacity-75">A Gretek Technologies Enterprise &bull; Strict Quality &amp; Anti-Cheating Gate Active</div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

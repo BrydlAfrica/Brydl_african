@@ -6755,3 +6755,143 @@ def send_broadcast():
     db.session.commit()
     flash(f"Broadcast sent to {len(all_users) - 1} users.", "success")
     return redirect(url_for("staff.feedback_inbox"))
+
+
+@admin_bp.route("/applicants", methods=["GET"])
+@admin_required
+def applicants():
+    """Recruitment & Workforce Onboarding Talent Hub (Phase 15).
+
+    Allows admins and PMs to view applicants across all 9 lifecycle stages,
+    filter by language and dialect, inspect candidate test scores, and take
+    qualification decisions.
+    """
+    from models import Applicant
+
+    lang_filter = request.args.get("language", "").strip().lower()
+    stage_filter = request.args.get("stage", "").strip().lower()
+    decision_filter = request.args.get("decision", "").strip().lower()
+    q = request.args.get("q", "").strip()
+
+    query = db.session.query(Applicant).join(User, Applicant.user_id == User.id)
+
+    if lang_filter:
+        query = query.filter(Applicant.primary_language == lang_filter)
+    if stage_filter:
+        query = query.filter(Applicant.stage == stage_filter)
+    if decision_filter:
+        query = query.filter(Applicant.admin_decision == decision_filter)
+    if q:
+        query = query.filter(
+            (User.name.ilike(f"%{q}%")) | (User.email.ilike(f"%{q}%")) | (Applicant.dialect.ilike(f"%{q}%"))
+        )
+
+    all_applicants = query.order_by(Applicant.created_at.desc()).all()
+
+    # Aggregate metric cards
+    total_count = db.session.query(Applicant).count()
+    testing_count = db.session.query(Applicant).filter(Applicant.stage.in_(("apply", "guidelines", "test"))).count()
+    pending_count = db.session.query(Applicant).filter_by(admin_decision="pending").count()
+    approved_count = db.session.query(Applicant).filter_by(admin_decision="approved").count()
+    waitlisted_count = db.session.query(Applicant).filter_by(admin_decision="waitlisted").count()
+    active_count = db.session.query(Applicant).filter_by(stage="active").count()
+
+    metrics = {
+        "total": total_count,
+        "testing": testing_count,
+        "pending": pending_count,
+        "approved": approved_count,
+        "waitlisted": waitlisted_count,
+        "active": active_count,
+    }
+
+    return render_template(
+        "admin/applicants.html",
+        applicants=all_applicants,
+        metrics=metrics,
+        lang_filter=lang_filter,
+        stage_filter=stage_filter,
+        decision_filter=decision_filter,
+        q=q,
+    )
+
+
+@admin_bp.route("/applicants/<int:applicant_id>", methods=["GET"])
+@admin_required
+def applicant_detail(applicant_id: int):
+    """View an applicant's complete profile, test answers and trial submissions."""
+    from models import Applicant, ApplicantTrialSubmission
+
+    applicant = db.session.get(Applicant, applicant_id)
+    if applicant is None:
+        abort(404)
+
+    test_answers = {}
+    if applicant.test_answers_json:
+        try:
+            test_answers = json.loads(applicant.test_answers_json)
+        except Exception:
+            test_answers = {}
+
+    trial_subs = (
+        db.session.query(ApplicantTrialSubmission)
+        .filter_by(applicant_id=applicant.id)
+        .order_by(ApplicantTrialSubmission.task_index.asc())
+        .all()
+    )
+
+    return render_template(
+        "admin/applicant_detail.html",
+        applicant=applicant,
+        test_answers=test_answers,
+        trial_subs=trial_subs,
+    )
+
+
+@admin_bp.route("/applicants/<int:applicant_id>/decision", methods=["POST"])
+@admin_required
+def applicant_decision(applicant_id: int):
+    """Record an admin/PM decision: approve, waitlist, or decline."""
+    from models import Applicant
+
+    applicant = db.session.get(Applicant, applicant_id)
+    if applicant is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.applicant_detail", applicant_id=applicant.id))
+
+    decision = request.form.get("decision", "").strip().lower()
+    notes = request.form.get("notes", "").strip()
+
+    if decision not in ("approved", "waitlisted", "declined"):
+        flash("Invalid decision choice.", "danger")
+        return redirect(url_for("admin.applicant_detail", applicant_id=applicant.id))
+
+    applicant.admin_decision = decision
+    applicant.admin_decision_by = current_user.id
+    applicant.admin_decision_at = utc_now()
+    applicant.admin_notes = notes
+
+    if decision == "approved":
+        applicant.stage = "agreement"
+        flash(f"Applicant {applicant.user.name} approved! Advanced to Stage 7 (Contractor Agreement).", "success")
+    elif decision == "waitlisted":
+        applicant.stage = "waitlisted"
+        flash(f"Applicant {applicant.user.name} moved to the Waitlist talent pool.", "info")
+    elif decision == "declined":
+        applicant.stage = "declined"
+        flash(f"Applicant {applicant.user.name} declined.", "warning")
+
+    db.session.commit()
+    log_event(
+        "applicant.decision",
+        actor=current_user,
+        entity_type="applicant",
+        entity_id=applicant.id,
+        detail={"decision": decision, "notes": notes},
+    )
+    return redirect(url_for("admin.applicant_detail", applicant_id=applicant.id))

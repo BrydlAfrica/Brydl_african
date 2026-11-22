@@ -1,0 +1,185 @@
+{% extends "onboarding/base_onboarding.html" %}
+
+{% block title %}Stage 1: Annotator Application &amp; Linguistic Profiling | Brydl AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+      <div class="card-header bg-primary text-white py-3 px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span class="badge bg-white text-primary mb-1">Stage 1 of 9</span>
+            <h1 class="h4 mb-0 fw-bold">Annotator Application &amp; Profiling</h1>
+          </div>
+          <i class="bi bi-person-lines-fill fs-2 text-white-50" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <p class="text-muted mb-4">
+          Join Brydl AI's vetted network of African language annotators, translators, and AI safety researchers.
+          Please provide accurate details regarding your native languages, dialects, and domain background.
+        </p>
+
+        <form method="post" action="{{ url_for('onboard.apply') }}" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
+            1. Personal &amp; Contact Information
+          </h2>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="name" class="form-label small fw-semibold">Full Legal Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="name" name="name" required
+                     placeholder="e.g. Amina Bello" value="{{ current_user.name if current_user.is_authenticated else '' }}">
+            </div>
+
+            <div class="col-md-6">
+              <label for="email" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" id="email" name="email" required
+                     placeholder="e.g. amina.bello@example.com" value="{{ current_user.email if current_user.is_authenticated else '' }}">
+            </div>
+
+            {% if not current_user.is_authenticated %}
+            <div class="col-md-6">
+              <label for="password" class="form-label small fw-semibold">Password <span class="text-danger">*</span></label>
+              <input type="password" class="form-control" id="password" name="password" required
+                     placeholder="Minimum 8 characters">
+            </div>
+            {% endif %}
+
+            <div class="col-md-6">
+              <label for="phone_whatsapp" class="form-label small fw-semibold">Phone / WhatsApp Number <span class="text-danger">*</span></label>
+              <input type="tel" class="form-control" id="phone_whatsapp" name="phone_whatsapp" required
+                     placeholder="e.g. +234 803 123 4567">
+            </div>
+
+            <div class="col-md-6">
+              <label for="country" class="form-label small fw-semibold">Country of Residence <span class="text-danger">*</span></label>
+              <select class="form-select" id="country" name="country" required>
+                <option value="Nigeria" selected>Nigeria</option>
+                <option value="Ghana">Ghana</option>
+                <option value="Kenya">Kenya</option>
+                <option value="Niger">Niger</option>
+                <option value="Cameroon">Cameroon</option>
+                <option value="South Africa">South Africa</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="state_province" class="form-label small fw-semibold">State / Province</label>
+              <input type="text" class="form-control" id="state_province" name="state_province"
+                     placeholder="e.g. Kano State, Lagos, Oyo, FCT">
+            </div>
+          </div>
+
+          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
+            2. African Language Matrix &amp; Dialects
+          </h2>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="primary_language" class="form-label small fw-semibold">Primary Native Language <span class="text-danger">*</span></label>
+              <select class="form-select" id="primary_language" name="primary_language" required>
+                <option value="hausa" selected>Hausa (Harshen Hausa)</option>
+                <option value="yoruba">Yoruba (Èdè Yorùbá)</option>
+                <option value="igbo">Igbo (Asụsụ Igbo)</option>
+                <option value="pidgin">Nigerian Pidgin</option>
+                <option value="swahili">Swahili (Kiswahili)</option>
+                <option value="general">English / AI Red-Teaming General</option>
+              </select>
+              <div class="form-text">Your Stage 3 qualification test will be tailored to this language.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="dialect" class="form-label small fw-semibold">Specific Dialect / Region <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="dialect" name="dialect" required
+                     placeholder="e.g. Kano Hausa, Sokoto, Ibadan Yoruba, Central Igbo, Warri Pidgin">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Target Work Competencies (Select all that apply):</label>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="competencies" value="rlhf" id="comp_rlhf" checked>
+                    <label class="form-check-label small" for="comp_rlhf">
+                      <strong>RLHF &amp; Preference Ranking</strong> — Comparing AI model outputs
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="competencies" value="sft" id="comp_sft" checked>
+                    <label class="form-check-label small" for="comp_sft">
+                      <strong>SFT Text Generation</strong> — Writing high-quality training pairs
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="competencies" value="redteam" id="comp_redteam" checked>
+                    <label class="form-check-label small" for="comp_redteam">
+                      <strong>Adversarial Red-Teaming</strong> — Probing safety vulnerabilities
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="competencies" value="translation" id="comp_translation" checked>
+                    <label class="form-check-label small" for="comp_translation">
+                      <strong>Translation &amp; Localization</strong> — English &harr; Native African Languages
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
+            3. Background &amp; Technical Capabilities
+          </h2>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="domain_expertise" class="form-label small fw-semibold">Domain Background / Education</label>
+              <select class="form-select" id="domain_expertise" name="domain_expertise">
+                <option value="General" selected>General Studies / Humanities</option>
+                <option value="Linguistics">Linguistics / Languages / Translation</option>
+                <option value="Tech">Computer Science / Software / Fintech</option>
+                <option value="Law">Law / Regulatory / Public Policy</option>
+                <option value="Medicine">Healthcare / Medicine / Pharmacy</option>
+                <option value="Finance">Banking / Finance / Economics</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="device_type" class="form-label small fw-semibold">Primary Work Device</label>
+              <select class="form-select" id="device_type" name="device_type">
+                <option value="laptop" selected>Laptop / PC (Recommended)</option>
+                <option value="desktop">Desktop Workstation</option>
+                <option value="smartphone">Smartphone (Android / iOS)</option>
+                <option value="tablet">Tablet</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="weekly_hours" class="form-label small fw-semibold">Weekly Availability (Hours)</label>
+              <input type="number" class="form-control" id="weekly_hours" name="weekly_hours" min="5" max="50" value="15">
+            </div>
+          </div>
+
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+              Submit Application &amp; Continue to Stage 2 &rarr;
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
