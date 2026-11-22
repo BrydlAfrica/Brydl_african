@@ -4,23 +4,28 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-9">
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="badge bg-primary">Stage 2 of 9</span>
-            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }} Track</span>
+  <div class="col-lg-10 col-xl-9">
+    <div class="card brydl-card overflow-hidden mb-4">
+      <div class="brydl-hero-card p-4 p-md-5">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-white text-primary fw-bold px-2 py-1">STAGE 2 OF 9</span>
+              <span class="badge bg-white bg-opacity-25 text-white"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }} Track</span>
+            </div>
+            <h1 class="h3 mb-1 fw-bold text-white">Brydl AI Quality Standards &amp; Honor Code</h1>
+            <p class="text-white-50 small mb-0">Review the quality framework tailored to your track before taking the honor quiz.</p>
           </div>
-          <h1 class="h4 mb-0 fw-bold">Brydl AI Quality Standards &amp; Honor Code</h1>
+          <div class="d-none d-sm-block">
+            <i class="bi bi-shield-lock-fill fs-1 text-white-50" aria-hidden="true"></i>
+          </div>
         </div>
-        <i class="bi bi-shield-lock-fill fs-2 text-primary" aria-hidden="true"></i>
       </div>
 
       <div class="card-body p-4 p-md-5">
-        <div class="alert alert-warning border-warning-subtle d-flex align-items-center gap-3 mb-4">
-          <i class="bi bi-exclamation-triangle-fill fs-3 text-warning flex-shrink-0" aria-hidden="true"></i>
-          <div>
+        <div class="alert alert-warning border-0 d-flex align-items-start gap-3 mb-4 bg-warning-subtle text-warning-emphasis">
+          <i class="bi bi-exclamation-triangle-fill fs-4 mt-1 flex-shrink-0" aria-hidden="true"></i>
+          <div class="small">
             <strong>Mandatory Passing Requirement for {{ track_meta.short_title }}:</strong>
             Carefully review the operational principles below tailored to your specialization track. You will take an 8-question gating quiz and must achieve a <strong>100% pass mark</strong> to unlock your Stage 3 timed qualification test.
           </div>
@@ -28,7 +33,7 @@
 
         {# Track Specific Principle #}
         {% if applicant.specialization_track == 'red_teaming' %}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-danger-subtle">
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
           <h2 class="h5 fw-bold text-danger d-flex align-items-center gap-2 mb-3">
             <i class="bi bi-shield-slash-fill"></i>1. RedLab Adversarial Ethics &amp; Responsible Probing
           </h2>
@@ -41,7 +46,7 @@
           </ul>
         </div>
         {% elif applicant.specialization_track == 'rlhf_preference' %}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-success-subtle">
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
           <h2 class="h5 fw-bold text-success d-flex align-items-center gap-2 mb-3">
             <i class="bi bi-sliders2-vertical"></i>1. Objective Multi-Axis Ranking &amp; Anti-Bias Standards
           </h2>
@@ -49,100 +54,81 @@
             Evaluating pairwise model responses (Response A vs Response B) requires rigorous adherence to multi-dimensional rubrics:
           </p>
           <ul class="text-muted small mb-0">
-            <li><strong>Zero Length Bias:</strong> Never prefer a completion simply because it is verbose or filled with decorative bullet points. Factual accuracy and conciseness outweigh fluff.</li>
-            <li><strong>Sycophancy Penalty:</strong> Penalize models that falsely agree with user misconceptions rather than providing objective ground truth.</li>
-            <li><strong>Mandatory Rationales:</strong> Every preference ranking must include a detailed comparative justification citing specific paragraphs.</li>
+            <li><strong>Instruction Following:</strong> Did the model follow constraints (length, language, tone, negative constraints)?</li>
+            <li><strong>Truthfulness &amp; Grounding:</strong> Are all claims factual and free of hallucination?</li>
+            <li><strong>Safety &amp; Harm:</strong> Does either response offer actionable assistance on harmful tasks?</li>
+            <li><strong>Helpfulness &amp; Clarity:</strong> Is the tone natural, concise, and helpful?</li>
           </ul>
         </div>
         {% elif applicant.specialization_track == 'audio_speech' %}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-warning-subtle">
-          <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-mic-fill text-warning"></i>1. Strict Verbatim &amp; Acoustic Tagging Conventions
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
+          <h2 class="h5 fw-bold text-info d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-soundwave"></i>1. Acoustic Fidelity &amp; Verbatim African Diarization
           </h2>
           <p class="mb-2">
-            Speech recognition models rely on exact acoustic-phonetic alignment between audio and transcript text:
+            Audio transcription and speech evaluation require strict adherence to acoustic capture standards:
           </p>
           <ul class="text-muted small mb-0">
-            <li><strong>Verbatim Fidelity:</strong> Capture every spoken word, stutter, filler ('um', 'uh'), and false start without editing for grammar.</li>
-            <li><strong>Acoustic Event Tags:</strong> Accurately insert standard bracketed tags (<code>[laughter]</code>, <code>[applause]</code>, <code>[inaudible 00:03]</code>, <code>[crosstalk]</code>).</li>
-            <li><strong>Code-Switching Boundaries:</strong> Transcribe multi-language transitions exactly as spoken in African dialects.</li>
+            <li><strong>Verbatim Accuracy:</strong> Transcribe exactly what is spoken, including false starts, filler words, and repetitions.</li>
+            <li><strong>Acoustic Event Tags:</strong> Tag non-speech events using standardized tokens: <code>[laughter]</code>, <code>[applause]</code>, <code>[inaudible]</code>, <code>[crosstalk]</code>.</li>
+            <li><strong>African Orthography:</strong> Ensure hooked letters (ɓ, ɗ, ƙ, ƴ) and tonal accents are accurately transcribed.</li>
           </ul>
         </div>
         {% elif applicant.specialization_track == 'general_labeling' %}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm border-info-subtle">
-          <h2 class="h5 fw-bold text-info d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-tags-fill"></i>1. NER Boundary Precision &amp; Intent Taxonomy Adherence
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
+          <h2 class="h5 fw-bold text-primary d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-tags-fill"></i>1. Exact Span Boundaries &amp; Taxonomy Consistency
           </h2>
           <p class="mb-2">
-            High-quality entity labeling and text classification require strict adherence to project schemas:
+            Named Entity Recognition (NER), intent tagging, and classification require pixel-perfect precision:
           </p>
           <ul class="text-muted small mb-0">
-            <li><strong>Boundary Precision:</strong> Select exact entity tokens (e.g. Person, Org, Location) without including leading/trailing whitespace or extraneous punctuation.</li>
-            <li><strong>Contextual Disambiguation:</strong> Use surrounding syntactic context to resolve ambiguous African location and institutional names.</li>
+            <li><strong>Exact Span Boundaries:</strong> Never include leading/trailing whitespace or extraneous punctuation in entity spans.</li>
+            <li><strong>Taxonomy Adherence:</strong> Apply entity classes (Person, Location, Organization, DateTime) consistently according to guideline definitions.</li>
           </ul>
         </div>
         {% else %}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
-          <h2 class="h5 fw-bold text-danger d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-x-octagon-fill"></i>1. Zero-Tolerance AI &amp; Machine-Translation Rule
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
+          <h2 class="h5 fw-bold text-primary d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-translate"></i>1. Standard African Orthography &amp; Hooked Consonants
           </h2>
           <p class="mb-2">
-            Brydl AI produces human-aligned evaluation data for frontier AI labs. <strong>Using Google Translate, DeepL, ChatGPT, or any automated tool to translate or generate responses is strictly prohibited.</strong>
+            Every submission in African languages (Hausa, Yoruba, Igbo, etc.) must utilize the official orthography. For Hausa, standard hooked letters (<code>ɓ</code>, <code>ɗ</code>, <code>ƙ</code>, <code>ƴ</code>, <code>Ɓ</code>, <code>Ɗ</code>, <code>Ƙ</code>, <code>Ƴ</code>) are mandatory. Substituting standard letters (e.g. 'b' for 'ɓ' or 'd' for 'ɗ') constitutes a critical error.
           </p>
-          <ul class="text-muted small mb-0">
-            <li>Submissions containing machine translation artifacts, unnatural English calques, or AI watermarks are flagged automatically.</li>
-            <li>Violations trigger immediate account disqualification, forfeiture of pending payouts, and permanent blacklisting across our platform.</li>
-          </ul>
+          <p class="text-muted small mb-0">
+            Brydl's annotation interface provides an on-screen special character toolbar to insert all required characters effortlessly.
+          </p>
         </div>
         {% endif %}
 
-        {# Rule 2 #}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+        {# Universal Principles #}
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
+          <h2 class="h5 fw-bold text-danger d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-robot"></i>2. Strict Zero-AI Anti-Cheating Policy
+          </h2>
+          <p class="mb-2">
+            The use of external automated AI tools (ChatGPT, Google Translate, DeepL, Claude, copiers) to generate annotations is <strong>strictly prohibited</strong> and monitored via cryptographic keystroke variance and linguistic entropy detectors.
+          </p>
+          <p class="text-muted small mb-0">
+            Violations result in immediate account termination, forfeiture of earnings, and permanent exclusion from the Brydl workforce.
+          </p>
+        </div>
+
+        <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
           <h2 class="h5 fw-bold text-primary d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-type"></i>2. Authentic Native Orthography &amp; Special Characters
+            <i class="bi bi-shield-check"></i>3. Confidentiality &amp; Data Security (NDA)
           </h2>
           <p class="mb-2">
-            African languages must be written with authentic phonetics and proper orthography:
-          </p>
-          <div class="p-3 bg-light rounded-2 font-monospace mb-2 text-dark small">
-            <strong>Hausa Hooked Consonants:</strong> ɓ (Ɓ), ɗ (Ɗ), ƙ (Ƙ), ƴ (Ƴ)<br>
-            <strong>Yoruba &amp; Igbo Tone Accents:</strong> à, á, è, é, ọ, ẹ, ụ, ị, ń
-          </div>
-          <p class="text-muted small mb-0">
-            Always use the on-screen special character toolbar inside the task workspace rather than substituting standard Latin letters (e.g. do not write 'kudin' when the word is 'kuɗin').
+            All text, prompts, audio files, and model responses in the Brydl workspace are confidential client proprietary data. Copying, photographing, sharing, or discussing project contents outside the platform violates your non-disclosure agreement.
           </p>
         </div>
 
-        {# Rule 3 #}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
-          <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-lock-fill text-success"></i>3. Absolute Client Confidentiality &amp; NDA
-          </h2>
-          <p class="mb-2">
-            All prompts, AI model outputs, benchmark evaluation questions, and client names are strictly confidential trade secrets.
-          </p>
-          <ul class="text-muted small mb-0">
-            <li>Never take screenshots or post task content on WhatsApp, Telegram, Twitter, or Discord.</li>
-            <li>All annotators execute a legally binding digital Non-Disclosure Agreement (NDA) in Stage 7 before active production work.</li>
-          </ul>
-        </div>
-
-        {# Rule 4 #}
-        <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
-          <h2 class="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-patch-check-fill text-info"></i>4. Dual-Blind Review &amp; Automated Bank Settlements
-          </h2>
-          <p class="mb-2">
-            Submissions undergo blind dual-review and continuous gold-standard calibration. High-quality annotators receive higher task limits, priority pod assignments, and bonus reward rates.
-          </p>
-          <p class="text-muted small mb-0">
-            Earnings accrue per approved task in USD and are settled directly to verified Nigerian bank accounts via automated Paystack NGN disbursements.
-          </p>
-        </div>
-
-        <div class="text-center pt-2">
-          <a href="{{ url_for('onboard.guidelines_quiz') }}" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm">
-            I Understand the Rules — Take Gating Quiz &rarr;
+        <div class="d-flex justify-content-between align-items-center pt-3">
+          <a href="{{ url_for('onboard.status') }}" class="btn btn-outline-secondary">
+            &larr; Return to Status
+          </a>
+          <a href="{{ url_for('onboard.guidelines_quiz') }}" class="btn btn-primary px-4 fw-bold shadow-sm">
+            Take Stage 2 Honor Quiz &rarr;
           </a>
         </div>
       </div>

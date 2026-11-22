@@ -4,14 +4,22 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-9">
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
-        <div>
-          <span class="badge bg-primary mb-1">Stage 7 of 9 &bull; Contractor NDA</span>
-          <h1 class="h4 mb-0 fw-bold">Independent Contractor Agreement &amp; NDA</h1>
+  <div class="col-lg-10 col-xl-9">
+    <div class="card brydl-card overflow-hidden mb-4">
+      <div class="brydl-hero-card p-4 p-md-5">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-white text-primary fw-bold px-2 py-1">STAGE 7 OF 9</span>
+              <span class="badge bg-white bg-opacity-25 text-white">Contractor NDA &amp; Terms</span>
+            </div>
+            <h1 class="h3 mb-1 fw-bold text-white">Independent Contractor Agreement &amp; NDA</h1>
+            <p class="text-white-50 small mb-0">Legal accreditation and integrity covenant for the African AI data workforce.</p>
+          </div>
+          <div class="d-none d-sm-block">
+            <i class="bi bi-pen-fill fs-1 text-white-50" aria-hidden="true"></i>
+          </div>
         </div>
-        <i class="bi bi-pen-fill fs-2 text-primary" aria-hidden="true"></i>
       </div>
 
       <div class="card-body p-4 p-md-5">
@@ -19,7 +27,7 @@
           Please review the binding Independent Contractor Terms and Non-Disclosure Agreement (NDA) between you and <strong>Gretek Technologies (Brydl AI)</strong>.
         </p>
 
-        <div class="p-4 bg-light border rounded-3 mb-4 small font-monospace text-dark overflow-auto" style="max-height: 280px;">
+        <div class="p-4 bg-body-tertiary border rounded-3 mb-4 small font-monospace overflow-auto" style="max-height: 280px;">
           <h2 class="h6 fw-bold text-uppercase mb-2">BRYDL AI &bull; DATA ANNOTATION &amp; RED-TEAMING CONTRACTOR AGREEMENT (2026)</h2>
           <p>This Independent Contractor Agreement ("Agreement") is entered into by and between Gretek Technologies operating as Brydl AI ("Company") and the Contractor named below ("Contractor").</p>
           <p><strong>1. Services &amp; Quality Standard:</strong> Contractor agrees to provide independent data annotation, translation, RLHF preference ranking, and red-teaming evaluations. Contractor covenants that all submissions represent authentic human judgment without the use of automated machine translation (Google Translate, DeepL) or unauthorized generative AI (ChatGPT).</p>
@@ -34,7 +42,7 @@
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" name="accept_nda" id="accept_nda" required>
             <label class="form-check-label small fw-semibold" for="accept_nda">
-              I agree to the strict Non-Disclosure Agreement (NDA) and will never share or screenshot client model data.
+              I agree to the strict Non-Disclosure Agreement (NDA) and will never share, screenshot, or distribute client model data.
             </label>
           </div>
 
@@ -49,11 +57,11 @@
             <label for="signature_name" class="form-label small fw-semibold">Digital Signature (Type Full Legal Name) <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-lg font-monospace" id="signature_name" name="signature_name" required
                    placeholder="e.g. Amina Bello" value="{{ applicant.user.name }}">
-            <div class="form-text">Typing your legal name constitutes a binding digital signature under law.</div>
+            <div class="form-text small">Typing your legal name constitutes a binding digital signature under law.</div>
           </div>
 
           <div class="d-grid">
-            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold py-3 shadow-sm">
               E-Sign Agreement &amp; Unlock Stage 8 Trial Batch &rarr;
             </button>
           </div>

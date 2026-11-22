@@ -4,28 +4,31 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-9">
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="badge bg-primary">Stage 3 of 9 &bull; Timed Qualification</span>
-            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }}</span>
+  <div class="col-lg-10 col-xl-9">
+    <div class="card brydl-card overflow-hidden mb-4">
+      <div class="brydl-hero-card p-4 p-md-5">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-white text-primary fw-bold px-2 py-1">STAGE 3 OF 9</span>
+              <span class="badge bg-white bg-opacity-25 text-white"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }}</span>
+            </div>
+            <h1 class="h3 mb-1 fw-bold text-white">{{ test_bank.title }}</h1>
+            <p class="text-white-50 small mb-0">Timed practical qualification assessment &bull; Minimum passing mark: 80%</p>
           </div>
-          <h1 class="h4 mb-0 fw-bold">{{ test_bank.title }}</h1>
-        </div>
-        <div class="d-flex align-items-center gap-2 bg-black bg-opacity-25 px-3 py-2 rounded-2 border border-secondary border-opacity-25">
-          <i class="bi bi-stopwatch text-warning fs-5"></i>
-          <span class="fw-bold font-monospace text-white" id="test-timer" data-minutes="{{ test_bank.time_limit_minutes|default(30) }}">30:00</span>
+          <div class="d-flex align-items-center gap-2 bg-black bg-opacity-30 px-3 py-2 rounded-3 border border-white border-opacity-25">
+            <i class="bi bi-stopwatch text-warning fs-5"></i>
+            <span class="fw-bold font-monospace text-white" id="test-timer" data-minutes="{{ test_bank.time_limit_minutes|default(30) }}">30:00</span>
+          </div>
         </div>
       </div>
 
       <div class="card-body p-4 p-md-5">
-        <div class="alert alert-info d-flex align-items-center gap-3 mb-4">
-          <i class="bi bi-info-circle-fill fs-4 text-info flex-shrink-0"></i>
-          <div>
-            <strong>Specialization &amp; Profile:</strong> {{ track_meta.title }} &bull; Language: {{ applicant.primary_language|capitalize }} ({{ applicant.dialect }}).
-            This assessment evaluates your specialized competency in <strong>{{ track_meta.short_title }}</strong> tasks.
+        <div class="alert alert-info border-0 d-flex align-items-start gap-3 mb-4 bg-primary-subtle text-primary">
+          <i class="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+          <div class="small">
+            <strong>Candidate Assessment:</strong> {{ track_meta.title }} &bull; Language: {{ applicant.primary_language|capitalize }} ({{ applicant.dialect }}).
+            This timed assessment evaluates your domain skills in <strong>{{ track_meta.short_title }}</strong> tasks.
           </div>
         </div>
 
@@ -40,10 +43,10 @@
 
             {% if section.questions %}
               {% for q in section.questions %}
-              <div class="border rounded-3 p-4 mb-4 bg-white shadow-sm">
+              <div class="border rounded-3 p-4 mb-4 bg-body-tertiary">
                 <div class="d-flex gap-2 align-items-start mb-3">
-                  <span class="badge bg-secondary-subtle text-secondary border fw-bold">{{ loop.index }}</span>
-                  <div class="fw-semibold text-dark" style="white-space: pre-line;">{{ q.prompt }}</div>
+                  <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: .75rem;">{{ loop.index }}</span>
+                  <div class="fw-semibold" style="white-space: pre-line;">{{ q.prompt }}</div>
                 </div>
 
                 <div class="ps-4">
@@ -61,13 +64,13 @@
             {% endif %}
 
             {% if section.practical_prompt %}
-            <div class="border rounded-3 p-4 bg-white shadow-sm">
-              <label for="practical_response" class="form-label fw-bold text-dark mb-2">
+            <div class="border rounded-3 p-4 bg-body-tertiary">
+              <label for="practical_response" class="form-label fw-bold mb-2">
                 <span style="white-space: pre-line;">{{ section.practical_prompt }}</span>
               </label>
 
               {# Special Character Toolbar for African Orthography #}
-              <div class="mb-2 p-2 bg-light border rounded-2 d-flex flex-wrap align-items-center gap-1">
+              <div class="mb-2 p-2 bg-body rounded-2 border d-flex flex-wrap align-items-center gap-1">
                 <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Insert Character / Tag:</small>
                 {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń', '[inaudible]', '[laughter]', '[crosstalk]'] %}
                 <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0 fw-bold font-monospace char-btn" data-char="{{ char }}">
@@ -78,14 +81,14 @@
 
               <textarea class="form-control font-monospace" id="practical_response" name="practical_response" rows="7" required
                         placeholder="Write your detailed practical response / rationale / probe analysis here..."></textarea>
-              <div class="form-text">Provide high-quality, comprehensive reasoning adhering to the {{ track_meta.short_title }} standards.</div>
+              <div class="form-text small">Provide high-quality, comprehensive reasoning adhering to the {{ track_meta.short_title }} standards.</div>
             </div>
             {% endif %}
           </div>
           {% endfor %}
 
           <div class="d-grid pt-3">
-            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm" id="submit-test-btn">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold py-3 shadow-sm" id="submit-test-btn">
               Complete Assessment &amp; Calculate Score &rarr;
             </button>
           </div>
@@ -119,22 +122,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
   }
 
-  // Special characters & tags toolbar insertion
-  var textarea = document.getElementById('practical_response');
-  if (textarea) {
-    var buttons = document.querySelectorAll('.char-btn');
-    buttons.forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var char = this.getAttribute('data-char');
+  // Character toolbar insertion
+  document.querySelectorAll('.char-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var char = this.getAttribute('data-char');
+      var textarea = document.getElementById('practical_response');
+      if (textarea) {
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
-        var val = textarea.value;
-        textarea.value = val.substring(0, start) + char + val.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + char.length;
+        var text = textarea.value;
+        textarea.value = text.substring(0, start) + char + text.substring(end);
         textarea.focus();
-      });
+        textarea.selectionStart = textarea.selectionEnd = start + char.length;
+      }
     });
-  }
+  });
 });
 </script>
 {% endblock %}

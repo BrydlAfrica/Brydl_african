@@ -4,222 +4,249 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-9">
-    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-      <div class="card-header bg-primary text-white py-3 px-4">
-        <div class="d-flex align-items-center justify-content-between">
+  <div class="col-lg-10 col-xl-9">
+    <div class="card brydl-card overflow-hidden">
+      {# Brand Hero Card Header #}
+      <div class="brydl-hero-card p-4 p-md-5">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 position-relative" style="z-index: 2;">
           <div>
-            <span class="badge bg-white text-primary mb-1">Stage 1 of 9</span>
-            <h1 class="h4 mb-0 fw-bold">Annotator Application &amp; Specialization Profiling</h1>
+            <div class="d-inline-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-white text-primary fw-bold px-2 py-1">STAGE 1 OF 9</span>
+              <span class="text-white-50 small">&bull; Talent Accreditation Funnel</span>
+            </div>
+            <h1 class="h3 mb-1 fw-bold text-white">Annotator Application &amp; Specialization Profiling</h1>
+            <p class="text-white-50 small mb-0">Join Brydl's enterprise African workforce for AI alignment, translation, and safety evaluation.</p>
           </div>
-          <i class="bi bi-person-lines-fill fs-2 text-white-50" aria-hidden="true"></i>
+          <div class="d-none d-sm-block">
+            <i class="bi bi-person-lines-fill fs-1 text-white-50" aria-hidden="true"></i>
+          </div>
         </div>
       </div>
 
-      <div class="card-body p-4">
-        <p class="text-muted mb-4">
-          Join Brydl AI's vetted network of African language annotators, translators, and AI safety researchers.
-          Your qualification quizzes, timed assessments, and trial calibration tasks will be tailored specifically to the <strong>Service Track</strong> and <strong>Language</strong> you select below.
-        </p>
+      <div class="card-body p-4 p-md-5">
+        <div class="alert alert-info border-0 shadow-none d-flex align-items-start gap-3 mb-4 bg-primary-subtle text-primary">
+          <i class="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+          <div class="small">
+            Your qualification assessment, guidelines quiz, and calibration batch will be dynamically generated according to the <strong>Service Track</strong> and <strong>Primary Language</strong> you select below.
+          </div>
+        </div>
 
         <form method="post" action="{{ url_for('onboard.apply') }}" novalidate>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
-            1. Personal &amp; Contact Information
-          </h2>
-
-          <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              <label for="name" class="form-label small fw-semibold">Full Legal Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="name" name="name" required
-                     placeholder="e.g. Amina Bello" value="{{ current_user.name if current_user.is_authenticated else '' }}">
+          {# Section 1: Personal & Contact Information #}
+          <div class="mb-5">
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3">
+              <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: .75rem;">1</span>
+              <h2 class="h6 fw-bold text-uppercase tracking-wider mb-0">
+                Personal &amp; Contact Information
+              </h2>
             </div>
 
-            <div class="col-md-6">
-              <label for="email" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
-              <input type="email" class="form-control" id="email" name="email" required
-                     placeholder="e.g. amina.bello@example.com" value="{{ current_user.email if current_user.is_authenticated else '' }}">
-            </div>
-
-            {% if not current_user.is_authenticated %}
-            <div class="col-md-6">
-              <label for="password" class="form-label small fw-semibold">Password <span class="text-danger">*</span></label>
-              <input type="password" class="form-control" id="password" name="password" required
-                     placeholder="Minimum 8 characters">
-            </div>
-            {% endif %}
-
-            <div class="col-md-6">
-              <label for="phone_whatsapp" class="form-label small fw-semibold">Phone / WhatsApp Number <span class="text-danger">*</span></label>
-              <input type="tel" class="form-control" id="phone_whatsapp" name="phone_whatsapp" required
-                     placeholder="e.g. +234 803 123 4567">
-            </div>
-
-            <div class="col-md-6">
-              <label for="country" class="form-label small fw-semibold">Country of Residence <span class="text-danger">*</span></label>
-              <select class="form-select" id="country" name="country" required>
-                <option value="Nigeria" selected>Nigeria</option>
-                <option value="Ghana">Ghana</option>
-                <option value="Kenya">Kenya</option>
-                <option value="Niger">Niger</option>
-                <option value="Cameroon">Cameroon</option>
-                <option value="South Africa">South Africa</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div class="col-md-6">
-              <label for="state_province" class="form-label small fw-semibold">State / Province</label>
-              <input type="text" class="form-control" id="state_province" name="state_province"
-                     placeholder="e.g. Kano State, Lagos, Oyo, FCT">
-            </div>
-          </div>
-
-          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
-            2. Choose Your Primary Specialization Service Track
-          </h2>
-          <p class="small text-muted mb-3">Select the core area of work you wish to qualify for. Your Stage 2 Honor Quiz, Stage 3 Timed Assessment, and Stage 8 Calibration will match this requirement.</p>
-
-          <div class="row g-3 mb-4">
-            {% for track_id, t in tracks.items() %}
-            <div class="col-md-6">
-              <div class="card h-100 border p-3 rounded-3 shadow-none hover-shadow position-relative track-select-card">
-                <div class="form-check d-flex align-items-start gap-2">
-                  <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="specialization_track"
-                         id="track_{{ track_id }}" value="{{ track_id }}" {% if track_id == 'translation' %}checked{% endif %}>
-                  <label class="form-check-label w-100 cursor-pointer" for="track_{{ track_id }}">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                      <strong class="text-dark">{{ t.short_title }}</strong>
-                      <span class="badge bg-{{ t.badge_color }} small"><i class="bi {{ t.icon }} me-1"></i>Track</span>
-                    </div>
-                    <p class="small text-muted mb-2 lh-sm">{{ t.tagline }}</p>
-                    <div class="d-flex flex-wrap gap-1">
-                      {% for sk in t.skills_required %}
-                      <span class="badge bg-light text-secondary border small" style="font-size: .65rem;">{{ sk }}</span>
-                      {% endfor %}
-                    </div>
-                  </label>
-                </div>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label for="name" class="form-label small fw-semibold">Full Legal Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" required
+                       placeholder="e.g. Amina Bello" value="{{ current_user.name if current_user.is_authenticated else '' }}">
               </div>
-            </div>
-            {% endfor %}
-          </div>
 
-          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
-            3. African Language Matrix &amp; Dialects
-          </h2>
+              <div class="col-12 col-md-6">
+                <label for="email" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="email" name="email" required
+                       placeholder="e.g. amina.bello@example.com" value="{{ current_user.email if current_user.is_authenticated else '' }}">
+              </div>
 
-          <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              <label for="primary_language" class="form-label small fw-semibold">Primary Native Language <span class="text-danger">*</span></label>
-              <select class="form-select" id="primary_language" name="primary_language" required>
-                <option value="hausa" selected>Hausa (Harshen Hausa)</option>
-                <option value="yoruba">Yoruba (Èdè Yorùbá)</option>
-                <option value="igbo">Igbo (Asụsụ Igbo)</option>
-                <option value="pidgin">Nigerian Pidgin</option>
-                <option value="swahili">Swahili (Kiswahili)</option>
-                <option value="general">English / AI General</option>
-              </select>
-              <div class="form-text">Your qualification test will be paired with this language.</div>
-            </div>
+              {% if not current_user.is_authenticated %}
+              <div class="col-12 col-md-6">
+                <label for="password" class="form-label small fw-semibold">Choose Password <span class="text-danger">*</span></label>
+                <input type="password" class="form-control" id="password" name="password" required
+                       placeholder="Minimum 8 characters">
+              </div>
+              {% endif %}
 
-            <div class="col-md-6">
-              <label for="dialect" class="form-label small fw-semibold">Specific Dialect / Region <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="dialect" name="dialect" required
-                     placeholder="e.g. Kano Hausa, Sokoto, Ibadan Yoruba, Central Igbo, Warri Pidgin">
-            </div>
+              <div class="col-12 col-md-6">
+                <label for="phone_whatsapp" class="form-label small fw-semibold">Phone / WhatsApp Number <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control" id="phone_whatsapp" name="phone_whatsapp" required
+                       placeholder="e.g. +234 803 123 4567">
+              </div>
 
-            <div class="col-12">
-              <label class="form-label small fw-semibold">Additional Competencies (Select all that apply):</label>
-              <div class="row g-2">
-                <div class="col-md-6">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="competencies" value="rlhf" id="comp_rlhf" checked>
-                    <label class="form-check-label small" for="comp_rlhf">
-                      <strong>RLHF &amp; Preference Ranking</strong> — Pairwise model comparison
-                    </label>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="competencies" value="sft" id="comp_sft" checked>
-                    <label class="form-check-label small" for="comp_sft">
-                      <strong>SFT Text Generation</strong> — High-quality prompt/response pairs
-                    </label>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="competencies" value="red_teaming" id="comp_redteam" checked>
-                    <label class="form-check-label small" for="comp_redteam">
-                      <strong>Adversarial Red-Teaming</strong> — Jailbreaks &amp; safety probing
-                    </label>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="competencies" value="translation" id="comp_translation" checked>
-                    <label class="form-check-label small" for="comp_translation">
-                      <strong>Translation &amp; Localization</strong> — Hooked orthography &amp; MTQE
-                    </label>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="competencies" value="audio_speech" id="comp_audio">
-                    <label class="form-check-label small" for="comp_audio">
-                      <strong>Audio Transcription</strong> — Verbatim speech &amp; diarization
-                    </label>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="competencies" value="general_labeling" id="comp_labeling">
-                    <label class="form-check-label small" for="comp_labeling">
-                      <strong>NER &amp; Classification</strong> — Entity boundaries &amp; intent tagging
-                    </label>
-                  </div>
-                </div>
+              <div class="col-12 col-md-6">
+                <label for="country" class="form-label small fw-semibold">Country of Residence <span class="text-danger">*</span></label>
+                <select class="form-select" id="country" name="country" required>
+                  <option value="Nigeria" selected>Nigeria</option>
+                  <option value="Ghana">Ghana</option>
+                  <option value="Kenya">Kenya</option>
+                  <option value="Niger">Niger</option>
+                  <option value="Cameroon">Cameroon</option>
+                  <option value="South Africa">South Africa</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label for="state_province" class="form-label small fw-semibold">State / Province</label>
+                <input type="text" class="form-control" id="state_province" name="state_province"
+                       placeholder="e.g. Kano State, Lagos, Oyo, FCT">
               </div>
             </div>
           </div>
 
-          <h2 class="h6 fw-bold text-uppercase tracking-wider text-primary border-bottom pb-2 mb-3">
-            4. Background &amp; Technical Capabilities
-          </h2>
+          {# Section 2: Service Specialization Track #}
+          <div class="mb-5">
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-2">
+              <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: .75rem;">2</span>
+              <h2 class="h6 fw-bold text-uppercase tracking-wider mb-0">
+                Primary Specialization Service Track
+              </h2>
+            </div>
+            <p class="small text-muted mb-3">Select the core track you wish to qualify for. Your Stage 2 Quiz, Stage 3 Timed Assessment, and Stage 8 Calibration will test this domain.</p>
 
-          <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              <label for="domain_expertise" class="form-label small fw-semibold">Domain Background / Education</label>
-              <select class="form-select" id="domain_expertise" name="domain_expertise">
-                <option value="General" selected>General Studies / Humanities</option>
-                <option value="Linguistics">Linguistics / Languages / Translation</option>
-                <option value="Tech">Computer Science / Software / Cybersecurity</option>
-                <option value="Law">Law / Regulatory / Public Policy</option>
-                <option value="Medicine">Healthcare / Medicine / Pharmacy</option>
-                <option value="Finance">Banking / Finance / Economics</option>
-              </select>
+            <div class="row g-3">
+              {% for track_id, t in tracks.items() %}
+              <div class="col-12 col-md-6">
+                <div class="track-select-card p-3 h-100">
+                  <div class="form-check d-flex align-items-start gap-2 m-0 p-0">
+                    <input class="form-check-input mt-1 flex-shrink-0 ms-1 me-2" type="radio" name="specialization_track"
+                           id="track_{{ track_id }}" value="{{ track_id }}" {% if track_id == 'translation' %}checked{% endif %}>
+                    <label class="form-check-label w-100" for="track_{{ track_id }}" style="cursor: pointer;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <strong class="text-body fw-bold">{{ t.short_title }}</strong>
+                        <span class="badge bg-secondary-subtle text-secondary small">
+                          <i class="bi {{ t.icon }} me-1 text-primary"></i>Track
+                        </span>
+                      </div>
+                      <p class="small text-muted mb-2 lh-sm">{{ t.tagline }}</p>
+                      <div class="d-flex flex-wrap gap-1">
+                        {% for sk in t.skills_required %}
+                        <span class="badge bg-body-tertiary text-secondary border small" style="font-size: .65rem;">{{ sk }}</span>
+                        {% endfor %}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          {# Section 3: African Language Matrix #}
+          <div class="mb-5">
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3">
+              <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: .75rem;">3</span>
+              <h2 class="h6 fw-bold text-uppercase tracking-wider mb-0">
+                African Language Matrix &amp; Dialect
+              </h2>
             </div>
 
-            <div class="col-md-6">
-              <label for="device_type" class="form-label small fw-semibold">Primary Work Device</label>
-              <select class="form-select" id="device_type" name="device_type">
-                <option value="laptop" selected>Laptop / PC (Recommended)</option>
-                <option value="desktop">Desktop Workstation</option>
-                <option value="smartphone">Smartphone (Android / iOS)</option>
-                <option value="tablet">Tablet</option>
-              </select>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label for="primary_language" class="form-label small fw-semibold">Primary Native Language <span class="text-danger">*</span></label>
+                <select class="form-select" id="primary_language" name="primary_language" required>
+                  <option value="hausa" selected>Hausa (Harshen Hausa)</option>
+                  <option value="yoruba">Yoruba (Èdè Yorùbá)</option>
+                  <option value="igbo">Igbo (Asụsụ Igbo)</option>
+                  <option value="pidgin">Nigerian Pidgin</option>
+                  <option value="swahili">Swahili (Kiswahili)</option>
+                  <option value="general">English / AI General</option>
+                </select>
+                <div class="form-text small">Your qualification test will be tailored to this language.</div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label for="dialect" class="form-label small fw-semibold">Specific Dialect / Region <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="dialect" name="dialect" required
+                       placeholder="e.g. Kano Hausa, Sokoto, Ibadan Yoruba, Central Igbo, Warri Pidgin">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-2">Additional Competencies (Select all that apply):</label>
+                <div class="row g-2">
+                  <div class="col-12 col-md-6">
+                    <div class="p-2 border rounded bg-body-tertiary">
+                      <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" name="competencies" value="rlhf" id="comp_rlhf" checked>
+                        <label class="form-check-label small" for="comp_rlhf">
+                          <strong>RLHF &amp; Preference Ranking</strong> — Pairwise model comparison
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="p-2 border rounded bg-body-tertiary">
+                      <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" name="competencies" value="sft" id="comp_sft" checked>
+                        <label class="form-check-label small" for="comp_sft">
+                          <strong>SFT Text Generation</strong> — High-quality prompt/response pairs
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="p-2 border rounded bg-body-tertiary">
+                      <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" name="competencies" value="red_teaming" id="comp_redteam" checked>
+                        <label class="form-check-label small" for="comp_redteam">
+                          <strong>Adversarial Red-Teaming</strong> — Jailbreaks &amp; safety probing
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="p-2 border rounded bg-body-tertiary">
+                      <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" name="competencies" value="translation" id="comp_translation" checked>
+                        <label class="form-check-label small" for="comp_translation">
+                          <strong>Translation &amp; Localization</strong> — Hooked orthography &amp; MTQE
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Section 4: Background & Technical Availability #}
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3">
+              <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: .75rem;">4</span>
+              <h2 class="h6 fw-bold text-uppercase tracking-wider mb-0">
+                Background &amp; Technical Capabilities
+              </h2>
             </div>
 
-            <div class="col-md-6">
-              <label for="weekly_hours" class="form-label small fw-semibold">Weekly Availability (Hours)</label>
-              <input type="number" class="form-control" id="weekly_hours" name="weekly_hours" min="5" max="50" value="15">
+            <div class="row g-3">
+              <div class="col-12 col-md-4">
+                <label for="domain_expertise" class="form-label small fw-semibold">Domain Education</label>
+                <select class="form-select" id="domain_expertise" name="domain_expertise">
+                  <option value="General" selected>General Studies / Humanities</option>
+                  <option value="Linguistics">Linguistics / Languages / Translation</option>
+                  <option value="Tech">Computer Science / Software / Cybersecurity</option>
+                  <option value="Law">Law / Regulatory / Public Policy</option>
+                  <option value="Medicine">Healthcare / Medicine / Pharmacy</option>
+                  <option value="Finance">Banking / Finance / Economics</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label for="device_type" class="form-label small fw-semibold">Primary Work Device</label>
+                <select class="form-select" id="device_type" name="device_type">
+                  <option value="laptop" selected>Laptop / PC (Recommended)</option>
+                  <option value="desktop">Desktop Workstation</option>
+                  <option value="smartphone">Smartphone (Android / iOS)</option>
+                  <option value="tablet">Tablet</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label for="weekly_hours" class="form-label small fw-semibold">Weekly Availability (Hours)</label>
+                <input type="number" class="form-control" id="weekly_hours" name="weekly_hours" min="5" max="50" value="15">
+              </div>
             </div>
           </div>
 
           <div class="d-grid mt-4">
-            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold py-3 shadow-sm">
               Submit Application &amp; Continue to Stage 2 &rarr;
             </button>
           </div>

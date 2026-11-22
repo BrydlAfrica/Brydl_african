@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
     <div>
-      <span class="badge bg-warning text-dark px-2 py-1 small fw-semibold mb-1">
+      <span class="badge bg-warning text-dark px-2 py-1 small fw-bold mb-1">
         <i class="bi bi-hourglass-split me-1"></i>PROVISIONAL ASSIGNMENT
       </span>
-      <h1 class="h4 fw-bold text-dark mb-0">Task #{{ task.id }} · {{ project.name }}</h1>
+      <h1 class="h4 fw-bold mb-0">Task #{{ task.id }} · {{ project.name }}</h1>
     </div>
     <a href="{{ url_for('provisional.tasks') }}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-x-lg me-1"></i>Cancel &amp; Return
@@ -20,48 +20,48 @@
     {# Left Column: Instructions & Input Data #}
     <div class="col-lg-6">
       {# Project Guidelines / Instructions #}
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3 border-0">
-          <h2 class="h6 fw-bold mb-0 text-dark">
+      <div class="card brydl-card mb-4">
+        <div class="card-header brydl-card-header">
+          <h2 class="h6 fw-bold mb-0">
             <i class="bi bi-journal-text text-primary me-2"></i>Project Guidelines &amp; Instructions
           </h2>
         </div>
-        <div class="card-body pt-0">
-          <div class="p-3 rounded bg-light border small text-dark" style="white-space: pre-wrap; line-height: 1.6;">
+        <div class="card-body p-3">
+          <div class="p-3 rounded bg-body-tertiary border small" style="white-space: pre-wrap; line-height: 1.6;">
             {{ project.instructions }}
           </div>
         </div>
       </div>
 
       {# Input Data Card #}
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3 border-0">
-          <h2 class="h6 fw-bold mb-0 text-dark">
+      <div class="card brydl-card">
+        <div class="card-header brydl-card-header">
+          <h2 class="h6 fw-bold mb-0">
             <i class="bi bi-file-earmark-text text-info me-2"></i>Input Data to Annotate
           </h2>
         </div>
-        <div class="card-body pt-0">
+        <div class="card-body p-3">
           {% if pref_doc %}
             <div class="mb-3">
               <label class="form-label small fw-bold text-muted text-uppercase">Prompt / Query</label>
-              <div class="p-3 bg-light rounded border text-dark">{{ pref_doc.prompt }}</div>
+              <div class="p-3 bg-body-tertiary rounded border">{{ pref_doc.prompt }}</div>
             </div>
             <div class="row g-3">
-              <div class="col-md-6">
+              <div class="col-12 col-md-6">
                 <label class="form-label small fw-bold text-muted text-uppercase">Response A</label>
-                <div class="p-3 bg-light rounded border text-dark small" style="min-height: 120px;">
+                <div class="p-3 bg-body-tertiary rounded border small" style="min-height: 120px;">
                   {{ pref_doc.response_b if is_flipped else pref_doc.response_a }}
                 </div>
               </div>
-              <div class="col-md-6">
+              <div class="col-12 col-md-6">
                 <label class="form-label small fw-bold text-muted text-uppercase">Response B</label>
-                <div class="p-3 bg-light rounded border text-dark small" style="min-height: 120px;">
+                <div class="p-3 bg-body-tertiary rounded border small" style="min-height: 120px;">
                   {{ pref_doc.response_a if is_flipped else pref_doc.response_b }}
                 </div>
               </div>
             </div>
           {% else %}
-            <div class="p-3 rounded bg-light border text-dark font-monospace small" style="white-space: pre-wrap;">
+            <div class="p-3 rounded bg-body-tertiary border font-monospace small" style="white-space: pre-wrap;">
               {{ task.input_data }}
             </div>
           {% endif %}
@@ -71,25 +71,25 @@
 
     {# Right Column: Annotation Output Form #}
     <div class="col-lg-6">
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3 border-0">
-          <h2 class="h6 fw-bold mb-0 text-dark">
+      <div class="card brydl-card">
+        <div class="card-header brydl-card-header">
+          <h2 class="h6 fw-bold mb-0">
             <i class="bi bi-check2-circle text-success me-2"></i>Your Annotation Submission
           </h2>
         </div>
-        <div class="card-body pt-0">
+        <div class="card-body p-4">
           <form method="post" novalidate aria-label="Task submission form">
             {{ form.hidden_tag() }}
 
             {# Classification Form Fields #}
             {% if form.label_choice is defined %}
               <div class="mb-4">
-                {{ form.label_choice.label(class="form-label fw-semibold text-dark") }}
+                {{ form.label_choice.label(class="form-label fw-semibold") }}
                 <div class="d-flex flex-column gap-2 mt-1">
                   {% for subfield in form.label_choice %}
-                    <div class="form-check p-3 rounded border bg-light">
+                    <div class="form-check p-3 rounded border bg-body-tertiary">
                       {{ subfield(class="form-check-input") }}
-                      {{ subfield.label(class="form-check-label fw-medium text-dark ms-2") }}
+                      {{ subfield.label(class="form-check-label fw-medium ms-2") }}
                     </div>
                   {% endfor %}
                 </div>
@@ -103,8 +103,8 @@
             {% if form.translated_text is defined %}
               <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                  {{ form.translated_text.label(class="form-label fw-semibold text-dark mb-0") }}
-                  <span class="badge bg-light text-muted border small">Zero AI Cheating</span>
+                  {{ form.translated_text.label(class="form-label fw-semibold mb-0") }}
+                  <span class="badge bg-secondary-subtle text-secondary small">Zero AI Cheating</span>
                 </div>
                 {# African Hooked Letters Quick Toolbar #}
                 <div class="btn-group btn-group-sm mb-2" role="group" aria-label="African orthography characters" id="charToolbar">
@@ -129,12 +129,12 @@
             {# Preference / RLHF Form Fields #}
             {% if form.preference_choice is defined %}
               <div class="mb-3">
-                {{ form.preference_choice.label(class="form-label fw-semibold text-dark") }}
-                <div class="d-flex gap-3 mt-1">
+                {{ form.preference_choice.label(class="form-label fw-semibold") }}
+                <div class="d-flex flex-column flex-sm-row gap-2 mt-1">
                   {% for subfield in form.preference_choice %}
-                    <div class="form-check p-3 rounded border bg-light flex-fill">
+                    <div class="form-check p-3 rounded border bg-body-tertiary flex-fill">
                       {{ subfield(class="form-check-input") }}
-                      {{ subfield.label(class="form-check-label fw-medium text-dark ms-2") }}
+                      {{ subfield.label(class="form-check-label fw-medium ms-2") }}
                     </div>
                   {% endfor %}
                 </div>
@@ -144,7 +144,7 @@
               </div>
               {% if form.rationale is defined %}
                 <div class="mb-3">
-                  {{ form.rationale.label(class="form-label fw-semibold text-dark") }}
+                  {{ form.rationale.label(class="form-label fw-semibold") }}
                   {{ form.rationale(class="form-control" + (" is-invalid" if form.rationale.errors else ""), rows=3, placeholder="Explain why the chosen response is more accurate, helpful, or safe...") }}
                   {% for error in form.rationale.errors %}
                     <div class="invalid-feedback d-block">{{ error }}</div>
@@ -156,7 +156,7 @@
             {# Generic / Free-text fallback #}
             {% if form.response_text is defined %}
               <div class="mb-3">
-                {{ form.response_text.label(class="form-label fw-semibold text-dark") }}
+                {{ form.response_text.label(class="form-label fw-semibold") }}
                 {{ form.response_text(class="form-control" + (" is-invalid" if form.response_text.errors else ""), rows=6) }}
                 {% for error in form.response_text.errors %}
                   <div class="invalid-feedback d-block">{{ error }}</div>
@@ -165,7 +165,7 @@
             {% endif %}
 
             <div class="d-grid mt-4">
-              <button type="submit" class="btn btn-primary py-2 fw-semibold">
+              <button type="submit" class="btn btn-primary py-3 fw-bold shadow-sm">
                 <i class="bi bi-send-check-fill me-1"></i>Submit Completed Annotation
               </button>
             </div>

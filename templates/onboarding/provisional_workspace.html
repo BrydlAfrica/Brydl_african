@@ -3,95 +3,93 @@
 {% block title %}Provisional Annotator Hub · {{ app_name }}{% endblock %}
 
 {% block content %}
-<div class="container py-3">
+<div class="container py-4">
   {# Top Header Card #}
-  <div class="card border-0 shadow-sm mb-4 bg-primary bg-gradient text-white">
-    <div class="card-body p-4">
-      <div class="row align-items-center">
-        <div class="col-md-8">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge bg-warning text-dark px-3 py-2 fw-semibold">
-              <i class="bi bi-hourglass-split me-1"></i>PROVISIONAL CONTRIBUTOR
-            </span>
-            <span class="badge bg-white bg-opacity-25 text-white px-3 py-2">
-              <i class="bi bi-translate me-1"></i>{{ (applicant.primary_language if applicant else 'General')|title }} Pod
-            </span>
-            <span class="badge bg-white bg-opacity-25 text-white px-3 py-2">
-              <i class="bi bi-stars me-1"></i>{{ (applicant.specialization_track.replace('_', ' ')|title if applicant else 'Data Labeling') }}
-            </span>
-          </div>
-          <h1 class="h3 fw-bold mb-1">Welcome, {{ current_user.name }}!</h1>
-          <p class="mb-0 text-white-50 small">
-            You are actively completing eligible annotation projects and accumulating earnings. Maintain high accuracy to qualify for <strong>Official Enterprise Workforce Verification</strong>.
-          </p>
+  <div class="card brydl-hero-card mb-4 p-4 p-md-5">
+    <div class="row align-items-center">
+      <div class="col-12 col-md-8">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <span class="badge bg-warning text-dark px-3 py-1 fw-bold" style="font-size: .7rem;">
+            <i class="bi bi-hourglass-split me-1"></i>PROVISIONAL CONTRIBUTOR
+          </span>
+          <span class="badge bg-white bg-opacity-25 text-white px-3 py-1 small">
+            <i class="bi bi-translate me-1"></i>{{ (applicant.primary_language if applicant else 'General')|title }} Pod
+          </span>
+          <span class="badge bg-white bg-opacity-25 text-white px-3 py-1 small">
+            <i class="bi bi-stars me-1"></i>{{ (applicant.specialization_track.replace('_', ' ')|title if applicant else 'Data Labeling') }}
+          </span>
         </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-          <a href="{{ url_for('provisional.tasks') }}" class="btn btn-light fw-semibold text-primary px-4 py-2 shadow-sm">
-            <i class="bi bi-play-circle-fill me-1"></i>Start Working Tasks
-          </a>
-        </div>
+        <h1 class="h3 fw-bold mb-2 text-white">Welcome, {{ current_user.name }}!</h1>
+        <p class="mb-0 text-white-50 small">
+          You are actively completing production tasks in your provisional sandbox. Maintain accuracy &ge; 85% to qualify for <strong>Official Enterprise Workforce Verification</strong>.
+        </p>
+      </div>
+      <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('provisional.tasks') }}" class="btn btn-light fw-bold text-primary px-4 py-2 shadow-sm">
+          <i class="bi bi-play-circle-fill me-1"></i>Start Working Tasks
+        </a>
       </div>
     </div>
   </div>
 
   {# Verification Readiness Progress Meter #}
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+  <div class="card brydl-card mb-4">
+    <div class="card-header brydl-card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
       <div>
-        <h2 class="h5 fw-bold mb-0 text-dark">
+        <h2 class="h5 fw-bold mb-0">
           <i class="bi bi-speedometer text-primary me-2"></i>Official Verification Readiness Meter
         </h2>
         <span class="text-muted small">Tracks your performance against Brydl's official workforce accreditation standards.</span>
       </div>
       <div>
         {% if perf.is_eligible %}
-          <span class="badge bg-success-subtle text-success px-3 py-2 fs-6 border border-success">
+          <span class="badge bg-success-subtle text-success px-3 py-2 fs-6 border border-success-subtle">
             <i class="bi bi-check-circle-fill me-1"></i>Eligible for Verification
           </span>
         {% else %}
-          <span class="badge bg-secondary-subtle text-secondary px-3 py-2 fs-6 border">
+          <span class="badge bg-secondary-subtle text-secondary px-3 py-2 fs-6 border border-secondary-subtle">
             <i class="bi bi-clock-history me-1"></i>Building Track Record
           </span>
         {% endif %}
       </div>
     </div>
-    <div class="card-body pt-0">
+    <div class="card-body p-4">
       <div class="row g-3">
         {# Quality Metric #}
-        <div class="col-md-3 col-sm-6">
-          <div class="p-3 rounded-3 bg-light border text-center">
+        <div class="col-6 col-md-3">
+          <div class="p-3 rounded-3 bg-body-tertiary border text-center h-100">
             <div class="text-muted small text-uppercase fw-semibold mb-1">QA Accuracy Rate</div>
-            <div class="h3 fw-bold text-dark mb-0">{{ perf.qa_average_percent }}%</div>
+            <div class="h3 fw-bold mb-0">{{ perf.qa_average_percent }}%</div>
             <div class="small mt-1 {% if perf.qa_average_percent >= 85 %}text-success{% else %}text-muted{% endif %}">
               <i class="bi bi-arrow-up-right me-1"></i>Target: &ge; 85%
             </div>
           </div>
         </div>
         {# Completed Projects #}
-        <div class="col-md-3 col-sm-6">
-          <div class="p-3 rounded-3 bg-light border text-center">
+        <div class="col-6 col-md-3">
+          <div class="p-3 rounded-3 bg-body-tertiary border text-center h-100">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Projects Contributed</div>
-            <div class="h3 fw-bold text-dark mb-0">{{ perf.distinct_projects_count }}</div>
+            <div class="h3 fw-bold mb-0">{{ perf.distinct_projects_count }}</div>
             <div class="small mt-1 {% if perf.distinct_projects_count >= 2 %}text-success{% else %}text-muted{% endif %}">
               <i class="bi bi-check2-circle me-1"></i>Target: &ge; 2 Projects
             </div>
           </div>
         </div>
         {# Approved Submissions #}
-        <div class="col-md-3 col-sm-6">
-          <div class="p-3 rounded-3 bg-light border text-center">
+        <div class="col-6 col-md-3">
+          <div class="p-3 rounded-3 bg-body-tertiary border text-center h-100">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Approved Tasks</div>
-            <div class="h3 fw-bold text-dark mb-0">{{ perf.approved_submissions }}</div>
+            <div class="h3 fw-bold mb-0">{{ perf.approved_submissions }}</div>
             <div class="small mt-1 text-muted">
               Total submitted: {{ perf.total_submissions }}
             </div>
           </div>
         </div>
         {# Active Days #}
-        <div class="col-md-3 col-sm-6">
-          <div class="p-3 rounded-3 bg-light border text-center">
+        <div class="col-6 col-md-3">
+          <div class="p-3 rounded-3 bg-body-tertiary border text-center h-100">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Active Tenure</div>
-            <div class="h3 fw-bold text-dark mb-0">{{ perf.active_days }}d</div>
+            <div class="h3 fw-bold mb-0">{{ perf.active_days }}d</div>
             <div class="small mt-1 text-muted">
               Verification target: 30 days
             </div>
@@ -100,37 +98,35 @@
       </div>
 
       {# Status Step Banner #}
-      <div class="mt-4 p-3 rounded-3 bg-light border">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="d-flex align-items-center gap-3">
-            <div class="p-2 rounded-circle bg-primary-subtle text-primary">
-              <i class="bi bi-award-fill fs-4"></i>
-            </div>
-            <div>
-              <div class="fw-semibold text-dark">Current Accreditation Phase:
-                <span class="text-uppercase text-primary">
-                  {% if perf.verification_status == 'provisional' %}
-                    Active Provisional Production Work
-                  {% elif perf.verification_status == 'pending_hr' %}
-                    Pending HR Screening Interview
-                  {% elif perf.verification_status == 'hr_cleared' %}
-                    HR Cleared — Awaiting Final Admin Sign-off
-                  {% elif perf.verification_status == 'verified' %}
-                    Verified Enterprise Workforce
-                  {% else %}
-                    {{ perf.verification_status|title }}
-                  {% endif %}
-                </span>
-              </div>
-              <div class="text-muted small">
+      <div class="mt-4 p-3 rounded-3 bg-body-tertiary border">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 rounded-circle bg-primary-subtle text-primary flex-shrink-0">
+            <i class="bi bi-award-fill fs-4"></i>
+          </div>
+          <div>
+            <div class="fw-semibold">Current Accreditation Phase:
+              <span class="text-uppercase text-primary">
                 {% if perf.verification_status == 'provisional' %}
-                  Complete tasks on your active projects. Once you hit performance thresholds, our Operations and HR team will schedule your verification interview.
+                  Active Provisional Production Work
                 {% elif perf.verification_status == 'pending_hr' %}
-                  You have met performance thresholds! An HR screening specialist will contact you to conduct your interview and review your portfolio.
+                  Pending HR Screening Interview
                 {% elif perf.verification_status == 'hr_cleared' %}
-                  Your HR interview and technical dossier are cleared. Admin final verification cutover is currently in progress.
+                  HR Cleared — Awaiting Final Admin Sign-off
+                {% elif perf.verification_status == 'verified' %}
+                  Verified Enterprise Workforce
+                {% else %}
+                  {{ perf.verification_status|title }}
                 {% endif %}
-              </div>
+              </span>
+            </div>
+            <div class="text-muted small">
+              {% if perf.verification_status == 'provisional' %}
+                Complete tasks on your active projects. Once you hit performance thresholds, our Operations and HR team will schedule your verification interview.
+              {% elif perf.verification_status == 'pending_hr' %}
+                You have met performance thresholds! An HR screening specialist will contact you to conduct your interview and review your portfolio.
+              {% elif perf.verification_status == 'hr_cleared' %}
+                Your HR interview and technical dossier are cleared. Admin final verification cutover is currently in progress.
+              {% endif %}
             </div>
           </div>
         </div>
@@ -142,9 +138,9 @@
     {# Left Column: Active Tasks & Open Projects #}
     <div class="col-lg-8">
       {# Open Assigned Tasks #}
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-          <h3 class="h6 fw-bold mb-0 text-dark">
+      <div class="card brydl-card mb-4">
+        <div class="card-header brydl-card-header d-flex justify-content-between align-items-center">
+          <h3 class="h6 fw-bold mb-0">
             <i class="bi bi-list-task text-primary me-2"></i>My Open Task Queue
           </h3>
           <a href="{{ url_for('provisional.tasks') }}" class="btn btn-sm btn-outline-primary">View All</a>
@@ -153,20 +149,20 @@
           {% if open_tasks %}
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead class="table-light small text-uppercase">
+                <thead>
                   <tr>
-                    <th>Task ID</th>
+                    <th class="ps-3">Task ID</th>
                     <th>Project</th>
                     <th>Type</th>
                     <th>Rate</th>
-                    <th class="text-end">Action</th>
+                    <th class="text-end pe-3">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for t in open_tasks %}
                   <tr>
-                    <td class="fw-semibold text-muted">#{{ t.id }}</td>
-                    <td class="fw-medium text-dark">{{ t.project.name }}</td>
+                    <td class="ps-3 fw-semibold text-muted">#{{ t.id }}</td>
+                    <td class="fw-medium">{{ t.project.name }}</td>
                     <td>
                       <span class="badge bg-secondary-subtle text-secondary small">{{ t.project.task_type }}</span>
                     </td>
@@ -177,7 +173,7 @@
                         Standard
                       {% endif %}
                     </td>
-                    <td class="text-end">
+                    <td class="text-end pe-3">
                       <a href="{{ url_for('provisional.task_detail', task_id=t.id) }}" class="btn btn-sm btn-primary">
                         <i class="bi bi-pencil-square me-1"></i>Complete Task
                       </a>
@@ -191,16 +187,16 @@
             <div class="p-4 text-center text-muted">
               <i class="bi bi-check2-all fs-1 text-success d-block mb-2"></i>
               <p class="mb-1 fw-medium">All caught up! No open tasks in your queue right now.</p>
-              <p class="small text-muted">New project batches are allocated continuously by Project Managers.</p>
+              <p class="small text-muted mb-0">New project batches are allocated continuously by Project Managers.</p>
             </div>
           {% endif %}
         </div>
       </div>
 
       {# Recent Submissions Log #}
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-          <h3 class="h6 fw-bold mb-0 text-dark">
+      <div class="card brydl-card">
+        <div class="card-header brydl-card-header d-flex justify-content-between align-items-center">
+          <h3 class="h6 fw-bold mb-0">
             <i class="bi bi-clock-history text-secondary me-2"></i>Recent Work Submissions
           </h3>
           <a href="{{ url_for('provisional.history') }}" class="btn btn-sm btn-outline-secondary">History</a>
@@ -209,18 +205,18 @@
           {% if recent_submissions %}
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead class="table-light small text-uppercase">
+                <thead>
                   <tr>
-                    <th>Task</th>
+                    <th class="ps-3">Task</th>
                     <th>Submitted</th>
                     <th>Status</th>
-                    <th>QA Score</th>
+                    <th class="text-end pe-3">QA Score</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for s in recent_submissions %}
                   <tr>
-                    <td>
+                    <td class="ps-3">
                       <div class="fw-semibold">#{{ s.task_id }}</div>
                       <div class="text-muted small">{{ s.task.project.name if s.task else '-' }}</div>
                     </td>
@@ -234,7 +230,7 @@
                         <span class="badge bg-warning-subtle text-warning"><i class="bi bi-hourglass me-1"></i>In Review</span>
                       {% endif %}
                     </td>
-                    <td>
+                    <td class="text-end pe-3">
                       {% if s.qa_score is not none %}
                         <span class="fw-bold {% if s.qa_score >= 85 %}text-success{% else %}text-danger{% endif %}">{{ s.qa_score }}%</span>
                       {% else %}
@@ -258,29 +254,29 @@
     {# Right Column: Earnings Summary & Career Pathway #}
     <div class="col-lg-4">
       {# Provisional Earnings Card #}
-      <div class="card border-0 shadow-sm mb-4">
+      <div class="card brydl-card mb-4">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="h6 fw-bold mb-0 text-dark">
+            <h3 class="h6 fw-bold mb-0">
               <i class="bi bi-wallet2 text-success me-2"></i>Provisional Pay Ledger
             </h3>
-            <a href="{{ url_for('provisional.earnings') }}" class="small text-primary text-decoration-none">Full Ledger</a>
+            <a href="{{ url_for('provisional.earnings') }}" class="small text-primary text-decoration-none fw-semibold">Full Ledger &rarr;</a>
           </div>
           <div class="mb-3">
             <div class="text-muted small text-uppercase fw-semibold">Approved Balance</div>
             <div class="h2 fw-bold text-success mb-0">${{ "%.2f"|format(perf.total_approved_earnings) }}</div>
-            <div class="text-muted small mt-1">Approx. ₦{{ "{:,.2f}".format(usd_to_ngn(perf.total_approved_earnings)) }}</div>
+            <div class="text-muted small mt-1 font-monospace">Approx. ₦{{ "{:,.2f}".format(usd_to_ngn(perf.total_approved_earnings)) }}</div>
           </div>
           <hr class="my-3 opacity-25">
           <div class="d-flex justify-content-between small text-muted mb-2">
             <span>Approved Tasks:</span>
-            <span class="fw-semibold text-dark">{{ perf.approved_submissions }}</span>
+            <span class="fw-semibold">{{ perf.approved_submissions }}</span>
           </div>
           <div class="d-flex justify-content-between small text-muted mb-3">
             <span>Pending Review:</span>
             <span class="fw-semibold text-warning">{{ perf.pending_submissions }} tasks</span>
           </div>
-          <div class="p-2 rounded bg-light border small text-muted">
+          <div class="p-2 rounded bg-body-tertiary border small text-muted">
             <i class="bi bi-shield-check text-success me-1"></i>
             Provisional workers are paid on schedule. When verified, your entire earnings history migrates seamlessly.
           </div>
@@ -288,37 +284,37 @@
       </div>
 
       {# Growth & Career Ladder Card #}
-      <div class="card border-0 shadow-sm">
+      <div class="card brydl-card">
         <div class="card-body p-4">
-          <h3 class="h6 fw-bold mb-3 text-dark">
+          <h3 class="h6 fw-bold mb-3">
             <i class="bi bi-ladder text-info me-2"></i>Brydl Career Progression
           </h3>
           <ul class="list-unstyled mb-0 small">
             <li class="d-flex align-items-start gap-2 mb-3">
               <i class="bi bi-check-circle-fill text-primary mt-1"></i>
               <div>
-                <strong class="text-dark">1. Provisional Contributor</strong>
+                <strong>1. Provisional Contributor</strong>
                 <p class="text-muted mb-0">Complete onboarding tasks, build experience, and establish quality consistency.</p>
               </div>
             </li>
             <li class="d-flex align-items-start gap-2 mb-3">
               <i class="bi bi-circle text-muted mt-1"></i>
               <div>
-                <strong class="text-dark">2. Verified Annotator</strong>
+                <strong>2. Verified Annotator</strong>
                 <p class="text-muted mb-0">Pass HR screening and QA audit to unlock sensitive client datasets and RedLab safety testing.</p>
               </div>
             </li>
             <li class="d-flex align-items-start gap-2 mb-3">
               <i class="bi bi-circle text-muted mt-1"></i>
               <div>
-                <strong class="text-dark">3. Senior Specialist / QA Reviewer</strong>
+                <strong>3. Senior Specialist / QA Reviewer</strong>
                 <p class="text-muted mb-0">Conduct multi-blind QA reviews and lead specialized African language corpora.</p>
               </div>
             </li>
             <li class="d-flex align-items-start gap-2">
               <i class="bi bi-circle text-muted mt-1"></i>
               <div>
-                <strong class="text-dark">4. Language Pod Lead</strong>
+                <strong>4. Language Pod Lead</strong>
                 <p class="text-muted mb-0">Mentor new annotators and manage regional annotation delivery.</p>
               </div>
             </li>

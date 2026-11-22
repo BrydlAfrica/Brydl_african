@@ -6,13 +6,13 @@
 <div class="row justify-content-center">
   <div class="col-lg-10">
     {# Candidate Header #}
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card brydl-card mb-4">
       <div class="card-body p-4">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
           <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <span class="badge bg-light text-dark border">Applicant #{{ applicant.id }}</span>
-              <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }} Track</span>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Applicant #{{ applicant.id }}</span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }} Track</span>
             </div>
             <h1 class="h4 mb-1 fw-bold">{{ applicant.user.name }}</h1>
             <p class="text-muted small mb-0">
@@ -22,7 +22,7 @@
             </p>
           </div>
 
-          <div class="text-end">
+          <div>
             {% if applicant.stage == 'active' %}
               <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
                 <i class="bi bi-check-circle-fill me-1"></i>Stage 9: Active Workforce
@@ -54,15 +54,15 @@
     </div>
 
     {# 9-Stage Visual Lifecycle Stepper #}
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-      <div class="card-header bg-white py-3">
+    <div class="card brydl-card mb-4">
+      <div class="card-header brydl-card-header">
         <h2 class="h6 fw-bold mb-0">9-Stage Workforce Qualification Stepper &bull; {{ track_meta.short_title }}</h2>
       </div>
       <div class="card-body p-4">
         <div class="row g-2 text-center small font-monospace">
           {# Stage 1 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded bg-success-subtle text-success">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded bg-success-subtle text-success h-100">
               <i class="bi bi-check-circle-fill d-block mb-1 fs-5"></i>
               <strong>1. Apply</strong>
               <div class="text-muted" style="font-size: 0.75rem;">Profile &amp; Track</div>
@@ -70,8 +70,8 @@
           </div>
 
           {# Stage 2 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.guidelines_passed else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.guidelines_passed else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.guidelines_passed else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>2. Guidelines</strong>
               <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.guidelines_quiz_score }}% Score</div>
@@ -79,8 +79,8 @@
           </div>
 
           {# Stage 3 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.test_submitted_at else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.test_submitted_at else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.test_submitted_at else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>3. Test</strong>
               <div class="text-muted" style="font-size: 0.75rem;">{{ track_meta.short_title }}</div>
@@ -88,8 +88,8 @@
           </div>
 
           {# Stage 4 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.test_score_composite > 0 else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.test_score_composite > 0 else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.test_score_composite > 0 else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>4. Score</strong>
               <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.test_score_composite }}% Composite</div>
@@ -97,8 +97,8 @@
           </div>
 
           {# Stage 5 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.assigned_pod else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.assigned_pod else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.assigned_pod else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>5. Fit to Need</strong>
               <div class="text-muted" style="font-size: 0.75rem;">Pod Match</div>
@@ -106,8 +106,8 @@
           </div>
 
           {# Stage 6 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.admin_decision == 'approved' else ('bg-danger-subtle text-danger' if applicant.admin_decision == 'declined' else 'bg-light text-muted') }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.admin_decision == 'approved' else ('bg-danger-subtle text-danger' if applicant.admin_decision == 'declined' else 'bg-body-tertiary text-muted') }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.admin_decision == 'approved' else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>6. Decision</strong>
               <div class="text-muted" style="font-size: 0.75rem;">{{ applicant.admin_decision|capitalize }}</div>
@@ -115,8 +115,8 @@
           </div>
 
           {# Stage 7 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.agreement_signed_at else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.agreement_signed_at else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.agreement_signed_at else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>7. Agreement</strong>
               <div class="text-muted" style="font-size: 0.75rem;">NDA E-Signed</div>
@@ -124,8 +124,8 @@
           </div>
 
           {# Stage 8 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.trial_passed else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.trial_passed else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-check-circle-fill' if applicant.trial_passed else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>8. Trial</strong>
               <div class="text-muted" style="font-size: 0.75rem;">10 Tasks</div>
@@ -133,8 +133,8 @@
           </div>
 
           {# Stage 9 #}
-          <div class="col-md-4 col-lg">
-            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.stage == 'active' else 'bg-light text-muted' }}">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="p-2 border rounded {{ 'bg-success-subtle text-success' if applicant.stage == 'active' else 'bg-body-tertiary text-muted' }} h-100">
               <i class="bi {{ 'bi-award-fill' if applicant.stage == 'active' else 'bi-circle' }} d-block mb-1 fs-5"></i>
               <strong>9. Active</strong>
               <div class="text-muted" style="font-size: 0.75rem;">Production</div>
@@ -145,7 +145,7 @@
     </div>
 
     {# Current Action Callout #}
-    <div class="card border-0 shadow-sm rounded-3">
+    <div class="card brydl-card">
       <div class="card-body p-4 text-center">
         {% if applicant.stage == 'active' %}
           <div class="py-4">

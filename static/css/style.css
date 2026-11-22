@@ -876,3 +876,126 @@ kbd {
 [data-bs-theme="dark"] .chat-turn.chat-system {
   background: #21262d;
 }
+
+/* ---- Brydl Design System: Onboarding & HR Polish ---- */
+
+.brydl-hero-card {
+  background: linear-gradient(135deg, var(--brydl-navy-deep) 0%, var(--brydl-navy) 100%);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.brydl-hero-card .brydl-binary {
+  opacity: 0.35;
+}
+
+.brydl-card {
+  background: var(--brydl-surface);
+  border: 1px solid var(--brydl-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.brydl-card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--brydl-border);
+  padding: 1rem 1.25rem;
+}
+
+/* Track Selection Radio Cards */
+.track-select-card {
+  background: var(--brydl-surface);
+  border: 1.5px solid var(--brydl-border);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.track-select-card:hover {
+  border-color: var(--brydl-accent);
+  background-color: var(--brydl-accent-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(43, 91, 186, 0.08);
+}
+
+.track-select-card.is-selected,
+.track-select-card:has(.form-check-input:checked) {
+  border-color: var(--brydl-accent);
+  background: var(--brydl-accent-soft);
+  box-shadow: 0 0 0 1px var(--brydl-accent), 0 4px 14px rgba(43, 91, 186, 0.12);
+}
+
+/* Pipeline KPI metric cards */
+.pipeline-kpi-card {
+  background: var(--brydl-surface);
+  border: 1px solid var(--brydl-border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pipeline-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.pipeline-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.pipeline-kpi-card.kpi-primary::before { background: var(--brydl-accent); }
+.pipeline-kpi-card.kpi-warning::before { background: #d97706; }
+.pipeline-kpi-card.kpi-info::before { background: #0284c7; }
+.pipeline-kpi-card.kpi-success::before { background: #059669; }
+
+.pipeline-kpi-card .kpi-number {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* Candidate table enhancements */
+.candidate-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--brydl-accent-soft);
+  color: var(--brydl-accent);
+  border: 1px solid var(--brydl-border);
+  flex-shrink: 0;
+}
+
+[data-bs-theme="dark"] .track-select-card {
+  background: var(--brydl-surface);
+  border-color: var(--brydl-border);
+}
+
+[data-bs-theme="dark"] .track-select-card:hover {
+  border-color: var(--brydl-accent-bright);
+  background-color: rgba(79, 127, 224, 0.12);
+}
+
+[data-bs-theme="dark"] .track-select-card:has(.form-check-input:checked) {
+  border-color: var(--brydl-accent-bright);
+  background: rgba(79, 127, 224, 0.15);
+  box-shadow: 0 0 0 1px var(--brydl-accent-bright);
+}
+

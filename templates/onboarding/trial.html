@@ -5,37 +5,40 @@
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-10">
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-      <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center justify-content-between">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="badge bg-info text-dark">Stage 8 of 9 &bull; Calibration Trial</span>
-            <span class="badge bg-{{ track_meta.badge_color }}"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }}</span>
+    <div class="card brydl-card overflow-hidden mb-4">
+      <div class="brydl-hero-card p-4 p-md-5">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-white text-primary fw-bold px-2 py-1">STAGE 8 OF 9</span>
+              <span class="badge bg-white bg-opacity-25 text-white"><i class="bi {{ track_meta.icon }} me-1"></i>{{ track_meta.short_title }}</span>
+            </div>
+            <h1 class="h3 mb-1 fw-bold text-white">10-Task Supervised Calibration Sandbox</h1>
+            <p class="text-white-50 small mb-0">Complete all 10 tasks to establish baseline accuracy and graduate to active production.</p>
           </div>
-          <h1 class="h4 mb-0 fw-bold">10-Task Supervised Calibration Sandbox</h1>
-        </div>
-        <div class="text-end">
-          <span class="badge bg-light text-dark fs-6 font-monospace border">
-            {{ completed_count }} / {{ total_count }} Tasks Completed
-          </span>
+          <div class="text-end">
+            <span class="badge bg-white bg-opacity-25 text-white fs-6 font-monospace border border-white border-opacity-25 px-3 py-2">
+              {{ completed_count }} / {{ total_count }} Tasks Completed
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="card-body p-4 p-md-5">
-        <div class="progress mb-4" style="height: 10px;">
-          <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar"
+        <div class="progress mb-4" style="height: 8px;">
+          <div class="progress-bar bg-success" role="progressbar"
                style="width: {{ (completed_count / total_count) * 100 }}%;"
                aria-valuenow="{{ completed_count }}" aria-valuemin="0" aria-valuemax="{{ total_count }}"></div>
         </div>
 
         {% if next_task %}
-        <div class="border rounded-3 p-4 bg-white shadow-sm mb-4">
+        <div class="border rounded-3 p-4 bg-body-tertiary mb-4">
           <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
             <span class="badge bg-primary px-3 py-2 fw-bold">Calibration Task #{{ next_task.index }} &bull; {{ next_task.type }}</span>
-            <small class="text-muted"><i class="bi bi-eye-fill me-1"></i>Dual QA Review Calibration</small>
+            <small class="text-muted"><i class="bi bi-eye-fill me-1 text-primary"></i>Supervised QA Review</small>
           </div>
 
-          <div class="fw-bold text-dark mb-3" style="white-space: pre-line;">{{ next_task.prompt }}</div>
+          <div class="fw-bold mb-3" style="white-space: pre-line;">{{ next_task.prompt }}</div>
 
           <form method="post" action="{{ url_for('onboard.trial_submit') }}" novalidate>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -43,7 +46,7 @@
             <input type="hidden" name="task_prompt" value="{{ next_task.prompt }}">
 
             {# Special Character / Tag Toolbar #}
-            <div class="mb-2 p-2 bg-light border rounded-2 d-flex flex-wrap align-items-center gap-1">
+            <div class="mb-2 p-2 bg-body rounded-2 border d-flex flex-wrap align-items-center gap-1">
               <small class="text-muted fw-semibold me-2"><i class="bi bi-keyboard me-1"></i>Insert Character / Tag:</small>
               {% for char in ['ɓ', 'ɗ', 'ƙ', 'ƴ', 'Ɓ', 'Ɗ', 'Ƙ', 'Ƴ', 'à', 'á', 'è', 'é', 'ẹ', 'ọ', 'ṣ', 'ń', '[inaudible]', '[laughter]', '[crosstalk]'] %}
               <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0 fw-bold font-monospace char-btn" data-char="{{ char }}">
@@ -59,7 +62,7 @@
             </div>
 
             <div class="d-grid">
-              <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+              <button type="submit" class="btn btn-primary btn-lg fw-bold py-3 shadow-sm">
                 Submit Task #{{ next_task.index }} &amp; Proceed &rarr;
               </button>
             </div>
@@ -81,21 +84,21 @@
         <h3 class="h6 fw-bold mt-5 mb-3 text-muted text-uppercase tracking-wider">Completed Calibration Log</h3>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light">
+            <thead>
               <tr>
                 <th>Task #</th>
                 <th>Prompt Excerpt</th>
                 <th>Your Submission</th>
-                <th>QA Review Status</th>
+                <th class="text-end pe-3">QA Status</th>
               </tr>
             </thead>
             <tbody>
               {% for sub in submissions %}
               <tr>
-                <td><span class="badge bg-secondary">#{{ sub.task_index }}</span></td>
+                <td><span class="badge bg-secondary-subtle text-secondary">#{{ sub.task_index }}</span></td>
                 <td class="text-truncate" style="max-width: 200px;">{{ sub.task_prompt }}</td>
                 <td class="text-truncate font-monospace" style="max-width: 250px;">{{ sub.response_text }}</td>
-                <td>
+                <td class="text-end pe-3">
                   <span class="badge bg-success-subtle text-success border border-success-subtle">
                     <i class="bi bi-check-circle-fill me-1"></i>Graded ({{ sub.reviewer_1_score }}%)
                   </span>
@@ -115,17 +118,17 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  var textarea = document.getElementById('trial_response');
   document.querySelectorAll('button.char-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      var char = btn.getAttribute('data-char');
-      if (textarea && char) {
+      var char = this.getAttribute('data-char');
+      var textarea = document.getElementById('trial_response');
+      if (textarea) {
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
-        var val = textarea.value;
-        textarea.value = val.substring(0, start) + char + val.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + char.length;
+        var text = textarea.value;
+        textarea.value = text.substring(0, start) + char + text.substring(end);
         textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + char.length;
       }
     });
   });
