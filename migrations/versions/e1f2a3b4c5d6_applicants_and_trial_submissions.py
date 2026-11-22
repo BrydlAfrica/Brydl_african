@@ -20,7 +20,6 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("stage", sa.String(length=30), nullable=False),
-        sa.Column("specialization_track", sa.String(length=50), nullable=False),
         sa.Column("primary_language", sa.String(length=50), nullable=False),
         sa.Column("dialect", sa.String(length=100), nullable=False),
         sa.Column("secondary_languages", sa.Text(), nullable=True),
@@ -62,10 +61,6 @@ def upgrade() -> None:
             name="ck_applicants_admin_decision",
         ),
         sa.CheckConstraint(
-            "specialization_track IN ('red_teaming', 'translation', 'rlhf_preference', 'audio_speech', 'general_labeling')",
-            name="ck_applicants_specialization_track",
-        ),
-        sa.CheckConstraint(
             "stage IN ('apply', 'guidelines', 'test', 'scoring', 'fit_to_need', 'decision', 'agreement', 'trial', 'active', 'waitlisted', 'declined')",
             name="ck_applicants_stage",
         ),
@@ -74,10 +69,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_applicants_admin_decision", "applicants", ["admin_decision"], unique=False)
-    op.create_index("ix_applicants_specialization_track", "applicants", ["specialization_track"], unique=False)
     op.create_index("ix_applicants_stage", "applicants", ["stage"], unique=False)
     op.create_index("ix_applicants_stage_language", "applicants", ["stage", "primary_language"], unique=False)
-    op.create_index("ix_applicants_track_stage", "applicants", ["specialization_track", "stage"], unique=False)
     op.create_index("ix_applicants_user_id", "applicants", ["user_id"], unique=True)
 
     op.create_table(
@@ -115,9 +108,7 @@ def downgrade() -> None:
     op.drop_index("ix_applicant_trial_submissions_applicant_id", table_name="applicant_trial_submissions")
     op.drop_table("applicant_trial_submissions")
     op.drop_index("ix_applicants_user_id", table_name="applicants")
-    op.drop_index("ix_applicants_track_stage", table_name="applicants")
     op.drop_index("ix_applicants_stage_language", table_name="applicants")
     op.drop_index("ix_applicants_stage", table_name="applicants")
-    op.drop_index("ix_applicants_specialization_track", table_name="applicants")
     op.drop_index("ix_applicants_admin_decision", table_name="applicants")
     op.drop_table("applicants")

@@ -1679,7 +1679,11 @@ class Applicant(db.Model):
 
     # Stage 1: Linguistic Profiling & Metadata
     specialization_track = db.Column(
-        db.String(50), nullable=False, default="translation", index=True
+        db.String(50),
+        nullable=False,
+        default="translation",
+        server_default="translation",
+        index=True,
     )
     primary_language = db.Column(
         db.String(50), nullable=False, default="hausa"
