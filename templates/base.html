@@ -99,6 +99,7 @@
             </a>
             <ul class="dropdown-menu shadow border-0">
               <li><a class="dropdown-item" href="/admin/users"><i class="bi bi-people-fill me-2 text-primary"></i>Team &amp; Users</a></li>
+              <li><a class="dropdown-item" href="/admin/workforce/promotions"><i class="bi bi-award-fill me-2 text-warning"></i>Workforce &amp; Promotions</a></li>
               <li><a class="dropdown-item" href="/admin/applicants"><i class="bi bi-person-check-fill me-2 text-primary"></i>Onboarding &amp; Applicants</a></li>
               <li><a class="dropdown-item" href="/hr/candidates"><i class="bi bi-person-lines-fill me-2 text-info"></i>HR Screening Desk</a></li>
               <li><a class="dropdown-item" href="/admin/payments"><i class="bi bi-cash-coin me-2 text-success"></i>Payments &amp; Disbursements</a></li>
@@ -133,6 +134,7 @@
           {% else %}
           <li class="nav-item">{{ nav_link('/annotator/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/annotator/tasks', 'bi-list-check', 'My Tasks') }}</li>
+          <li class="nav-item">{{ nav_link('/annotator/portfolio', 'bi-award', 'Career & Portfolio') }}</li>
           <li class="nav-item">{{ nav_link('/annotator/history', 'bi-clock-history', 'My History') }}</li>
           <li class="nav-item">{{ nav_link('/annotator/profile', 'bi-person', 'Profile') }}</li>
           {% endif %}

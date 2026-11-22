@@ -109,6 +109,24 @@ APPLICANT_VERIFICATION_STATUSES = (
     "verified",
     "rejected",
 )
+SENIORITY_LEVELS = (
+    "provisional",
+    "verified",
+    "specialist",
+    "qa_reviewer",
+    "consensus_arbitrator",
+    "pod_lead",
+)
+PROMOTION_STATUSES = ("pending", "approved", "rejected")
+PROMOTION_TARGET_ROLES = (
+    "specialist",
+    "qa_reviewer",
+    "consensus_arbitrator",
+    "pod_lead",
+)
+
+# Quality Standards & Review Defect Taxonomy (Phase 9)
+APPEAL_STATUSES = ("none", "pending", "granted", "denied")
 
 # Labelling task taxonomy. Drives the project form's SelectField choices.
 # Deliberately NOT enforced by a database constraint: this taxonomy grows
@@ -282,11 +300,25 @@ class User(UserMixin, db.Model):
     activation_token_hash = db.Column(db.String(128), nullable=True)
     activation_token_expires = db.Column(db.DateTime, nullable=True)
 
+    # Career progression & specialist ladder
+    seniority_level = db.Column(
+        db.String(30), nullable=False, default="verified", server_default="verified"
+    )
+    specialist_badge = db.Column(db.String(100), nullable=True)
+    is_pod_lead = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=text("0")
+    )
+    assigned_pod = db.Column(db.String(100), nullable=True)
+
     __table_args__ = (
         # Enforce the valid roles at the database level, not just in
         # form validation, so a bug can never write an unknown role.
         db.CheckConstraint(
             _in_constraint("role", ROLES), name="ck_users_role"
+        ),
+        db.CheckConstraint(
+            _in_constraint("seniority_level", SENIORITY_LEVELS),
+            name="ck_users_seniority_level",
         ),
         # Annotator pickers and per-role dashboards filter on the pair.
         db.Index("ix_users_role_active", "role", "is_active"),
@@ -296,6 +328,9 @@ class User(UserMixin, db.Model):
         db.Index("ix_users_verified_active", "is_verified", "is_active"),
         # Account activation links look users up by hashed activation token.
         db.Index("ix_users_activation_token_hash", "activation_token_hash"),
+        # Seniority and Language Pod indexes for workforce routing
+        db.Index("ix_users_seniority_level", "seniority_level"),
+        db.Index("ix_users_pod", "assigned_pod"),
     )
 
     # Related objects exposed by backrefs defined on the other models:
@@ -506,6 +541,14 @@ class Project(db.Model):
         db.Boolean, nullable=False, default=True, server_default=text("1")
     )
 
+    # Minimum QA quality threshold percentage required for task acceptance (default 90.0%)
+    quality_threshold = db.Column(
+        db.Float,
+        nullable=False,
+        default=90.0,
+        server_default=text("90.0"),
+    )
+
     # project.creator -> User; user.projects_created -> list[Project]
     creator = db.relationship("User", foreign_keys=[created_by], backref="projects_created")
     approver = db.relationship("User", foreign_keys=[approved_by])
@@ -520,6 +563,10 @@ class Project(db.Model):
         db.CheckConstraint(
             _in_constraint("status", PROJECT_STATUSES),
             name="ck_projects_status",
+        ),
+        db.CheckConstraint(
+            "quality_threshold >= 50.0 AND quality_threshold <= 100.0",
+            name="ck_projects_quality_threshold",
         ),
         db.Index("ix_projects_allows_provisional", "allows_provisional"),
         # pay_per_task may be NULL while the project is in draft / pending
@@ -1136,10 +1183,32 @@ class Submission(db.Model):
         db.Integer, nullable=False, default=0, server_default=text("0")
     )
 
+    # --- Quality Standards & Defect Taxonomy (Phase 9) --------------------
+    # Structured 4-dimension rubric score breakdown (JSON string):
+    # {"accuracy": 95.0, "linguistic_quality": 90.0, "instruction_adherence": 95.0, "formatting": 100.0}
+    qa_rubric_data = db.Column(db.Text, nullable=True)
+    # Structured defect taxonomy tags (JSON list):
+    # [{"category": "diacritics_tone", "severity": "minor", "note": "Missing dot below"}]
+    error_tags = db.Column(db.Text, nullable=True)
+    # Quality Appeal Workflow: 'none', 'pending', 'granted', 'denied'
+    appeal_status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="none",
+        server_default=text("'none'"),
+    )
+    appeal_notes = db.Column(db.Text, nullable=True)
+    appeal_reviewed_at = db.Column(db.DateTime, nullable=True)
+    appeal_reviewed_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+
     # submission.task -> Task; task.submissions -> list[Submission]
     task = db.relationship("Task", backref="submissions")
     # submission.annotator -> User; user.submissions -> list[Submission]
-    annotator = db.relationship("User", backref="submissions")
+    annotator = db.relationship("User", foreign_keys=[annotator_id], backref="submissions")
+    # submission.appeal_reviewer -> User
+    appeal_reviewer = db.relationship("User", foreign_keys=[appeal_reviewed_by_id])
     # submission.payment -> Payment; payment.submissions -> list[Submission]
     payment = db.relationship("Payment", backref="submissions")
 
@@ -1147,6 +1216,10 @@ class Submission(db.Model):
         db.CheckConstraint(
             _in_constraint("status", SUBMISSION_STATUSES),
             name="ck_submissions_status",
+        ),
+        db.CheckConstraint(
+            _in_constraint("appeal_status", APPEAL_STATUSES),
+            name="ck_submissions_appeal_status",
         ),
         db.CheckConstraint(
             "qa_score IS NULL OR (qa_score >= 0 AND qa_score <= 100)",
@@ -1167,6 +1240,7 @@ class Submission(db.Model):
         db.Index(
             "ix_submissions_annotator_status", "annotator_id", "status"
         ),
+        db.Index("ix_submissions_appeal_status", "appeal_status"),
         # Review queue + payout aggregation: the two hottest admin
         # queries filter on (status, ...) — submitted for QA, approved
         # and unclaimed for payments.
@@ -1819,4 +1893,59 @@ class ApplicantTrialSubmission(db.Model):
 
     def __repr__(self) -> str:
         return f"<ApplicantTrialSubmission id={self.id} applicant={self.applicant_id} task={self.task_index}>"
+
+
+class CareerPromotionRequest(db.Model):
+    """An annotator's application for career advancement or specialist appointment."""
+
+    __tablename__ = "career_promotion_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    target_role = db.Column(db.String(50), nullable=False)
+    specialization_area = db.Column(db.String(100), nullable=False)
+    statement_of_interest = db.Column(db.Text, nullable=False)
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+        index=True,
+    )
+    reviewed_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    review_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now
+    )
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    user = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        backref=db.backref("promotion_requests", lazy="dynamic"),
+    )
+    reviewer = db.relationship("User", foreign_keys=[reviewed_by_id])
+
+    __table_args__ = (
+        db.CheckConstraint(
+            _in_constraint("status", PROMOTION_STATUSES),
+            name="ck_career_promotion_status",
+        ),
+        db.CheckConstraint(
+            _in_constraint("target_role", PROMOTION_TARGET_ROLES),
+            name="ck_career_promotion_target_role",
+        ),
+        db.Index("ix_career_promotions_user_status", "user_id", "status"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<CareerPromotionRequest id={self.id} user={self.user_id} target={self.target_role!r} status={self.status!r}>"
+
 

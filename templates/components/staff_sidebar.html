@@ -100,7 +100,14 @@
             <i class="bi bi-people-fill text-primary fs-6"></i>
             <div>
               <div class="fw-semibold small">Staff &amp; Team Management</div>
-              <div class="text-muted" style="font-size: 0.75rem;">Manage roles, access &amp; onboarding</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Manage roles, access &amp; accounts</div>
+            </div>
+          </a>
+          <a href="/admin/workforce/promotions" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/workforce') }}">
+            <i class="bi bi-award-fill text-warning fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Workforce &amp; Promotions</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Specialist ladder &amp; language squads</div>
             </div>
           </a>
           <a href="/admin/audit" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path.startswith('/admin/audit') }}">
@@ -210,6 +217,13 @@
             <div>
               <div class="fw-semibold small">My Active Tasks</div>
               <div class="text-muted" style="font-size: 0.75rem;">Work claimed and in-progress</div>
+            </div>
+          </a>
+          <a href="/annotator/portfolio" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/annotator/portfolio' }}">
+            <i class="bi bi-award text-warning fs-6"></i>
+            <div>
+              <div class="fw-semibold small">Career &amp; Specialist Hub</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Badges, squad &amp; promotions</div>
             </div>
           </a>
           <a href="/annotator/history" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 px-3 {{ 'active' if request.path == '/annotator/history' }}">

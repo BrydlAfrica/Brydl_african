@@ -140,6 +140,20 @@ class PMProjectCreateForm(FlaskForm):
         coerce=int,
         validators=[DataRequired()],
     )
+    quality_threshold = DecimalField(
+        "Quality Passing Threshold (%)",
+        places=1,
+        default=Decimal("90.0"),
+        validators=[
+            Optional(),
+            NumberRange(
+                min=Decimal("50.0"),
+                max=Decimal("100.0"),
+                message="Quality threshold must be between 50% and 100%.",
+            ),
+        ],
+        description="Minimum average QA score required for task acceptance (default 90.0%).",
+    )
     deadline = DateField("Deadline (optional)", validators=[Optional()])
     submit = SubmitField("Submit for approval")
 
@@ -170,6 +184,20 @@ class PMProjectEditForm(FlaskForm):
         choices=[(1, "1"), (2, "2"), (3, "3")],
         coerce=int,
         validators=[DataRequired()],
+    )
+    quality_threshold = DecimalField(
+        "Quality Passing Threshold (%)",
+        places=1,
+        default=Decimal("90.0"),
+        validators=[
+            Optional(),
+            NumberRange(
+                min=Decimal("50.0"),
+                max=Decimal("100.0"),
+                message="Quality threshold must be between 50% and 100%.",
+            ),
+        ],
+        description="Minimum average QA score required for task acceptance (default 90.0%).",
     )
     deadline = DateField("Deadline (optional)", validators=[Optional()])
     # Pause/resume only — only active projects can be paused, only paused
@@ -538,6 +566,7 @@ def new_project():
             rubric_dimensions=("\n".join(rubric_dims) if rubric_dims else None),
             deadline=form.deadline.data,
             required_annotations=form.required_annotations.data,
+            quality_threshold=float(form.quality_threshold.data or 90.0),
             created_by=current_user.id,
             status="draft",
         )
@@ -656,6 +685,8 @@ def edit_project(project_id: int):
         project.rubric_dimensions = "\n".join(dims) if dims else None
         project.required_annotations = form.required_annotations.data
         project.deadline = form.deadline.data
+        if form.quality_threshold.data is not None:
+            project.quality_threshold = float(form.quality_threshold.data)
         # Pause/resume only when project is live.
         action = (form.status_action.data or "").strip()
         if project.status == "active" and action == "pause":

@@ -77,6 +77,14 @@ import quizzes as quiz_engine
 from models import MediaAsset, Notification
 from models import QualificationQuiz, QuizAttempt
 from models import Project, Submission, Task, money, utc_now
+from models import CareerPromotionRequest, Payment
+from quality_standards import (
+    DEFECT_CATEGORIES,
+    DEFECT_SEVERITIES,
+    RUBRIC_DIMENSION_META,
+    parse_error_tags,
+    parse_qa_rubric_data,
+)
 from routes import annotator_required
 
 annotator_bp = Blueprint("annotator", __name__)
@@ -1532,6 +1540,8 @@ def history():
                     )[0]
                 ),
                 "pay": _calc_sub_pay(submission),
+                "rubric_data": parse_qa_rubric_data(submission.qa_rubric_data),
+                "error_tags": parse_error_tags(submission.error_tags),
             }
             for submission in submissions
         ]
@@ -1540,8 +1550,76 @@ def history():
         flash("History could not be loaded.", "danger")
 
     return render_template(
-        "annotator/history.html", rows=rows, pagination=pagination
+        "annotator/history.html",
+        rows=rows,
+        pagination=pagination,
+        defect_categories=DEFECT_CATEGORIES,
+        defect_severities=DEFECT_SEVERITIES,
+        rubric_meta=RUBRIC_DIMENSION_META,
     )
+
+
+@annotator_bp.route("/submissions/<int:submission_id>/appeal", methods=["POST"])
+@annotator_required
+def submit_appeal(submission_id: int):
+    """Submit a quality dispute appeal for a rejected submission."""
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("annotator.history"))
+
+    submission = db.session.get(Submission, submission_id)
+    if submission is None or submission.annotator_id != current_user.id:
+        abort(404)
+
+    if submission.status != "rejected":
+        flash("Only rejected submissions are eligible for QA appeal.", "warning")
+        return redirect(url_for("annotator.history"))
+
+    if submission.appeal_status != "none":
+        flash(
+            f"An appeal has already been submitted for this task ({submission.appeal_status}).",
+            "info",
+        )
+        return redirect(url_for("annotator.history"))
+
+    appeal_notes = (request.form.get("appeal_notes") or "").strip()
+    if len(appeal_notes) < 10:
+        flash(
+            "Please provide a meaningful explanation for your appeal (at least 10 characters).",
+            "danger",
+        )
+        return redirect(url_for("annotator.history"))
+    if len(appeal_notes) > 1000:
+        appeal_notes = appeal_notes[:1000]
+
+    try:
+        submission.appeal_status = "pending"
+        submission.appeal_notes = appeal_notes
+        log_event(
+            "quality.appeal_submitted",
+            actor=current_user,
+            entity_type="submission",
+            entity_id=submission.id,
+            detail={
+                "task_id": submission.task_id,
+                "notes_len": len(appeal_notes),
+            },
+        )
+        db.session.commit()
+        flash(
+            "Your quality appeal has been submitted for QA team review.",
+            "success",
+        )
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Failed to submit appeal for sub=%s", submission_id
+        )
+        flash("Could not submit appeal. Please try again.", "danger")
+
+    return redirect(url_for("annotator.history"))
 
 
 # ---------------------------------------------------------------------------
@@ -2123,3 +2201,199 @@ def take_quiz(quiz_id: int):
         form=form,
         attempts_left=attempts_left,
     )
+
+
+class CareerPromotionForm(FlaskForm):
+    """Application form for annotator promotion and specialist tier appointment."""
+
+    target_role = SelectField(
+        "Target Role / Promotion Tier",
+        choices=[
+            ("specialist", "Domain Specialist (Tier 2 / RedLab / LLM Alignment)"),
+            ("qa_reviewer", "Senior QA Reviewer & Evaluator"),
+            ("consensus_arbitrator", "Consensus & Disagreement Arbitrator"),
+            ("pod_lead", "Language Squad / Pod Lead"),
+        ],
+        validators=[DataRequired()],
+    )
+    specialization_area = SelectField(
+        "Primary Specialization Track",
+        choices=[
+            ("african_languages", "African Linguistics, Orthography & Tone Diacritics"),
+            ("medical_clinical", "Medical & Biomedical Terminology / Clinical NLP"),
+            ("legal_regulatory", "Legal, Contracts & Regulatory Compliance"),
+            ("financial_fintech", "Financial, Accounting & FinTech"),
+            ("code_reasoning", "Code Generation, Math & Multi-step Reasoning"),
+            ("safety_redteaming", "Safety, Harm Mitigation & Red Teaming"),
+            ("audio_speech", "Speech, ASR & Audio Phonetics"),
+        ],
+        validators=[DataRequired()],
+    )
+    statement_of_interest = TextAreaField(
+        "Statement of Interest & Track Qualification",
+        validators=[
+            DataRequired(),
+            Length(
+                min=30,
+                max=2000,
+                message="Please provide between 30 and 2,000 characters summarizing your qualifications, domain experience, and readiness.",
+            ),
+        ],
+    )
+    submit = SubmitField("Submit Career Promotion Application")
+
+
+@annotator_bp.route("/portfolio", methods=["GET", "POST"], endpoint="portfolio")
+@annotator_required
+def portfolio():
+    """Annotator career progression hub, milestone portfolio, and specialist promotion desk."""
+    form = CareerPromotionForm()
+
+    # Calculate workforce performance and portfolio metrics
+    total_submissions = Submission.query.filter_by(annotator_id=current_user.id).count()
+    approved_submissions = Submission.query.filter_by(
+        annotator_id=current_user.id, status="approved"
+    ).count()
+    rejected_submissions = Submission.query.filter_by(
+        annotator_id=current_user.id, status="rejected"
+    ).count()
+
+    accuracy_rate = (
+        round((approved_submissions / total_submissions) * 100, 1)
+        if total_submissions > 0
+        else 0.0
+    )
+
+    avg_qa_query = db.session.query(func.avg(Submission.qa_score)).filter(
+        Submission.annotator_id == current_user.id,
+        Submission.qa_score.isnot(None),
+    ).scalar()
+    avg_qa_score = round(float(avg_qa_query), 1) if avg_qa_query is not None else None
+
+    # Total lifetime earnings
+    total_earned_query = db.session.query(func.sum(Payment.amount)).filter(
+        Payment.annotator_id == current_user.id,
+        Payment.status == "paid",
+    ).scalar()
+    total_earned = total_earned_query if total_earned_query is not None else Decimal("0.00")
+
+    # Qualification quizzes passed
+    quizzes_passed = QuizAttempt.query.filter_by(
+        annotator_id=current_user.id, status="passed"
+    ).count()
+
+    # Promotion applications
+    promotion_history = (
+        CareerPromotionRequest.query.filter_by(user_id=current_user.id)
+        .order_by(CareerPromotionRequest.created_at.desc())
+        .all()
+    )
+    has_pending_application = any(req.status == "pending" for req in promotion_history)
+
+    # Calculate earned badges
+    badges = []
+    if current_user.is_verified:
+        badges.append({
+            "code": "verified_annotator",
+            "name": "Verified Contributor",
+            "tier": "Tier 1",
+            "icon": "bi-patch-check-fill",
+            "color": "primary",
+            "description": "Passed full multi-stage onboarding, identity verification, and HR clearance.",
+        })
+    if current_user.seniority_level in ("specialist", "qa_reviewer", "consensus_arbitrator", "pod_lead"):
+        badges.append({
+            "code": "specialist_tier",
+            "name": current_user.specialist_badge or "Domain Specialist",
+            "tier": "Tier 2",
+            "icon": "bi-stars",
+            "color": "warning",
+            "description": "Certified domain expert approved for complex RLHF, RedLab, and specialist annotation.",
+        })
+    if current_user.is_pod_lead:
+        badges.append({
+            "code": "pod_lead",
+            "name": f"Pod Lead ({current_user.assigned_pod or 'Language Squad'})",
+            "tier": "Leadership",
+            "icon": "bi-flag-fill",
+            "color": "info",
+            "description": "Appointed Language Squad Lead coordinating peer consensus and dialect quality.",
+        })
+    if total_submissions >= 20:
+        badges.append({
+            "code": "milestone_20",
+            "name": "Century Contributor (20+ Tasks)",
+            "tier": "Milestone",
+            "icon": "bi-trophy-fill",
+            "color": "success",
+            "description": "Demonstrated consistent throughput with over 20 verified task completions.",
+        })
+    if avg_qa_score is not None and avg_qa_score >= 85:
+        badges.append({
+            "code": "qa_excellence",
+            "name": "Excellence in Quality (85%+ QA)",
+            "tier": "Quality",
+            "icon": "bi-shield-fill-check",
+            "color": "danger",
+            "description": "Maintained exceptional technical accuracy and QA scores across all client deliverables.",
+        })
+    if quizzes_passed >= 2:
+        badges.append({
+            "code": "multi_certified",
+            "name": "Multi-Project Certified",
+            "tier": "Skill",
+            "icon": "bi-award-fill",
+            "color": "secondary",
+            "description": "Successfully cleared multiple specialized project qualification exams.",
+        })
+
+    if form.validate_on_submit():
+        if has_pending_application:
+            flash("You already have an active promotion application under review.", "warning")
+            return redirect(url_for("annotator.portfolio"))
+
+        promotion = CareerPromotionRequest(
+            user_id=current_user.id,
+            target_role=form.target_role.data,
+            specialization_area=form.specialization_area.data,
+            statement_of_interest=form.statement_of_interest.data.strip(),
+            status="pending",
+        )
+        try:
+            db.session.add(promotion)
+            log_event(
+                "career.promotion_requested",
+                actor=current_user,
+                entity_type="career_promotion",
+                entity_id=None,
+                detail={
+                    "target_role": form.target_role.data,
+                    "specialization_area": form.specialization_area.data,
+                },
+            )
+            db.session.commit()
+            flash(
+                "Your career promotion application has been submitted to Workforce Operations for review.",
+                "success",
+            )
+            return redirect(url_for("annotator.portfolio"))
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Failed to submit career promotion for user %s", current_user.id)
+            flash("Failed to submit career promotion application. Please try again.", "danger")
+
+    return render_template(
+        "annotator/portfolio.html",
+        form=form,
+        total_submissions=total_submissions,
+        approved_submissions=approved_submissions,
+        rejected_submissions=rejected_submissions,
+        accuracy_rate=accuracy_rate,
+        avg_qa_score=avg_qa_score,
+        total_earned=total_earned,
+        quizzes_passed=quizzes_passed,
+        promotion_history=promotion_history,
+        has_pending_application=has_pending_application,
+        badges=badges,
+    )
+

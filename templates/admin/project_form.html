@@ -89,24 +89,36 @@
                 {{ form.pay_per_task(class="form-control" + (" is-invalid" if form.pay_per_task.errors else ""),
                                      placeholder="0.50", step="0.01", min="0.01") }}
               </div>
-          <div class="col-md-4">
-            {{ form.deadline.label(class="form-label") }}
-            {{ form.deadline(class="form-control" + (" is-invalid" if form.deadline.errors else "")) }}
-            {% for error in form.deadline.errors %}
-            <div class="invalid-feedback d-block">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">Optional due date shown to annotators.</div>
-          </div>
-          <div class="col-md-4">
-            {{ form.required_annotations.label(class="form-label") }}
-            {{ form.required_annotations(class="form-select" + (" is-invalid" if form.required_annotations.errors else "")) }}
-            {% for error in form.required_annotations.errors %}
-            <div class="invalid-feedback d-block">{{ error }}</div>
-            {% endfor %}
-            <div class="form-text">
-              2–3 = every task is worked blind by that many annotators
-              and disagreements go to your Conflicts view for
-              arbitration. Set before importing tasks.
+          <div class="row mb-3">
+            <div class="col-md-4">
+              {{ form.quality_threshold.label(class="form-label") }}
+              <div class="input-group">
+                {{ form.quality_threshold(class="form-control" + (" is-invalid" if form.quality_threshold.errors else ""),
+                                          placeholder="90.0", step="0.5", min="50", max="100") }}
+                <span class="input-group-text">%</span>
+              </div>
+              {% for error in form.quality_threshold.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+              <div class="form-text">Minimum QA passing score required for task acceptance.</div>
+            </div>
+            <div class="col-md-4">
+              {{ form.deadline.label(class="form-label") }}
+              {{ form.deadline(class="form-control" + (" is-invalid" if form.deadline.errors else "")) }}
+              {% for error in form.deadline.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+              <div class="form-text">Optional due date shown to annotators.</div>
+            </div>
+            <div class="col-md-4">
+              {{ form.required_annotations.label(class="form-label") }}
+              {{ form.required_annotations(class="form-select" + (" is-invalid" if form.required_annotations.errors else "")) }}
+              {% for error in form.required_annotations.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+              <div class="form-text">
+                2–3 = blind consensus for RLHF/arbitration.
+              </div>
             </div>
           </div>
               {% for error in form.pay_per_task.errors %}

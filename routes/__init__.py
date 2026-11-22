@@ -134,6 +134,9 @@ def annotator_required(view):
             if not getattr(current_user, "is_verified", False):
                 from flask import redirect, url_for
                 return redirect(url_for("provisional.dashboard"))
+        elif getattr(current_user, "seniority_level", "") == "provisional":
+            from flask import redirect, url_for
+            return redirect(url_for("provisional.dashboard"))
         return view(*args, **kwargs)
 
     return wrapped

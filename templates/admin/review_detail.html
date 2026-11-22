@@ -196,32 +196,119 @@
 
 {# ===== Verdict form ===== #}
 <div class="card border-0 shadow-sm">
-  <div class="card-header bg-white fw-semibold">
-    <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Your verdict
+  <div class="card-header bg-white d-flex justify-content-between align-items-center fw-semibold">
+    <span><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Your verdict</span>
+    <span class="badge bg-light text-dark border">
+      <i class="bi bi-bullseye me-1 text-primary" aria-hidden="true"></i>Project Quality Target: <strong>{{ '%.1f' % (project.quality_threshold or 90.0) }}%</strong>
+    </span>
   </div>
   <div class="card-body p-4">
-    <form method="post" novalidate
+    <form method="post" novalidate id="qa-verdict-form"
           data-confirm="Record this verdict? A submission can only be reviewed once.">
       {{ form.hidden_tag() }}
+      <input type="hidden" name="error_tags_json" id="error_tags_json" value="">
 
-      <div class="mb-3">
-        {{ form.qa_score.label(class="form-label fw-semibold") }}
+      {# Multi-Dimensional Quality Rubric #}
+      <div class="card border bg-light mb-4">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+          <span class="fw-semibold small text-uppercase text-muted">
+            <i class="bi bi-sliders me-1" aria-hidden="true"></i>Standard Multi-Dimensional Quality Rubric
+          </span>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle small" id="rubric-status-badge">
+            Auto-Weighted Composite
+          </span>
+        </div>
+        <div class="card-body py-3">
+          <div class="row g-3">
+            {% for dim_key, meta in rubric_dimension_meta.items() %}
+            <div class="col-md-6">
+              <div class="bg-white p-2 rounded border h-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label small fw-semibold mb-0" for="rubric_{{ dim_key }}">
+                    {{ meta.label }}
+                    <span class="badge bg-secondary-subtle text-secondary small ms-1">{{ (meta.weight * 100)|round }}% wt</span>
+                  </label>
+                  <span class="badge bg-dark small rubric-dim-val" id="val_rubric_{{ dim_key }}">100</span>
+                </div>
+                <div class="text-muted small mb-2" style="font-size: 0.75rem;">{{ meta.description }}</div>
+                <input type="range" class="form-range rubric-slider" min="0" max="100" step="1" value="100"
+                       id="rubric_{{ dim_key }}" name="rubric_{{ dim_key }}" data-weight="{{ meta.weight }}"
+                       data-dim="{{ dim_key }}">
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# Composite QA Score Slider #}
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          {{ form.qa_score.label(class="form-label fw-semibold mb-0") }}
+          <div class="d-flex align-items-center gap-2">
+            <span class="small text-muted">Composite Quality Score:</span>
+            <span class="badge bg-primary fs-6" id="score-value" style="min-width: 3.5rem;">100</span>
+          </div>
+        </div>
         <div class="d-flex align-items-center gap-3">
           {{ form.qa_score(type="range", min=0, max=100, step=1, value=100,
                            class="form-range flex-grow-1",
                            **{"data-score-display": "score-value",
                               "aria-describedby": "score-value"}) }}
-          <span class="badge bg-primary fs-6" id="score-value" style="min-width: 3.5rem;">100</span>
+        </div>
+        <div id="threshold-warning" class="alert alert-warning py-2 px-3 small mt-2 d-none">
+          <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>
+          <strong>Below Target Threshold:</strong> This score is below the project passing threshold of <strong>{{ '%.1f' % (project.quality_threshold or 90.0) }}%</strong>. Rejection or revision recommended.
         </div>
         {% for error in form.qa_score.errors %}
         <div class="invalid-feedback d-block">{{ error }}</div>
         {% endfor %}
       </div>
 
+      {# Defect Taxonomy Error Tagging #}
+      <div class="mb-4">
+        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-tags me-1" aria-hidden="true"></i>Defect Taxonomy &amp; Error Tagging</span>
+          <span class="text-muted small font-monospace" id="tag-count-display">0 tags selected</span>
+        </label>
+        <div class="border rounded p-3 bg-light">
+          <div class="d-flex flex-wrap gap-2 mb-2" id="defect-chip-container">
+            {% for cat_key, cat in defect_categories.items() %}
+            <button type="button" class="btn btn-sm btn-outline-secondary defect-chip"
+                    data-category="{{ cat_key }}"
+                    title="{{ cat.description }}">
+              <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{{ cat.label }}
+            </button>
+            {% endfor %}
+          </div>
+          <div id="active-tags-list" class="mt-2"></div>
+        </div>
+      </div>
+
+      {# Reviewer Quick Feedback Macros #}
       <div class="mb-3">
-        {{ form.qa_notes.label(class="form-label fw-semibold") }}
-        {{ form.qa_notes(class="form-control", rows=4, maxlength=2000,
-                         placeholder="Feedback for the annotator (optional). Shown to them when a task is rejected.") }}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          {{ form.qa_notes.label(class="form-label fw-semibold mb-0") }}
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-lightning-charge me-1" aria-hidden="true"></i>Quick Feedback Macros
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+              {% for macro in feedback_macros %}
+              <li>
+                <button type="button" class="dropdown-item py-2 feedback-macro-btn"
+                        data-macro-text="{{ macro.text }}">
+                  <strong>{{ macro.title }}</strong>
+                  <div class="text-muted text-truncate" style="max-width: 280px; font-size: 0.75rem;">{{ macro.text }}</div>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {{ form.qa_notes(class="form-control font-monospace", rows=4, maxlength=2000, id="qa_notes",
+                         placeholder="Detailed feedback for the annotator (shown when returned for revision or rejected)...") }}
         {% for error in form.qa_notes.errors %}
         <div class="invalid-feedback d-block">{{ error }}</div>
         {% endfor %}
@@ -249,6 +336,140 @@
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const threshold = {{ project.quality_threshold or 90.0 }};
+  const mainScoreInput = document.querySelector('input[name="qa_score"]');
+  const scoreDisplay = document.getElementById('score-value');
+  const warnBox = document.getElementById('threshold-warning');
+  const rubricSliders = document.querySelectorAll('.rubric-slider');
+  const tagsInput = document.getElementById('error_tags_json');
+  const activeTagsList = document.getElementById('active-tags-list');
+  const tagCountDisplay = document.getElementById('tag-count-display');
+  const qaNotesArea = document.getElementById('qa_notes');
+
+  let activeDefects = [];
+
+  function checkThreshold(score) {
+    if (score < threshold) {
+      if (warnBox) warnBox.classList.remove('d-none');
+    } else {
+      if (warnBox) warnBox.classList.add('d-none');
+    }
+  }
+
+  function recalcRubric() {
+    let totalWeight = 0;
+    let weightedSum = 0;
+    rubricSliders.forEach(slider => {
+      const weight = parseFloat(slider.dataset.weight || "0.25");
+      const val = parseFloat(slider.value || "100");
+      const dim = slider.dataset.dim;
+      const valBadge = document.getElementById('val_rubric_' + dim);
+      if (valBadge) valBadge.textContent = val;
+      weightedSum += val * weight;
+      totalWeight += weight;
+    });
+    if (totalWeight > 0) {
+      const composite = Math.round(weightedSum / totalWeight);
+      if (mainScoreInput) {
+        mainScoreInput.value = composite;
+      }
+      if (scoreDisplay) {
+        scoreDisplay.textContent = composite;
+      }
+      checkThreshold(composite);
+    }
+  }
+
+  rubricSliders.forEach(s => {
+    s.addEventListener('input', recalcRubric);
+  });
+
+  if (mainScoreInput) {
+    mainScoreInput.addEventListener('input', function() {
+      if (scoreDisplay) scoreDisplay.textContent = this.value;
+      checkThreshold(parseFloat(this.value));
+    });
+  }
+
+  // Defect Tags
+  document.querySelectorAll('.defect-chip').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const cat = this.dataset.category;
+      const idx = activeDefects.findIndex(d => d.category === cat);
+      if (idx >= 0) {
+        activeDefects.splice(idx, 1);
+        this.classList.remove('btn-danger', 'text-white');
+        this.classList.add('btn-outline-secondary');
+      } else {
+        activeDefects.push({category: cat, severity: 'minor', note: ''});
+        this.classList.add('btn-danger', 'text-white');
+        this.classList.remove('btn-outline-secondary');
+      }
+      renderActiveTags();
+    });
+  });
+
+  function renderActiveTags() {
+    if (tagsInput) tagsInput.value = JSON.stringify(activeDefects);
+    if (tagCountDisplay) tagCountDisplay.textContent = activeDefects.length + " tags selected";
+    if (!activeTagsList) return;
+    activeTagsList.innerHTML = '';
+    activeDefects.forEach((d, idx) => {
+      const row = document.createElement('div');
+      row.className = 'd-flex align-items-center gap-2 mb-2 p-2 bg-white rounded border';
+      row.innerHTML = `
+        <span class="badge bg-danger">${d.category.replace('_', ' ').toUpperCase()}</span>
+        <select class="form-select form-select-sm" style="width: 120px;" data-idx="${idx}">
+          <option value="minor" ${d.severity === 'minor' ? 'selected' : ''}>Minor (-5)</option>
+          <option value="major" ${d.severity === 'major' ? 'selected' : ''}>Major (-15)</option>
+          <option value="critical" ${d.severity === 'critical' ? 'selected' : ''}>Critical (-30)</option>
+        </select>
+        <input type="text" class="form-control form-control-sm" placeholder="Optional defect note..." value="${d.note || ''}" data-idx="${idx}">
+        <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" data-remove="${idx}">
+          <i class="bi bi-x-circle-fill fs-5"></i>
+        </button>
+      `;
+      activeTagsList.appendChild(row);
+
+      row.querySelector('select').addEventListener('change', function() {
+        activeDefects[idx].severity = this.value;
+        if (tagsInput) tagsInput.value = JSON.stringify(activeDefects);
+      });
+      row.querySelector('input').addEventListener('input', function() {
+        activeDefects[idx].note = this.value;
+        if (tagsInput) tagsInput.value = JSON.stringify(activeDefects);
+      });
+      row.querySelector('[data-remove]').addEventListener('click', function() {
+        const cat = activeDefects[idx].category;
+        const chip = document.querySelector(`.defect-chip[data-category="${cat}"]`);
+        if (chip) {
+          chip.classList.remove('btn-danger', 'text-white');
+          chip.classList.add('btn-outline-secondary');
+        }
+        activeDefects.splice(idx, 1);
+        renderActiveTags();
+      });
+    });
+  }
+
+  // Quick feedback macros
+  document.querySelectorAll('.feedback-macro-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const txt = this.dataset.macroText;
+      if (qaNotesArea) {
+        if (qaNotesArea.value.trim().length > 0) {
+          qaNotesArea.value += '\n\n' + txt;
+        } else {
+          qaNotesArea.value = txt;
+        }
+      }
+    });
+  });
+});
+</script>
 {% if project.task_type == 'dynamic_red_team' and redteam_transcript %}
 <script src="{{ url_for('static', filename='js/qa_redteam_flags.js') }}" defer></script>
 {% endif %}

@@ -8,7 +8,12 @@
     <h1 class="h3 mb-0">QA Review</h1>
     <p class="text-muted mb-0">Submissions awaiting your verdict, longest-waiting first.</p>
   </div>
-  <span class="badge bg-primary">{{ pagination.total if pagination else 0 }} awaiting review</span>
+  <div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('admin.review_appeals') }}" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-shield-shaded me-1" aria-hidden="true"></i>Quality Appeals Desk
+    </a>
+    <span class="badge bg-primary fs-6">{{ pagination.total if pagination else 0 }} awaiting review</span>
+  </div>
 </div>
 
 {# ===== Filter bar (GET form — stateless) ===== #}

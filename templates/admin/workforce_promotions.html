@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+
+{% block title %}Workforce Career & Promotions Console · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-award-fill me-1"></i>Workforce Governance
+      </span>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-shield-check me-1"></i>Phase 8 Specialist Pathways
+      </span>
+    </div>
+    <h1 class="h3 fw-bold mt-2 mb-1">Workforce Career &amp; Promotions Console</h1>
+    <p class="text-muted mb-0">
+      Manage specialist credentials, review promotion dossiers, assign language squads/pods, and designate Pod Leads.
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-people me-1"></i>All Users
+    </a>
+    <a href="{{ url_for('admin.applicants') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-person-check me-1"></i>Applicants &amp; Onboarding
+    </a>
+  </div>
+</div>
+
+{# Workforce Metrics Cards #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="text-muted small fw-semibold">Total Annotators</div>
+      <div class="fs-4 fw-bold text-dark mt-1">{{ total_annotators }}</div>
+      <div class="small text-muted mt-1">All active contributors</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm p-3 h-100 border-start border-3 border-success">
+      <div class="text-muted small fw-semibold">Verified Workforce</div>
+      <div class="fs-4 fw-bold text-success mt-1">{{ verified_count }}</div>
+      <div class="small text-muted mt-1">Enterprise cleared</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm p-3 h-100 border-start border-3 border-warning">
+      <div class="text-muted small fw-semibold">Provisional Contrib.</div>
+      <div class="fs-4 fw-bold text-warning-emphasis mt-1">{{ provisional_count }}</div>
+      <div class="small text-muted mt-1">Sandbox / Pre-cutover</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm p-3 h-100 border-start border-3 border-primary">
+      <div class="text-muted small fw-semibold">Specialist Tier</div>
+      <div class="fs-4 fw-bold text-primary mt-1">{{ specialists_count }}</div>
+      <div class="small text-muted mt-1">Tier 2+ / RedLab</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm p-3 h-100 border-start border-3 border-info">
+      <div class="text-muted small fw-semibold">Language Pod Leads</div>
+      <div class="fs-4 fw-bold text-info mt-1">{{ pod_leads_count }}</div>
+      <div class="small text-muted mt-1">Squad coordinators</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm p-3 h-100 border-start border-3 border-danger">
+      <div class="text-muted small fw-semibold">Pending Reviews</div>
+      <div class="fs-4 fw-bold text-danger mt-1">{{ pending_requests|length }}</div>
+      <div class="small text-muted mt-1">Awaiting decision</div>
+    </div>
+  </div>
+</div>
+
+{# Pending Promotion Applications Section #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+      <i class="bi bi-inbox-fill text-warning"></i>Pending Career Promotion Applications
+    </h5>
+    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+      {{ pending_requests|length }} pending review
+    </span>
+  </div>
+  <div class="card-body p-0">
+    {% if pending_requests %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small">
+          <tr>
+            <th>Annotator</th>
+            <th>Current Tier</th>
+            <th>Target Role</th>
+            <th>Specialization Track</th>
+            <th>Performance</th>
+            <th>Submitted</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in pending_requests %}
+          {% set stats = annotator_stats.get(req.user_id, {}) %}
+          <tr>
+            <td>
+              <div class="fw-semibold text-dark">{{ req.user.name }}</div>
+              <div class="small text-muted">{{ req.user.email }}</div>
+            </td>
+            <td>
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                {{ req.user.seniority_level.replace('_', ' ').title() }}
+              </span>
+            </td>
+            <td>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">
+                {{ req.target_role.replace('_', ' ').title() }}
+              </span>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">
+                {{ req.specialization_area.replace('_', ' ').title() }}
+              </span>
+            </td>
+            <td>
+              <div class="small fw-semibold text-dark">{{ stats.approved_subs|default(0) }} / {{ stats.total_subs|default(0) }} approved ({{ stats.accuracy|default(0) }}%)</div>
+              <div class="small text-muted">QA Avg: {{ stats.avg_qa ~ '%' if stats.avg_qa is defined and stats.avg_qa is not none else '—' }}</div>
+            </td>
+            <td class="small text-muted text-nowrap">{{ req.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-primary fw-semibold" type="button"
+                      data-bs-toggle="modal" data-bs-target="#reviewModal-{{ req.id }}">
+                <i class="bi bi-search me-1"></i>Review Dossier
+              </button>
+            </td>
+          </tr>
+
+          {# Review Modal for each pending application #}
+          <div class="modal fade" id="reviewModal-{{ req.id }}" tabindex="-1" aria-labelledby="reviewModalLabel-{{ req.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                  <h5 class="modal-title fw-bold" id="reviewModalLabel-{{ req.id }}">
+                    Career Promotion Review: {{ req.user.name }}
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                  {# Candidate Overview #}
+                  <div class="p-3 bg-light rounded-3 mb-4">
+                    <div class="row g-3">
+                      <div class="col-6 col-md-3">
+                        <span class="text-muted small">Target Role</span>
+                        <div class="fw-bold text-primary">{{ req.target_role.replace('_', ' ').title() }}</div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <span class="text-muted small">Specialization Area</span>
+                        <div class="fw-bold text-dark">{{ req.specialization_area.replace('_', ' ').title() }}</div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <span class="text-muted small">Verified Tasks</span>
+                        <div class="fw-bold text-dark">{{ stats.approved_subs|default(0) }} tasks ({{ stats.accuracy|default(0) }}%)</div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <span class="text-muted small">QA Score Avg</span>
+                        <div class="fw-bold text-dark">{{ stats.avg_qa ~ '%' if stats.avg_qa is defined and stats.avg_qa is not none else '—' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {# Statement of Interest #}
+                  <div class="mb-4">
+                    <label class="form-label fw-bold text-dark small">Statement of Interest &amp; Qualification Portfolio</label>
+                    <div class="p-3 border rounded bg-white text-dark small" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto;">
+                      {{ req.statement_of_interest }}
+                    </div>
+                  </div>
+
+                  {# Approval / Rejection Form #}
+                  <form method="post" action="{{ url_for('admin.workforce_promotion_review', request_id=req.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <h6 class="fw-bold text-dark mb-3">Workforce Promotion Decision</h6>
+
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Specialist Badge Title (Optional)</label>
+                      <input type="text" name="specialist_badge" class="form-control"
+                             placeholder="e.g. {{ req.specialization_area.replace('_', ' ').title() }} Specialist"
+                             value="{{ req.user.specialist_badge or (req.specialization_area.replace('_', ' ').title() ~ ' Specialist') }}">
+                      <div class="form-text small">Display badge on annotator portfolio and profile.</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold">Assigned Language Squad / Pod</label>
+                        <input type="text" name="assigned_pod" class="form-control"
+                               placeholder="e.g. Yoruba Pod, Medical Squad, FinTech Squad"
+                               value="{{ req.user.assigned_pod or '' }}">
+                      </div>
+                      <div class="col-12 col-md-6 d-flex align-items-center pt-md-4">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="is_pod_lead" value="1" id="podLeadCheck-{{ req.id }}"
+                                 {{ 'checked' if req.user.is_pod_lead or req.target_role == 'pod_lead' }}>
+                          <label class="form-check-label small fw-semibold" for="podLeadCheck-{{ req.id }}">
+                            Appoint as Language Squad / Pod Lead
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Reviewer Evaluation Notes &amp; Feedback</label>
+                      <textarea name="notes" class="form-control" rows="3" required placeholder="Add feedback on candidate readiness, domain credentials, and operational responsibilities..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                      <button type="submit" name="action" value="reject" class="btn btn-outline-danger fw-semibold">
+                        <i class="bi bi-x-circle me-1"></i>Decline Application
+                      </button>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="action" value="approve" class="btn btn-success fw-semibold">
+                          <i class="bi bi-check2-circle me-1"></i>Approve Promotion
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted">
+      <i class="bi bi-check2-circle fs-3 text-success d-block mb-2"></i>
+      No pending promotion applications. All requests have been reviewed.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# Workforce Seniority & Language Pod Roster #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+      <i class="bi bi-diagram-3 text-primary"></i>Workforce Seniority &amp; Language Pod Roster
+    </h5>
+    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+      {{ annotators|length }} active annotator(s)
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small">
+          <tr>
+            <th>Annotator</th>
+            <th>Workforce Status</th>
+            <th>Seniority Tier</th>
+            <th>Specialist Badge</th>
+            <th>Language Squad / Pod</th>
+            <th>Performance</th>
+            <th class="text-end">Manage</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for u in annotators %}
+          {% set stats = annotator_stats.get(u.id, {}) %}
+          <tr>
+            <td>
+              <div class="fw-semibold text-dark">{{ u.name }}</div>
+              <div class="small text-muted">{{ u.email }}</div>
+            </td>
+            <td>
+              {% if u.is_verified %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-shield-check me-1"></i>Verified
+              </span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                <i class="bi bi-clock-history me-1"></i>Provisional
+              </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.seniority_level == 'pod_lead' %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle">Pod Lead</span>
+              {% elif u.seniority_level == 'consensus_arbitrator' %}
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Arbitrator</span>
+              {% elif u.seniority_level == 'qa_reviewer' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">QA Reviewer</span>
+              {% elif u.seniority_level == 'specialist' %}
+              <span class="badge bg-purple-subtle text-purple border border-purple-subtle" style="color: #6f42c1; background-color: #f3ebfc;">Specialist</span>
+              {% elif u.seniority_level == 'provisional' %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Provisional</span>
+              {% else %}
+              <span class="badge bg-light text-dark border">Verified Annotator</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.specialist_badge %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                <i class="bi bi-award me-1"></i>{{ u.specialist_badge }}
+              </span>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.assigned_pod %}
+              <span class="fw-semibold text-dark">{{ u.assigned_pod }}</span>
+              {% if u.is_pod_lead %}
+              <span class="badge bg-info text-dark ms-1">Lead</span>
+              {% endif %}
+              {% else %}
+              <span class="text-muted">General Pool</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="text-dark">{{ stats.approved_subs|default(0) }} / {{ stats.total_subs|default(0) }} tasks ({{ stats.accuracy|default(0) }}%)</div>
+              <div class="text-muted">QA: {{ stats.avg_qa ~ '%' if stats.avg_qa is defined and stats.avg_qa is not none else '—' }}</div>
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      data-bs-toggle="modal" data-bs-target="#editSeniorityModal-{{ u.id }}">
+                <i class="bi bi-pencil-square me-1"></i>Edit Tier
+              </button>
+            </td>
+          </tr>
+
+          {# Edit Seniority Modal #}
+          <div class="modal fade" id="editSeniorityModal-{{ u.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                  <h5 class="modal-title fw-bold">Update Credentials: {{ u.name }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="{{ url_for('admin.workforce_update_seniority', user_id=u.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="modal-body p-4">
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Seniority Tier</label>
+                      <select name="seniority_level" class="form-select" required>
+                        <option value="provisional" {{ 'selected' if u.seniority_level == 'provisional' }}>Provisional Contributor</option>
+                        <option value="verified" {{ 'selected' if u.seniority_level == 'verified' }}>Verified Enterprise Annotator</option>
+                        <option value="specialist" {{ 'selected' if u.seniority_level == 'specialist' }}>Domain Specialist (Tier 2)</option>
+                        <option value="qa_reviewer" {{ 'selected' if u.seniority_level == 'qa_reviewer' }}>Senior QA Reviewer</option>
+                        <option value="consensus_arbitrator" {{ 'selected' if u.seniority_level == 'consensus_arbitrator' }}>Consensus Arbitrator</option>
+                        <option value="pod_lead" {{ 'selected' if u.seniority_level == 'pod_lead' }}>Language Squad / Pod Lead</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Specialist Badge Title</label>
+                      <input type="text" name="specialist_badge" class="form-control"
+                             placeholder="e.g. Medical NLP Specialist"
+                             value="{{ u.specialist_badge or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Assigned Language Squad / Pod</label>
+                      <input type="text" name="assigned_pod" class="form-control"
+                             placeholder="e.g. Yoruba Squad, Igbo Squad, Hausa Squad"
+                             value="{{ u.assigned_pod or '' }}">
+                    </div>
+
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" name="is_pod_lead" value="1" id="modalPodLead-{{ u.id }}"
+                             {{ 'checked' if u.is_pod_lead }}>
+                      <label class="form-check-label small fw-semibold" for="modalPodLead-{{ u.id }}">
+                        Designate as Squad / Pod Lead
+                      </label>
+                    </div>
+                  </div>
+                  <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-semibold">Save Changes</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Recent Decisions History Table #}
+{% if recent_decisions %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom py-3">
+    <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+      <i class="bi bi-clock-history text-secondary"></i>Recent Promotion Decisions Log
+    </h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small">
+          <tr>
+            <th>Annotator</th>
+            <th>Target Role</th>
+            <th>Track</th>
+            <th>Decision</th>
+            <th>Reviewer</th>
+            <th>Reviewed Date</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for dec in recent_decisions %}
+          <tr>
+            <td class="fw-semibold text-dark">{{ dec.user.name }}</td>
+            <td>{{ dec.target_role.replace('_', ' ').title() }}</td>
+            <td class="text-muted">{{ dec.specialization_area.replace('_', ' ').title() }}</td>
+            <td>
+              {% if dec.status == 'approved' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Approved</span>
+              {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Declined</span>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ dec.reviewer.name if dec.reviewer else 'System Admin' }}</td>
+            <td class="text-muted text-nowrap">{{ dec.reviewed_at.strftime('%d %b %Y, %H:%M') if dec.reviewed_at else '—' }}</td>
+            <td class="text-muted text-truncate" style="max-width: 250px;">{{ dec.review_notes or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

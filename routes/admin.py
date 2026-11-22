@@ -53,6 +53,7 @@ from wtforms import (
     DateField,
     DecimalField,
     FileField,
+    HiddenField,
     IntegerField,
     SelectField,
     StringField,
@@ -113,6 +114,10 @@ from models import (
     ConsensusGroup,
 
     AuditLog,
+    CareerPromotionRequest,
+    PROMOTION_STATUSES,
+    PROMOTION_TARGET_ROLES,
+    SENIORITY_LEVELS,
     SFT_STATUSES,
     TASK_STATUSES,
     TASK_TYPES,
@@ -124,6 +129,20 @@ from models import (
 
     User,
     utc_now,
+)
+from quality_standards import (
+    DEFECT_CATEGORIES,
+    DEFECT_SEVERITIES,
+    FEEDBACK_MACROS,
+    QUALITY_TIERS,
+    RUBRIC_DIMENSION_META,
+    STANDARD_RUBRIC_DIMENSIONS,
+    classify_quality_tier,
+    compute_weighted_qa_score,
+    parse_error_tags,
+    parse_qa_rubric_data,
+    serialize_error_tags,
+    serialize_qa_rubric_data,
 )
 from models import money
 from routes import (
@@ -237,6 +256,20 @@ class ProjectForm(FlaskForm):
         coerce=int,
         validators=[DataRequired(message="Choose the consensus depth.")],
     )
+    quality_threshold = DecimalField(
+        "Quality Passing Threshold (%)",
+        places=1,
+        default=Decimal("90.0"),
+        validators=[
+            Optional(),
+            NumberRange(
+                min=Decimal("50.0"),
+                max=Decimal("100.0"),
+                message="Quality threshold must be between 50% and 100%.",
+            ),
+        ],
+        description="Minimum average QA score required for acceptance (default 90.0%).",
+    )
     deadline = DateField(
         "Deadline (optional, shown to annotators)",
         validators=[Optional()],
@@ -300,12 +333,29 @@ class ReviewForm(FlaskForm):
     qa_score = IntegerField(
         "QA score (0-100)",
         validators=[
-            DataRequired(message="Set a QA score."),
+            Optional(),
             NumberRange(
                 min=0, max=100, message="Score must be between 0 and 100."
             ),
         ],
     )
+    rubric_accuracy = IntegerField(
+        "Accuracy & Correctness",
+        validators=[Optional(), NumberRange(min=0, max=100)],
+    )
+    rubric_linguistic_quality = IntegerField(
+        "Linguistic & Dialect Quality",
+        validators=[Optional(), NumberRange(min=0, max=100)],
+    )
+    rubric_instruction_adherence = IntegerField(
+        "Instruction Following",
+        validators=[Optional(), NumberRange(min=0, max=100)],
+    )
+    rubric_formatting = IntegerField(
+        "Formatting & Output Syntax",
+        validators=[Optional(), NumberRange(min=0, max=100)],
+    )
+    error_tags_json = HiddenField("Error Tags JSON")
     qa_notes = TextAreaField(
         "QA notes for the annotator",
         validators=[
@@ -322,6 +372,40 @@ class ReviewForm(FlaskForm):
     return_for_revision = BooleanField(
         "Leave the task with the annotator for revision"
     )
+
+
+class AppealDecisionForm(FlaskForm):
+    """Admin / QA decision on an annotator's quality dispute appeal."""
+
+    action = SelectField(
+        "Decision",
+        choices=[
+            ("grant", "Grant Appeal & Approve Work"),
+            ("deny", "Deny Appeal & Maintain Rejection"),
+        ],
+        validators=[DataRequired(message="Choose an appeal decision.")],
+    )
+    revised_score = IntegerField(
+        "Revised QA Score (0-100)",
+        default=90,
+        validators=[
+            Optional(),
+            NumberRange(
+                min=0, max=100, message="Score must be between 0 and 100."
+            ),
+        ],
+    )
+    decision_notes = TextAreaField(
+        "Review Notes for Annotator",
+        validators=[
+            DataRequired(message="Explain the rationale for this appeal decision."),
+            Length(
+                max=MAX_QA_NOTES_CHARS,
+                message=f"Notes must be {MAX_QA_NOTES_CHARS} characters or less.",
+            ),
+        ],
+    )
+    submit = SubmitField("Submit Decision")
 
 
 class BulkReviewForm(FlaskForm):
@@ -833,6 +917,7 @@ def new_project():
             ),
             deadline=form.deadline.data,
             required_annotations=form.required_annotations.data,
+            quality_threshold=float(form.quality_threshold.data or 90.0),
             created_by=current_user.id,
             approved_by=current_user.id,
             approved_at=utc_now(),
@@ -937,6 +1022,8 @@ def edit_project(project_id: int):
         )
         project.deadline = form.deadline.data
         project.required_annotations = form.required_annotations.data
+        if form.quality_threshold.data is not None:
+            project.quality_threshold = float(form.quality_threshold.data)
         log_event(
             "project.update",
             actor=current_user,
@@ -1973,10 +2060,12 @@ def _review_filters() -> dict:
 def _apply_verdict(
     submission_ids: list[int],
     action: str,
-    qa_score: int,
+    qa_score: int | float,
     qa_notes: str | None,
     return_for_revision: bool,
-) -> int:
+    qa_rubric_data: str | None = None,
+    error_tags: str | None = None,
+) -> tuple[int, list]:
     """Apply an approve/reject verdict to still-unreviewed submissions.
 
     The submission UPDATE is conditional on status='submitted', so a
@@ -1992,6 +2081,8 @@ def _apply_verdict(
         qa_score: Score 0-100 recorded with the verdict.
         qa_notes: Optional feedback stored on the submission.
         return_for_revision: Reject-only; keep annotator ownership.
+        qa_rubric_data: Optional JSON string of dimension scores.
+        error_tags: Optional JSON string of defect taxonomy tags.
 
     Returns:
         A tuple of (transitions, escalated) — the number of
@@ -2020,15 +2111,22 @@ def _apply_verdict(
     escalated: list[tuple[int, int | None]] = []
     if not updated_ids:
         return 0, escalated
+
+    sub_values = {
+        "status": new_status,
+        "qa_score": float(qa_score),
+        "qa_notes": qa_notes,
+        "reviewed_at": reviewed_at,
+    }
+    if qa_rubric_data is not None:
+        sub_values["qa_rubric_data"] = qa_rubric_data
+    if error_tags is not None:
+        sub_values["error_tags"] = error_tags
+
     db.session.execute(
         update(Submission)
         .where(Submission.id.in_(updated_ids))
-        .values(
-            status=new_status,
-            qa_score=float(qa_score),
-            qa_notes=qa_notes,
-            reviewed_at=reviewed_at,
-        )
+        .values(**sub_values)
         .execution_options(synchronize_session=False)
     )
     if action == "reject" and not return_for_revision:
@@ -2323,13 +2421,46 @@ def review_detail(submission_id: int):
                     "Could not sync red-team breach count for sub=%s",
                     submission.id,
                 )
+
+        # Collect structured multi-dimensional rubric scores
+        rubric_scores = {}
+        if form.rubric_accuracy.data is not None:
+            rubric_scores["accuracy"] = form.rubric_accuracy.data
+        if form.rubric_linguistic_quality.data is not None:
+            rubric_scores["linguistic_quality"] = form.rubric_linguistic_quality.data
+        if form.rubric_instruction_adherence.data is not None:
+            rubric_scores["instruction_adherence"] = form.rubric_instruction_adherence.data
+        if form.rubric_formatting.data is not None:
+            rubric_scores["formatting"] = form.rubric_formatting.data
+
+        qa_rubric_data_str = serialize_qa_rubric_data(rubric_scores) if rubric_scores else None
+
+        # Parse and serialize error tags
+        error_tags_str = None
+        if form.error_tags_json.data:
+            try:
+                parsed_tags = json.loads(form.error_tags_json.data)
+                if isinstance(parsed_tags, list):
+                    error_tags_str = serialize_error_tags(parsed_tags)
+            except Exception:
+                error_tags_str = None
+
+        final_qa_score = form.qa_score.data
+        if final_qa_score is None:
+            if rubric_scores:
+                final_qa_score = int(compute_weighted_qa_score(rubric_scores))
+            else:
+                final_qa_score = 100
+
         try:
             updated, escalated = _apply_verdict(
                 submission_ids=[submission.id],
                 action=form.action.data,
-                qa_score=form.qa_score.data,
+                qa_score=final_qa_score,
                 qa_notes=(form.qa_notes.data or "").strip() or None,
                 return_for_revision=form.return_for_revision.data,
+                qa_rubric_data=qa_rubric_data_str,
+                error_tags=error_tags_str,
             )
             log_event(
                 "review.verdict",
@@ -2339,11 +2470,13 @@ def review_detail(submission_id: int):
                 detail={
                     "task_id": task.id,
                     "action": form.action.data,
-                    "qa_score": form.qa_score.data,
+                    "qa_score": final_qa_score,
                     "return_for_revision": bool(
                         form.return_for_revision.data
                     ),
                     "escalated": len(escalated),
+                    "has_rubric": bool(rubric_scores),
+                    "has_error_tags": bool(error_tags_str),
                 },
             )
             if form.action.data == "reject":
@@ -2407,6 +2540,10 @@ def review_detail(submission_id: int):
                 media_url=review_media_url,
                 media_prompt=review_media_prompt,
                 rubric_view=_rubric_view(submission, project),
+                rubric_dimension_meta=RUBRIC_DIMENSION_META,
+                defect_categories=DEFECT_CATEGORIES,
+                defect_severities=DEFECT_SEVERITIES,
+                feedback_macros=FEEDBACK_MACROS,
                 consensus=(
                     {
                         "id": task.consensus_group_id,
@@ -2455,6 +2592,18 @@ def review_detail(submission_id: int):
         media_url=review_media_url,
         media_prompt=review_media_prompt,
         rubric_view=_rubric_view(submission, project),
+        rubric_dimension_meta=RUBRIC_DIMENSION_META,
+        defect_categories=DEFECT_CATEGORIES,
+        defect_severities=DEFECT_SEVERITIES,
+        feedback_macros=FEEDBACK_MACROS,
+        consensus=(
+            {
+                "id": task.consensus_group_id,
+                "status": task.consensus_group.status,
+                "decision": task.consensus_group.decided_choice,
+            }
+            if task.consensus_group_id is not None else None
+        ),
         form=form,
         redteam_transcript=redteam_transcript,
         redteam_payout_usd=redteam_payout_usd,
@@ -2671,6 +2820,159 @@ def review_bulk():
         )
     flash(message, "success" if updated else "warning")
     return redirect(url_for("admin.review"))
+
+
+# ---------------------------------------------------------------------------
+# Quality dispute appeals desk (Phase 9)
+# ---------------------------------------------------------------------------
+
+
+@admin_bp.route("/review/appeals")
+@qa_required
+def review_appeals():
+    """List pending annotator quality dispute appeals."""
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    stmt = (
+        select(Submission)
+        .where(Submission.appeal_status == "pending")
+        .order_by(Submission.reviewed_at.desc(), Submission.id.desc())
+    )
+    pagination = db.paginate(
+        stmt, page=page, per_page=REVIEWS_PER_PAGE, error_out=False
+    )
+    appeal_submissions = list(pagination.items)
+
+    rows = []
+    for s in appeal_submissions:
+        rows.append({
+            "submission": s,
+            "task": s.task,
+            "project": s.task.project if s.task else None,
+            "annotator": s.annotator,
+            "error_tags": parse_error_tags(s.error_tags),
+            "rubric_data": parse_qa_rubric_data(s.qa_rubric_data),
+        })
+
+    decision_form = AppealDecisionForm()
+    return render_template(
+        "admin/review_appeals.html",
+        rows=rows,
+        pagination=pagination,
+        decision_form=decision_form,
+    )
+
+
+@admin_bp.route("/review/appeals/<int:submission_id>/decide", methods=["POST"])
+@qa_required
+def decide_appeal(submission_id: int):
+    """Grant or deny an annotator's quality dispute appeal."""
+    submission = db.session.get(Submission, submission_id)
+    if submission is None:
+        abort(404)
+    if submission.appeal_status != "pending":
+        flash("This appeal has already been resolved.", "info")
+        return redirect(url_for("admin.review_appeals"))
+
+    form = AppealDecisionForm()
+    if not form.validate_on_submit():
+        flash("Please provide complete appeal decision details.", "danger")
+        return redirect(url_for("admin.review_appeals"))
+
+    action = form.action.data
+    notes = (form.decision_notes.data or "").strip()
+    revised_score = form.revised_score.data or 90
+
+    try:
+        submission.appeal_reviewed_at = utc_now()
+        submission.appeal_reviewed_by_id = current_user.id
+
+        if action == "grant":
+            submission.appeal_status = "granted"
+            submission.status = "approved"
+            submission.qa_score = float(revised_score)
+            submission.qa_notes = (
+                (submission.qa_notes or "")
+                + f"\n\n[Appeal Granted by {current_user.name}]: {notes}"
+            ).strip()
+            if submission.task:
+                submission.task.status = "approved"
+
+            log_event(
+                "quality.appeal_granted",
+                actor=current_user,
+                entity_type="submission",
+                entity_id=submission.id,
+                detail={
+                    "user_id": submission.annotator_id,
+                    "task_id": submission.task_id,
+                    "revised_score": revised_score,
+                    "notes": notes,
+                },
+            )
+            recipient = db.session.get(User, submission.annotator_id)
+            if recipient:
+                notify(
+                    recipient,
+                    "appeal.granted",
+                    payload={
+                        "submission_id": submission.id,
+                        "task_id": submission.task_id,
+                    },
+                    subject="Your Quality Appeal was Granted on Brydl",
+                    body=(
+                        f"Hello {recipient.name},\n\n"
+                        f"Your quality appeal for Task #{submission.task_id} has been granted with revised QA score {revised_score}%.\n"
+                        f"Reviewer notes: {notes}\n\n— Brydl QA Team"
+                    ),
+                )
+            flash(
+                f"Appeal granted for Submission #{submission.id}. Work approved at {revised_score}%.",
+                "success",
+            )
+        else:
+            submission.appeal_status = "denied"
+            submission.qa_notes = (
+                (submission.qa_notes or "")
+                + f"\n\n[Appeal Denied by {current_user.name}]: {notes}"
+            ).strip()
+            log_event(
+                "quality.appeal_denied",
+                actor=current_user,
+                entity_type="submission",
+                entity_id=submission.id,
+                detail={
+                    "user_id": submission.annotator_id,
+                    "task_id": submission.task_id,
+                    "notes": notes,
+                },
+            )
+            recipient = db.session.get(User, submission.annotator_id)
+            if recipient:
+                notify(
+                    recipient,
+                    "appeal.denied",
+                    payload={
+                        "submission_id": submission.id,
+                        "task_id": submission.task_id,
+                    },
+                    subject="Your Quality Appeal was Reviewed on Brydl",
+                    body=(
+                        f"Hello {recipient.name},\n\n"
+                        f"Your quality appeal for Task #{submission.task_id} was reviewed and the original verdict was maintained.\n"
+                        f"Reviewer explanation: {notes}\n\n— Brydl QA Team"
+                    ),
+                )
+            flash(f"Appeal denied for Submission #{submission.id}.", "info")
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Failed to decide appeal for sub=%s", submission_id
+        )
+        flash("Could not process appeal decision. Please try again.", "danger")
+
+    return redirect(url_for("admin.review_appeals"))
 
 
 @admin_bp.route("/review/conflicts")
@@ -3148,15 +3450,134 @@ def quality():
                     == str(expected).strip().lower()
                 ):
                     entry["gold_correct"] += 1
-        table = {
-            u.id: {**(agg.get(u.id) or {}), "user": u}
-            for u in pagination.items
-        }
+        table = {}
+        for u in pagination.items:
+            data = {**(agg.get(u.id) or {}), "user": u}
+            total_rev = data["approved"] + data["rejected"]
+            data["tier"] = classify_quality_tier(data["avg_qa"], total_rev)
+            table[u.id] = data
+
+        # Calculate workforce tier distribution
+        tier_counts = {"gold": 0, "silver": 0, "needs_attention": 0, "probation": 0, "unranked": 0}
+        all_ann_scores = db.session.execute(
+            select(
+                Submission.annotator_id,
+                func.count(Submission.id),
+                func.avg(Submission.qa_score),
+            )
+            .where(Submission.status.in_(("approved", "rejected")))
+            .group_by(Submission.annotator_id)
+        ).all()
+        for _, cnt, avg_s in all_ann_scores:
+            t = classify_quality_tier(float(avg_s) if avg_s is not None else None, int(cnt or 0))
+            k = t.get("tier_key", "unranked")
+            if k in tier_counts:
+                tier_counts[k] += 1
+
+        # Defect taxonomy breakdown
+        defect_counts = {k: 0 for k in DEFECT_CATEGORIES}
+        defect_rows = db.session.execute(
+            select(Submission.error_tags)
+            .where(Submission.error_tags.is_not(None))
+        ).all()
+        for (raw_tags,) in defect_rows:
+            parsed = parse_error_tags(raw_tags)
+            for t in parsed:
+                c = t.get("category")
+                if c in defect_counts:
+                    defect_counts[c] += 1
+
     except Exception:
         current_app.logger.exception("Quality report failed.")
         flash("Quality report could not be loaded.", "danger")
+        table = {}
+        tier_counts = {"gold": 0, "silver": 0, "needs_attention": 0, "probation": 0, "unranked": 0}
+        defect_counts = {k: 0 for k in DEFECT_CATEGORIES}
+
     return render_template(
-        "admin/quality.html", table=table, pagination=pagination,
+        "admin/quality.html",
+        table=table,
+        pagination=pagination,
+        tier_counts=tier_counts,
+        defect_counts=defect_counts,
+        defect_categories=DEFECT_CATEGORIES,
+    )
+
+
+@admin_bp.route("/quality/export.csv")
+@qa_required
+def quality_export():
+    """Export the workforce quality standards and accuracy report to CSV."""
+    annotators = db.session.scalars(
+        select(User)
+        .where(User.role == "annotator")
+        .order_by(User.name.asc())
+    ).all()
+    ids = [u.id for u in annotators]
+
+    agg: dict[int, dict] = {
+        uid: {"approved": 0, "rejected": 0, "avg_qa": None}
+        for uid in ids
+    }
+    if ids:
+        for row in db.session.execute(
+            select(
+                Submission.annotator_id,
+                func.sum(case((Submission.status == "approved", 1), else_=0)),
+                func.sum(case((Submission.status == "rejected", 1), else_=0)),
+                func.avg(case((Submission.status == "approved", Submission.qa_score), else_=None)),
+            )
+            .where(Submission.annotator_id.in_(ids))
+            .group_by(Submission.annotator_id)
+        ).all():
+            agg[row[0]].update({
+                "approved": int(row[1] or 0),
+                "rejected": int(row[2] or 0),
+                "avg_qa": round(float(row[3]), 1) if row[3] is not None else None,
+            })
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Annotator ID",
+        "Name",
+        "Email",
+        "Seniority Level",
+        "Specialist Badge",
+        "Assigned Pod",
+        "Quality Tier",
+        "Approved Tasks",
+        "Rejected Tasks",
+        "Approval Rate (%)",
+        "Average QA Score (%)",
+    ])
+
+    for u in annotators:
+        stats = agg.get(u.id, {"approved": 0, "rejected": 0, "avg_qa": None})
+        approved = stats["approved"]
+        rejected = stats["rejected"]
+        total = approved + rejected
+        rate = round((approved / total) * 100, 1) if total > 0 else "N/A"
+        tier_info = classify_quality_tier(stats["avg_qa"], total)
+        writer.writerow([
+            u.id,
+            u.name,
+            u.email,
+            getattr(u, "seniority_level", "verified"),
+            getattr(u, "specialist_badge", "") or "None",
+            getattr(u, "assigned_pod", "") or "Unassigned",
+            tier_info["name"],
+            approved,
+            rejected,
+            rate,
+            stats["avg_qa"] if stats["avg_qa"] is not None else "N/A",
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=brydl_workforce_quality_report.csv"},
     )
 
 
@@ -6957,3 +7378,213 @@ def applicant_decision(applicant_id: int):
         detail={"decision": decision, "notes": notes},
     )
     return redirect(url_for("admin.applicant_detail", applicant_id=applicant.id))
+
+
+@admin_bp.route("/workforce/promotions", methods=["GET"], endpoint="workforce_promotions")
+@admin_required
+def workforce_promotions():
+    """Workforce Career Progression, Specialist Ladder, and Promotion Console."""
+    # Headcount and workforce tier breakdown
+    total_annotators = User.query.filter_by(role="annotator", is_active=True).count()
+    verified_count = User.query.filter_by(
+        role="annotator", is_active=True, is_verified=True
+    ).count()
+    provisional_count = User.query.filter_by(
+        role="annotator", is_active=True, is_verified=False
+    ).count()
+
+    specialists_count = User.query.filter(
+        User.role == "annotator",
+        User.is_active == True,
+        User.seniority_level.in_(("specialist", "qa_reviewer", "consensus_arbitrator", "pod_lead")),
+    ).count()
+    pod_leads_count = User.query.filter_by(
+        role="annotator", is_active=True, is_pod_lead=True
+    ).count()
+
+    # Promotion requests
+    pending_requests = (
+        CareerPromotionRequest.query.filter_by(status="pending")
+        .order_by(CareerPromotionRequest.created_at.asc())
+        .all()
+    )
+    recent_decisions = (
+        CareerPromotionRequest.query.filter(CareerPromotionRequest.status != "pending")
+        .order_by(CareerPromotionRequest.reviewed_at.desc())
+        .limit(25)
+        .all()
+    )
+
+    # Active annotator roster with metrics
+    annotators = (
+        User.query.filter_by(role="annotator", is_active=True)
+        .order_by(User.name.asc())
+        .all()
+    )
+
+    # Annotator metrics mapping for promotion reviews
+    annotator_stats = {}
+    for user in annotators:
+        total_subs = Submission.query.filter_by(annotator_id=user.id).count()
+        app_subs = Submission.query.filter_by(annotator_id=user.id, status="approved").count()
+        qa_avg = db.session.query(func.avg(Submission.qa_score)).filter(
+            Submission.annotator_id == user.id,
+            Submission.qa_score.isnot(None),
+        ).scalar()
+        annotator_stats[user.id] = {
+            "total_subs": total_subs,
+            "approved_subs": app_subs,
+            "accuracy": round((app_subs / total_subs * 100), 1) if total_subs > 0 else 0.0,
+            "avg_qa": round(float(qa_avg), 1) if qa_avg is not None else None,
+        }
+
+    return render_template(
+        "admin/workforce_promotions.html",
+        total_annotators=total_annotators,
+        verified_count=verified_count,
+        provisional_count=provisional_count,
+        specialists_count=specialists_count,
+        pod_leads_count=pod_leads_count,
+        pending_requests=pending_requests,
+        recent_decisions=recent_decisions,
+        annotators=annotators,
+        annotator_stats=annotator_stats,
+        seniority_levels=SENIORITY_LEVELS,
+    )
+
+
+@admin_bp.route(
+    "/workforce/promotions/<int:request_id>/review",
+    methods=["POST"],
+    endpoint="workforce_promotion_review",
+)
+@admin_required
+def workforce_promotion_review(request_id: int):
+    """Review, approve, or reject an annotator career promotion request."""
+    promotion = db.session.get(CareerPromotionRequest, request_id)
+    if promotion is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.workforce_promotions"))
+
+    action = request.form.get("action", "").strip().lower()
+    notes = request.form.get("notes", "").strip()
+    specialist_badge = request.form.get("specialist_badge", "").strip()
+    assigned_pod = request.form.get("assigned_pod", "").strip()
+    is_pod_lead = request.form.get("is_pod_lead") in ("1", "true", "on", "yes")
+
+    if action not in ("approve", "reject"):
+        flash("Invalid promotion action.", "danger")
+        return redirect(url_for("admin.workforce_promotions"))
+
+    user = promotion.user
+    if action == "approve":
+        promotion.status = "approved"
+        promotion.reviewed_by_id = current_user.id
+        promotion.reviewed_at = utc_now()
+        promotion.review_notes = notes
+
+        # Update annotator profile
+        user.seniority_level = promotion.target_role
+        if specialist_badge:
+            user.specialist_badge = specialist_badge
+        elif not user.specialist_badge:
+            user.specialist_badge = f"{promotion.specialization_area.replace('_', ' ').title()} Specialist"
+
+        if assigned_pod:
+            user.assigned_pod = assigned_pod
+        if is_pod_lead or promotion.target_role == "pod_lead":
+            user.is_pod_lead = True
+
+        log_event(
+            "workforce.promotion_approved",
+            actor=current_user,
+            entity_type="career_promotion",
+            entity_id=promotion.id,
+            detail={
+                "user_id": user.id,
+                "target_role": promotion.target_role,
+                "specialist_badge": user.specialist_badge,
+                "assigned_pod": user.assigned_pod,
+                "is_pod_lead": user.is_pod_lead,
+                "notes": notes,
+            },
+        )
+        db.session.commit()
+        flash(
+            f"Promotion approved for {user.name}! Promoted to {promotion.target_role.replace('_', ' ').title()}.",
+            "success",
+        )
+    else:
+        promotion.status = "rejected"
+        promotion.reviewed_by_id = current_user.id
+        promotion.reviewed_at = utc_now()
+        promotion.review_notes = notes
+
+        log_event(
+            "workforce.promotion_rejected",
+            actor=current_user,
+            entity_type="career_promotion",
+            entity_id=promotion.id,
+            detail={"user_id": user.id, "target_role": promotion.target_role, "notes": notes},
+        )
+        db.session.commit()
+        flash(f"Promotion application for {user.name} has been declined.", "info")
+
+    return redirect(url_for("admin.workforce_promotions"))
+
+
+@admin_bp.route(
+    "/workforce/annotators/<int:user_id>/update-seniority",
+    methods=["POST"],
+    endpoint="workforce_update_seniority",
+)
+@admin_required
+def workforce_update_seniority(user_id: int):
+    """Directly update an annotator's seniority level, specialist badge, pod, or pod lead status."""
+    user = db.session.get(User, user_id)
+    if user is None:
+        abort(404)
+
+    try:
+        validate_csrf(request.form.get("csrf_token", ""))
+    except ValidationError:
+        flash("Security check failed. Please try again.", "warning")
+        return redirect(url_for("admin.workforce_promotions"))
+
+    seniority_level = request.form.get("seniority_level", "").strip()
+    specialist_badge = request.form.get("specialist_badge", "").strip() or None
+    assigned_pod = request.form.get("assigned_pod", "").strip() or None
+    is_pod_lead = request.form.get("is_pod_lead") in ("1", "true", "on", "yes")
+
+    if seniority_level not in SENIORITY_LEVELS:
+        flash("Invalid seniority level specified.", "danger")
+        return redirect(url_for("admin.workforce_promotions"))
+
+    old_seniority = user.seniority_level
+    user.seniority_level = seniority_level
+    user.specialist_badge = specialist_badge
+    user.assigned_pod = assigned_pod
+    user.is_pod_lead = is_pod_lead
+
+    log_event(
+        "workforce.seniority_updated",
+        actor=current_user,
+        entity_type="user",
+        entity_id=user.id,
+        detail={
+            "old_seniority": old_seniority,
+            "new_seniority": seniority_level,
+            "specialist_badge": specialist_badge,
+            "assigned_pod": assigned_pod,
+            "is_pod_lead": is_pod_lead,
+        },
+    )
+    db.session.commit()
+    flash(f"Workforce credentials updated for {user.name}.", "success")
+    return redirect(url_for("admin.workforce_promotions"))
+

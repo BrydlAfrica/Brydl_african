@@ -17,6 +17,7 @@
           <small class="text-muted">{{ form.proposed_pay_per_task.description }}</small>
           {% for e in form.proposed_pay_per_task.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
         <div class="col-md-4"><label class="form-label">{{ form.required_annotations.label }}</label>{{ form.required_annotations(class="form-select") }}</div>
+        <div class="col-md-4"><label class="form-label">{{ form.quality_threshold.label }}</label>{{ form.quality_threshold(class="form-control", placeholder="90.0", step="0.5") }}</div>
         <div class="col-md-4"><label class="form-label">{{ form.deadline.label }}</label>{{ form.deadline(class="form-control", type="date") }}</div>
         <div class="col-12"><label class="form-label">{{ form.instructions.label }}</label>{{ form.instructions(class="form-control", rows="6") }}
           {% for e in form.instructions.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>

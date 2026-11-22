@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}Career & Specialist Portfolio · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row align-items-center justify-content-between mb-4 gy-2">
+  <div class="col-12 col-md-auto">
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-award-fill me-1"></i>Career Progression
+      </span>
+      {% if current_user.seniority_level == 'pod_lead' %}
+      <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-flag-fill me-1"></i>Pod Lead
+      </span>
+      {% elif current_user.seniority_level == 'consensus_arbitrator' %}
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-diagram-3-fill me-1"></i>Consensus Arbitrator
+      </span>
+      {% elif current_user.seniority_level == 'qa_reviewer' %}
+      <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-patch-check-fill me-1"></i>QA Reviewer
+      </span>
+      {% elif current_user.seniority_level == 'specialist' %}
+      <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-1 rounded-pill fw-semibold" style="color: #6f42c1; background-color: #f3ebfc;">
+        <i class="bi bi-stars me-1"></i>Domain Specialist
+      </span>
+      {% else %}
+      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 rounded-pill fw-semibold">
+        <i class="bi bi-shield-check me-1"></i>Verified Annotator
+      </span>
+      {% endif %}
+    </div>
+    <h1 class="h3 fw-bold mt-2 mb-1">{{ current_user.name }}'s Specialist Portfolio</h1>
+    <p class="text-muted mb-0">
+      Workforce milestone achievements, specialist badges, language squad affiliation, and promotion track.
+    </p>
+  </div>
+  <div class="col-12 col-md-auto d-flex gap-2">
+    <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+    <a href="{{ url_for('annotator.history') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-clock-history me-1"></i>Task History
+    </a>
+  </div>
+</div>
+
+{# Key Performance Metrics Cards #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 p-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small fw-semibold">Verified Tasks</span>
+        <div class="p-2 rounded bg-primary-subtle text-primary">
+          <i class="bi bi-check2-circle fs-5"></i>
+        </div>
+      </div>
+      <div class="fs-3 fw-bold">{{ approved_submissions }} <span class="fs-6 text-muted fw-normal">/ {{ total_submissions }}</span></div>
+      <div class="small text-muted mt-1">
+        <i class="bi bi-pie-chart me-1"></i><strong>{{ accuracy_rate }}%</strong> acceptance rate
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 p-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small fw-semibold">Average QA Score</span>
+        <div class="p-2 rounded bg-success-subtle text-success">
+          <i class="bi bi-patch-check fs-5"></i>
+        </div>
+      </div>
+      <div class="fs-3 fw-bold">{{ avg_qa_score ~ '%' if avg_qa_score is not none else '—' }}</div>
+      <div class="small text-muted mt-1">
+        <i class="bi bi-shield-check me-1"></i>Evaluated by QA team
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 p-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small fw-semibold">Lifetime Earnings</span>
+        <div class="p-2 rounded bg-warning-subtle text-warning-emphasis">
+          <i class="bi bi-cash-stack fs-5"></i>
+        </div>
+      </div>
+      <div class="fs-3 fw-bold">₦{{ "{:,.2f}".format(total_earned) }}</div>
+      <div class="small text-muted mt-1">
+        <i class="bi bi-wallet2 me-1"></i>Direct bank disbursements
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 p-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small fw-semibold">Language Squad</span>
+        <div class="p-2 rounded bg-info-subtle text-info">
+          <i class="bi bi-translate fs-5"></i>
+        </div>
+      </div>
+      <div class="fs-4 fw-bold text-truncate">{{ current_user.assigned_pod or 'General Pool' }}</div>
+      <div class="small text-muted mt-1">
+        {% if current_user.is_pod_lead %}
+        <span class="text-info fw-semibold"><i class="bi bi-star-fill me-1"></i>Squad Pod Lead</span>
+        {% else %}
+        <span>Core Pod Contributor</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  {# Left Column: Seniority Ladder & Specialist Badges #}
+  <div class="col-12 col-lg-7">
+    {# Specialist Badges Showcase #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+          <i class="bi bi-award text-warning"></i>Earned Specialist Badges &amp; Credentials
+        </h5>
+      </div>
+      <div class="card-body">
+        {% if badges %}
+        <div class="row g-3">
+          {% for badge in badges %}
+          <div class="col-12 col-md-6">
+            <div class="p-3 border rounded-3 bg-light h-100 d-flex gap-3 align-items-start">
+              <div class="p-2 rounded-circle bg-{{ badge.color }}-subtle text-{{ badge.color }} fs-4 flex-shrink-0">
+                <i class="bi {{ badge.icon }}"></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="fw-bold text-dark">{{ badge.name }}</span>
+                  <span class="badge bg-{{ badge.color }}">{{ badge.tier }}</span>
+                </div>
+                <p class="text-muted small mb-0 mt-1">{{ badge.description }}</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Complete more tasks and pass project qualification tests to unlock specialist badges.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Seniority Pathway Explainer #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+          <i class="bi bi-ladder text-primary"></i>Workforce Progression Ladder
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="timeline position-relative ps-3 border-start border-2 border-primary-subtle ms-2">
+          {# Tier 1 #}
+          <div class="mb-4 position-relative">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary">Tier 1</span>
+              <h6 class="fw-bold mb-0">Verified Enterprise Annotator</h6>
+              {% if current_user.seniority_level == 'verified' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Current Tier</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Passed multi-stage onboarding, identity verification, and trial calibration. Qualified for core LLM evaluation, classification, and text generation projects.
+            </p>
+          </div>
+
+          {# Tier 2 #}
+          <div class="mb-4 position-relative">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-warning text-dark">Tier 2</span>
+              <h6 class="fw-bold mb-0">Domain Specialist (RedLab Certified)</h6>
+              {% if current_user.seniority_level == 'specialist' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Current Tier</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Deep expertise in specialized tracks (Medical, Legal, African Linguistics, FinTech, Code). Access to RedLab safety evaluations and higher-rate specialist pipelines.
+            </p>
+          </div>
+
+          {# Tier 3 #}
+          <div class="mb-4 position-relative">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success">Tier 3</span>
+              <h6 class="fw-bold mb-0">Senior QA Reviewer &amp; Evaluator</h6>
+              {% if current_user.seniority_level == 'qa_reviewer' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Current Tier</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Grades peer submissions, conducts rubric audits, calibrates onboarding trial tasks, and maintains technical accuracy standards across enterprise batches.
+            </p>
+          </div>
+
+          {# Tier 4 #}
+          <div class="mb-4 position-relative">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-info text-dark">Tier 4</span>
+              <h6 class="fw-bold mb-0">Consensus &amp; Disagreement Arbitrator</h6>
+              {% if current_user.seniority_level == 'consensus_arbitrator' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Current Tier</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Adjudicates tie-breakers and conflicting multi-annotator judgements on high-entropy benchmark datasets with authoritative rationale.
+            </p>
+          </div>
+
+          {# Tier 5 #}
+          <div class="position-relative">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-dark">Tier 5</span>
+              <h6 class="fw-bold mb-0">Language Squad / Pod Lead</h6>
+              {% if current_user.seniority_level == 'pod_lead' or current_user.is_pod_lead %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Current Tier</span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Coordinates regional language pods (Yoruba, Igbo, Hausa, Swahili, Amharic), mentors junior contributors, and manages dialect coverage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Right Column: Career Promotion Application & History #}
+  <div class="col-12 col-lg-5">
+    {# Promotion Application Form Card #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+          <i class="bi bi-send text-primary"></i>Apply for Career Advancement
+        </h5>
+      </div>
+      <div class="card-body">
+        {% if has_pending_application %}
+        <div class="alert alert-info border-0 shadow-none mb-0">
+          <div class="d-flex gap-3 align-items-start">
+            <i class="bi bi-hourglass-split fs-4 flex-shrink-0"></i>
+            <div>
+              <h6 class="alert-heading fw-bold mb-1">Application Under Review</h6>
+              <p class="small mb-0">
+                You have an active career promotion application currently being evaluated by Workforce Operations. You will receive an update once the review is completed.
+              </p>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <form method="post" action="{{ url_for('annotator.portfolio') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.target_role.label(class="form-label fw-semibold small") }}
+            {{ form.target_role(class="form-select" + (" is-invalid" if form.target_role.errors else "")) }}
+            {% for error in form.target_role.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text small">Select the role or seniority tier you wish to advance to.</div>
+          </div>
+
+          <div class="mb-3">
+            {{ form.specialization_area.label(class="form-label fw-semibold small") }}
+            {{ form.specialization_area(class="form-select" + (" is-invalid" if form.specialization_area.errors else "")) }}
+            {% for error in form.specialization_area.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text small">Choose your primary domain expertise track.</div>
+          </div>
+
+          <div class="mb-3">
+            {{ form.statement_of_interest.label(class="form-label fw-semibold small") }}
+            {{ form.statement_of_interest(class="form-control" + (" is-invalid" if form.statement_of_interest.errors else ""), rows=4, placeholder="Describe your relevant domain experience, technical background, language proficiencies, and recent task quality highlights...") }}
+            {% for error in form.statement_of_interest.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+            <div class="form-text small">Minimum 30 characters summarizing your qualifications.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            <i class="bi bi-file-earmark-check me-1"></i>Submit Promotion Application
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Promotion History Table #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
+          <i class="bi bi-journal-text text-secondary"></i>Application History
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if promotion_history %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+              <tr>
+                <th>Target Role</th>
+                <th>Track</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for req in promotion_history %}
+              <tr>
+                <td>
+                  <span class="fw-semibold text-dark">{{ req.target_role.replace('_', ' ').title() }}</span>
+                </td>
+                <td class="text-muted">{{ req.specialization_area.replace('_', ' ').title() }}</td>
+                <td>
+                  {% if req.status == 'approved' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">Approved</span>
+                  {% elif req.status == 'rejected' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Declined</span>
+                  {% else %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Pending Review</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted text-nowrap">{{ req.created_at.strftime('%d %b %Y') }}</td>
+              </tr>
+              {% if req.review_notes %}
+              <tr class="bg-light">
+                <td colspan="4" class="py-2 px-3 text-muted">
+                  <i class="bi bi-chat-left-quote me-1"></i><strong>Feedback:</strong> {{ req.review_notes }}
+                </td>
+              </tr>
+              {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted small">
+          No past promotion applications. Ready to advance? Submit an application above!
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
