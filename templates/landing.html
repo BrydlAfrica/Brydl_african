@@ -145,9 +145,13 @@
           <i class="bi bi-cpu me-1" aria-hidden="true"></i>
           Explore RedLab Platform
         </a>
-        <a class="btn btn-light border btn-lg px-4 text-secondary" href="#staff">
+        <a class="btn btn-light border btn-lg px-4 text-secondary" href="{{ url_for('onboard.apply') }}">
           <i class="bi bi-person-workspace me-1" aria-hidden="true"></i>
           I want to work as an annotator
+        </a>
+        <a class="btn btn-outline-secondary btn-lg px-3" href="{{ url_for('auth.login') }}">
+          <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>
+          Sign in to Brydl
         </a>
       </div>
       <ul class="brydl-chips mt-4">
@@ -413,12 +417,16 @@
       </div></div>
     </div>
   </div>
-  <div class="mt-4">
+  <div class="mt-4 d-flex flex-wrap align-items-center gap-2">
+    <a class="btn btn-primary" href="{{ url_for('onboard.apply') }}">
+      <i class="bi bi-person-plus-fill me-1" aria-hidden="true"></i>
+      Apply to Join Verified Workforce
+    </a>
     <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-      <i class="bi bi-person-workspace me-1" aria-hidden="true"></i>
+      <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>
       Sign in to your workspace
     </a>
-    <span class="text-muted small ms-2">Brydl issues accounts directly — ask your team lead for yours.</span>
+    <span class="text-muted small ms-2">Pass our 9-stage screening gate to access paid production tasks.</span>
   </div>
 </section>
 

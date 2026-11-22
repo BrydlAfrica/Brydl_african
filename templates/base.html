@@ -179,6 +179,43 @@
             </ul>
           </li>
         </ul>
+        {% else %}
+        {# Public Landing Page Menu for Unauthenticated Visitors #}
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-2">
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('public.landing') }}#core-pillars"><i class="bi bi-cpu me-1" aria-hidden="true"></i>Platform</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('public.landing') }}#redlab-engine"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>RedLab Safety</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('public.landing') }}#clients"><i class="bi bi-building me-1" aria-hidden="true"></i>Enterprises</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('public.landing') }}#how"><i class="bi bi-gear-wide-connected me-1" aria-hidden="true"></i>How It Works</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('public.landing') }}#faq"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>FAQ</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-info" href="{{ url_for('onboard.apply') }}"><i class="bi bi-person-badge me-1" aria-hidden="true"></i>Become Annotator</a>
+          </li>
+        </ul>
+
+        <ul class="navbar-nav ms-auto align-items-center flex-row gap-2">
+          <li class="nav-item">
+            <a class="btn btn-outline-light btn-sm px-3 d-inline-flex align-items-center gap-1" href="{{ url_for('auth.login') }}">
+              <i class="bi bi-box-arrow-in-right"></i>
+              <span>Sign In</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-primary btn-sm px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-xs" href="{{ url_for('onboard.apply') }}">
+              <i class="bi bi-person-plus-fill"></i>
+              <span>Join Workforce</span>
+            </a>
+          </li>
+        </ul>
         {% endif %}
       </div>
     </div>
