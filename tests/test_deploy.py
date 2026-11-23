@@ -96,7 +96,7 @@ expect(proc.returncode == 0, f"seed.py exits 0 ({proc.stderr[-200:]})")
 expect("admin@brydl.com" in proc.stdout, "prints admin credentials")
 expect("REFUSING" not in proc.stdout, "does not refuse in dev")
 counts = db_counts()
-expect(counts["users"] == 6, f"6 users (1 admin + 5 annotators): {counts}")
+expect(counts["users"] == 10, f"10 users (1 admin + 4 staff + 5 annotators): {counts}")
 expect(counts["projects"] == 1, "1 sample project")
 expect(counts["tasks"] == 10, "10 sample tasks")
 
@@ -109,7 +109,7 @@ with app.app_context():
         db.select(User.role, db.func.count(User.id)).group_by(User.role)
     ).all())
     expect(roles.get("admin") == 1 and roles.get("annotator") == 5,
-           f"role split 1/5: {roles}")
+           f"role split 1 admin / 5 annotators: {roles}")
     statuses = dict(db.session.execute(
         db.select(Task.status, db.func.count(Task.id)).group_by(Task.status)
     ).all())
@@ -176,7 +176,7 @@ import hashlib
 digest = hashlib.sha256(open(latest, "rb").read()).hexdigest()
 expect(manifest["sha256"] == digest, "manifest sha256 matches the file")
 expect(manifest["row_counts"]["tasks"] == 10
-       and manifest["row_counts"]["users"] == 6,
+       and manifest["row_counts"]["users"] == 10,
        f"manifest row counts sane: {manifest['row_counts']}")
 expect(manifest["integrity_check"] == "ok", "manifest integrity ok")
 proc = run(["-m", "flask", "--app", "app", "backup", "list"])

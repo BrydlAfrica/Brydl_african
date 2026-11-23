@@ -211,7 +211,7 @@ try:
             v = _conn.execute(sa_text(
                 "SELECT version_num FROM alembic_version"
             )).fetchone()[0]
-        expect(v in ("b3c4d5e6f701", "e1f2a3b4c5d6", "f2a3b4c5d6e7", "d3e4f5a6b7c8", "e4f5a6b7c8d9"),
+        expect(v in ("b3c4d5e6f701", "e1f2a3b4c5d6", "f2a3b4c5d6e7", "d3e4f5a6b7c8", "e4f5a6b7c8d9", "a7b8c9d0e1f2"),
                f"alembic_version at head (got {v})")
 
     # Test downgrade

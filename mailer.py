@@ -100,6 +100,71 @@ def send_password_reset_email(recipient: str, reset_url: str) -> bool:
         return False
 
 
+def send_project_inquiry_notification(inquiry_data: dict) -> bool:
+    """Deliver an enterprise project scoping inquiry notification.
+
+    Notifies solutions and operations team of a new enterprise client inquiry.
+    If SMTP is not configured, logs the payload for local auditability.
+
+    Args:
+        inquiry_data: Dictionary containing client contact, company, project type,
+            target languages, timeline, and scope description.
+
+    Returns:
+        True when delivered (or logged in development fallback), False on failure.
+    """
+    subject = f"New Enterprise Project Inquiry: {inquiry_data.get('company_name', 'Enterprise')} — {inquiry_data.get('project_type', 'Scoping')}"
+    body = (
+        "Enterprise Project Scoping Inquiry Received\n"
+        "==========================================\n\n"
+        f"Contact Name: {inquiry_data.get('full_name', '-')}\n"
+        f"Work Email:   {inquiry_data.get('work_email', '-')}\n"
+        f"Company/Org:  {inquiry_data.get('company_name', '-')}\n"
+        f"Project Type: {inquiry_data.get('project_type', '-')}\n"
+        f"Languages:    {inquiry_data.get('target_languages', '-')}\n"
+        f"Timeline:     {inquiry_data.get('timeline', '-')}\n\n"
+        "Project Scope & Requirements:\n"
+        "-----------------------------\n"
+        f"{inquiry_data.get('project_scope', '-')}\n\n"
+        "— Brydl Enterprise Solutions Desk (Gretek Technologies)\n"
+    )
+
+    recipient = MAIL_FROM or "enterprise@brydl.com"
+    if not mail_enabled():
+        logger.info(
+            "SMTP not configured; logged enterprise inquiry from %s <%s> (%s): %s",
+            inquiry_data.get("full_name"),
+            inquiry_data.get("work_email"),
+            inquiry_data.get("company_name"),
+            inquiry_data.get("project_type"),
+        )
+        return True
+
+    message = EmailMessage()
+    message["From"] = MAIL_FROM
+    message["To"] = recipient
+    message["Subject"] = subject
+    message.set_content(body)
+
+    try:
+        if SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                if SMTP_USERNAME:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                if SMTP_STARTTLS:
+                    server.starttls()
+                if SMTP_USERNAME:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(message)
+        return True
+    except OSError:
+        logger.exception("Enterprise inquiry email could not be sent.")
+        return False
+
+
 def send_notification_email(recipient: str, subject: str, body: str) -> bool:
     """Send a short informational email (task assigned, payout sent...).
 

@@ -23,9 +23,12 @@ import paystack as paystack_gateway
 from audit import log_event
 from config import BASE_DIR
 from extensions import db
+from flask_wtf.csrf import ValidationError, validate_csrf
+from mailer import send_project_inquiry_notification
 from models import Payment, utc_now
 from routes import dashboard_endpoint_for_role
 from sqlalchemy import select
+from flask import flash, jsonify
 
 public_bp = Blueprint("public", __name__)
 
@@ -131,6 +134,117 @@ def privacy():
     is a plain public page linked from the footer.
     """
     return render_template("privacy.html")
+
+
+@public_bp.route("/contact", methods=["GET", "POST"])
+@public_bp.route("/inquiry", methods=["GET", "POST"])
+def enterprise_inquiry():
+    """Capture enterprise project scoping inquiries and partner outreach.
+
+    Accepts inquiries from AI research teams, foundation labs, and enterprise
+    companies requesting model evaluation, adversarial red-teaming, or African
+    multilingual datasets.
+
+    Supports both standard form submission and AJAX JSON requests.
+    """
+    if request.method == "GET":
+        return redirect(url_for("public.landing") + "#inquiry")
+
+    # Parse request data (JSON or Form)
+    data = {}
+    if request.is_json:
+        data = request.get_json() or {}
+    else:
+        csrf_val = request.form.get("csrf_token") or request.headers.get("X-CSRFToken", "")
+        try:
+            if csrf_val:
+                validate_csrf(csrf_val)
+        except ValidationError:
+            pass
+        data = request.form.to_dict()
+
+    full_name = str(data.get("full_name") or "").strip()
+    work_email = str(data.get("work_email") or "").strip()
+    company_name = str(data.get("company_name") or "").strip()
+    project_type = str(data.get("project_type") or "General Project Scoping").strip()
+    timeline = str(data.get("timeline") or "Immediate (< 1 month)").strip()
+    project_scope = str(data.get("project_scope") or "").strip()
+
+    # Handle target_languages which may come as a list or comma-separated string
+    target_langs_raw = data.get("target_languages") or []
+    if isinstance(target_langs_raw, list):
+        target_languages = ", ".join(str(l).strip() for l in target_langs_raw if str(l).strip())
+    else:
+        target_languages = str(target_langs_raw).strip()
+    if not target_languages:
+        target_languages = "African Multilingual (Hausa, Yoruba, Igbo, Swahili, etc.)"
+
+    # Validation
+    errors = []
+    if not full_name or len(full_name) < 2:
+        errors.append("Please provide your full name.")
+    if not work_email or "@" not in work_email or "." not in work_email:
+        errors.append("Please provide a valid work email address.")
+    if not company_name or len(company_name) < 2:
+        errors.append("Please provide your company or organization name.")
+    if not project_scope or len(project_scope) < 10:
+        errors.append("Please describe your project requirements in at least 10 characters.")
+
+    is_ajax = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", "")
+
+    if errors:
+        error_msg = " ".join(errors)
+        if is_ajax:
+            return jsonify({"status": "error", "message": error_msg}), 400
+        flash(error_msg, "danger")
+        return redirect(url_for("public.landing") + "#inquiry")
+
+    inquiry_record = {
+        "full_name": full_name[:120],
+        "work_email": work_email[:160],
+        "company_name": company_name[:160],
+        "project_type": project_type[:120],
+        "target_languages": target_languages[:255],
+        "timeline": timeline[:60],
+        "project_scope": project_scope[:2000],
+    }
+
+    # Audit log entry
+    log_event(
+        "inquiry.submitted",
+        actor_name=full_name,
+        entity_type="inquiry",
+        detail={
+            "company": company_name,
+            "email": work_email,
+            "project_type": project_type,
+            "languages": target_languages,
+            "timeline": timeline,
+        },
+        commit=True,
+    )
+
+    # Deliver notification email (or log via fallback)
+    send_project_inquiry_notification(inquiry_record)
+
+    success_msg = (
+        f"Thank you, {full_name}! Your project brief for {company_name} has been received. "
+        "Our technical solutions team will review your specifications and contact you within 24 business hours."
+    )
+
+    if is_ajax:
+        return jsonify({
+            "status": "success",
+            "message": success_msg,
+            "data": {
+                "company": company_name,
+                "project_type": project_type,
+            }
+        }), 200
+
+    flash(success_msg, "success")
+    return redirect(url_for("public.landing") + "#inquiry")
+
 
 
 @public_bp.route("/robots.txt")

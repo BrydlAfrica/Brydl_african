@@ -12,13 +12,22 @@
   --brydl-border: #e2e8e5;
   --brydl-ink: #1c2a24;
   --brydl-muted: #5f6f68;
-  /* Brand palette (from the Brydl mark: binary Africa on navy). */
-  --brydl-navy: #173363;         /* logo navy — chrome + hero surfaces */
-  --brydl-navy-deep: #0f2447;    /* darker navy for gradients/hover */
-  --brydl-accent: #2b5bba;       /* interactive blue (links, buttons) */
+
+  /* Brand palette: Indigo, Coral, Midnight, Gold */
+  --brydl-indigo: #2D1B69;       /* Deep Brand Indigo */
+  --brydl-indigo-deep: #1F124A;
+  --brydl-coral: #FF6B4A;        /* Enterprise Conversion Coral */
+  --brydl-coral-hover: #E85535;
+  --brydl-midnight: #0F0A1F;     /* Deep Midnight Surface */
+  --brydl-midnight-card: #181133;
+  --brydl-midnight-border: rgba(255, 255, 255, 0.12);
+  --brydl-gold: #FFB800;         /* Accent Gold */
+  --brydl-navy: #173363;         /* Legacy Navy Chrome */
+  --brydl-navy-deep: #0f2447;
+  --brydl-accent: #2b5bba;
   --brydl-accent-bright: #4f7fe0;
   --brydl-accent-soft: rgba(43, 91, 186, 0.12);
-  --brydl-nav: #173363;          /* top chrome matches the logo */
+  --brydl-nav: #0F0A1F;
 }
 
 /* ---- Base ---- */
@@ -556,12 +565,15 @@ kbd {
 /* ---- Scroll reveal (main.js adds .is-visible) -------------- */
 
 .brydl-reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-.brydl-reveal.is-visible { opacity: 1; transform: none; }
+.brydl-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .brydl-reveal { opacity: 1; transform: none; transition: none; }
@@ -998,4 +1010,561 @@ kbd {
   background: rgba(79, 127, 224, 0.15);
   box-shadow: 0 0 0 1px var(--brydl-accent-bright);
 }
+
+/* ==========================================================================
+   BRYDL ENTERPRISE REDESIGN & LANDING PAGE STYLES (Phase 15 Overhaul)
+   ========================================================================== */
+
+/* Navbar Brand & Navigation Improvements */
+.brydl-navbar {
+  background-color: rgba(15, 10, 31, 0.96) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+  z-index: 1030;
+}
+
+.brydl-brand-logo-img {
+  width: 38px !important;
+  height: 38px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.brydl-badge-ai {
+  background: rgba(255, 107, 74, 0.2);
+  color: #FF6B4A;
+  border: 1px solid rgba(255, 107, 74, 0.4);
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.brydl-brand-subhead {
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+
+.brydl-nav-link {
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  padding: 0.45rem 0.75rem !important;
+  border-radius: 6px;
+}
+
+.brydl-nav-link:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-brydl-primary {
+  background: linear-gradient(135deg, #FF6B4A 0%, #E85535 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 10px rgba(255, 107, 74, 0.32);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 600;
+}
+
+.btn-brydl-primary:hover {
+  background: linear-gradient(135deg, #FF7D5F 0%, #F06040 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(255, 107, 74, 0.48);
+  color: #ffffff !important;
+}
+
+.btn-brydl-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-brydl-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff !important;
+}
+
+/* Landing Page Section Framework */
+.brydl-landing-body {
+  background-color: var(--brydl-midnight);
+  color: #E2E8F0;
+  overflow-x: hidden;
+}
+
+.brydl-section-dark {
+  background-color: var(--brydl-midnight);
+  position: relative;
+}
+
+.brydl-section-indigo {
+  background: linear-gradient(180deg, #0F0A1F 0%, #1A0E38 50%, #0F0A1F 100%);
+  position: relative;
+}
+
+.brydl-section-midnight-alt {
+  background-color: #0B0717;
+  position: relative;
+}
+
+.brydl-hero-enterprise {
+  position: relative;
+  background: radial-gradient(circle at 75% 25%, rgba(45, 27, 105, 0.6) 0%, rgba(15, 10, 31, 0.98) 70%),
+              radial-gradient(circle at 20% 80%, rgba(255, 107, 74, 0.12) 0%, transparent 60%),
+              var(--brydl-midnight);
+  padding: 4.5rem 0 4rem;
+  overflow: hidden;
+}
+
+.brydl-hero-enterprise::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.brydl-hero-headline {
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+}
+
+.brydl-hero-gradient-text {
+  background: linear-gradient(135deg, #FF6B4A 0%, #FFB800 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.brydl-hero-subtext {
+  font-size: 1.12rem;
+  line-height: 1.65;
+  color: rgba(226, 232, 240, 0.85);
+  max-width: 620px;
+}
+
+/* Hero Live Evaluation Console */
+.brydl-eval-console {
+  background: #140C29;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 107, 74, 0.15);
+  overflow: hidden;
+  position: relative;
+}
+
+.brydl-eval-header {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1.25rem;
+}
+
+.brydl-lang-pills-bar {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.eval-lang-pill {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.eval-lang-pill:hover,
+.eval-lang-pill.active {
+  background: rgba(255, 107, 74, 0.22);
+  color: #FF6B4A;
+  border-color: #FF6B4A;
+}
+
+.brydl-console-body {
+  padding: 1.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.eval-metric-badge {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  text-align: center;
+}
+
+.eval-metric-badge .metric-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Solution Cards */
+.brydl-solution-card {
+  background: var(--brydl-midnight-card);
+  border: 1px solid var(--brydl-midnight-border);
+  border-radius: 0.85rem;
+  padding: 1.75rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.brydl-solution-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 107, 74, 0.45);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 107, 74, 0.1);
+}
+
+.solution-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.solution-icon-wrap.icon-coral {
+  background: rgba(255, 107, 74, 0.15);
+  color: #FF6B4A;
+  border: 1px solid rgba(255, 107, 74, 0.3);
+}
+
+.solution-icon-wrap.icon-gold {
+  background: rgba(255, 184, 0, 0.15);
+  color: #FFB800;
+  border: 1px solid rgba(255, 184, 0, 0.3);
+}
+
+.solution-icon-wrap.icon-indigo {
+  background: rgba(79, 127, 224, 0.15);
+  color: #4F7FE0;
+  border: 1px solid rgba(79, 127, 224, 0.3);
+}
+
+.solution-icon-wrap.icon-cyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: #06B6D4;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.solution-icon-wrap.icon-emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.solution-icon-wrap.icon-purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #A855F7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.solution-deliverable-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  margin-top: auto;
+}
+
+/* Problem Matrix Cards */
+.brydl-problem-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  height: 100%;
+  transition: all 0.2s ease;
+}
+
+.brydl-problem-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.problem-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #FF6B4A;
+  text-transform: uppercase;
+}
+
+/* African Language Matrix */
+.brydl-lang-card {
+  background: var(--brydl-midnight-card);
+  border: 1px solid var(--brydl-midnight-border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.brydl-lang-card:hover {
+  border-color: var(--brydl-gold);
+  transform: translateY(-2px);
+}
+
+/* Quality Process Timeline */
+.brydl-process-step {
+  position: relative;
+  background: var(--brydl-midnight-card);
+  border: 1px solid var(--brydl-midnight-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  height: 100%;
+}
+
+.process-step-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B4A 0%, #FFB800 100%);
+  color: #0F0A1F;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+/* Why Brydl Comparison Table */
+.brydl-comp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--brydl-midnight-card);
+  border: 1px solid var(--brydl-midnight-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.brydl-comp-table th,
+.brydl-comp-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brydl-comp-table thead th {
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.brydl-comp-table td.brydl-highlight {
+  background: rgba(255, 107, 74, 0.06);
+  border-left: 1px solid rgba(255, 107, 74, 0.2);
+  border-right: 1px solid rgba(255, 107, 74, 0.2);
+}
+
+/* Modal and Input Overrides */
+.brydl-modal-content {
+  background-color: #171032;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 1rem;
+}
+
+.brydl-input {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem;
+}
+
+.brydl-input:focus {
+  border-color: #FF6B4A !important;
+  box-shadow: 0 0 0 2px rgba(255, 107, 74, 0.25) !important;
+  background-color: rgba(0, 0, 0, 0.45) !important;
+}
+
+.brydl-input::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Dark Surface & Feature Card Utilities (Replacing Bootstrap alpha overrides) */
+.brydl-feature-card-dark {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  height: 100%;
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brydl-feature-card-dark:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  transform: translateY(-2px);
+}
+
+.brydl-dark-box {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 0.5rem;
+  color: #ffffff;
+}
+
+.brydl-dark-badge {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.brydl-enterprise-footer {
+  background-color: #0A0615;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hover-white:hover {
+  color: #ffffff !important;
+}
+
+.tracking-wider {
+  letter-spacing: 0.06em;
+}
+
+.tracking-wide {
+  letter-spacing: 0.03em;
+}
+
+.tracking-tight {
+  letter-spacing: -0.02em;
+}
+
+/* Research Case Study & Evidence Utilities */
+.brydl-research-card {
+  background: rgba(20, 14, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+}
+
+.brydl-case-nav-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.brydl-case-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.brydl-case-nav-btn.active {
+  background: #FF6B4A;
+  border-color: #FF6B4A;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(255, 107, 74, 0.35);
+}
+
+.brydl-prompt-box-en {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid #38BDF8;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.brydl-prompt-box-ha {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid #FF6B4A;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.brydl-response-refusal {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.brydl-response-bypass {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.brydl-response-informative {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.brydl-limitation-box {
+  background: rgba(255, 184, 0, 0.05);
+  border: 1px solid rgba(255, 184, 0, 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+}
+
+.brydl-workflow-step {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.85rem;
+  padding: 1.5rem;
+  height: 100%;
+  transition: all 0.2s ease;
+}
+
+.brydl-workflow-step:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 107, 74, 0.3);
+  transform: translateY(-2px);
+}
+
+.brydl-step-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FF6B4A;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 

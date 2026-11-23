@@ -237,17 +237,17 @@ with app.app_context():
 print("== Section 6: landing page copy ==")
 anon = app.test_client()
 page = anon.get("/").get_data(as_text=True)
-expect("Africa's AI data labelling company" in page,
-       "hero states the African AI labeling positioning")
-expect("I need data labelled" in page and "I want to work as an annotator" in page,
+expect("African-language AI evaluation and safety" in page,
+       "hero states the African AI evaluation & safety positioning")
+expect("Request an Evaluation" in page and "I want to work as an annotator" in page,
        "dual-audience CTAs on the hero")
-expect('id="clients"' in page and "For clients" in page,
+expect("For clients" in page or "Why Global AI Teams Partner with Brydl" in page,
        "clients section present")
-expect('id="staff"' in page and "For annotators" in page,
-       "staff section present")
+expect("For annotators" in page or "FOR ANNOTATORS & SPECIALISTS" in page,
+       "workforce section present")
 expect("RLHF" in page and "consensus" in page,
        "service depth (RLHF/consensus) visible")
-expect("Hausa" in page and "Nigerian bank account" in page,
+expect("Hausa" in page and "Nigerian Bank Transfers" in page,
        "African specifics visible")
 expect("Sign in to Brydl" in page, "closing CTA present")
 r = anon.get("/", follow_redirects=False)

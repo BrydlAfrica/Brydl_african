@@ -51,7 +51,7 @@
 
   {% block structured_data %}{% endblock %}
 </head>
-<body class="d-flex flex-column min-vh-100 bg-light">
+<body class="d-flex flex-column min-vh-100 {% if request.path == '/' %}brydl-landing-body{% else %}bg-light{% endif %}">
   {% if boot_loader|default(false) %}{% include "_boot.html" %}{% endif %}
   <div id="brydl-progress" class="brydl-progress" aria-hidden="true"></div>
   <div id="brydl-offline-badge" class="brydl-offline-badge" hidden>
@@ -60,7 +60,8 @@
   </div>
   <a class="visually-hidden-focusable" href="#main">Skip to main content</a>
 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark brydl-accent-border sticky-top">
+  {# ---------------------------------------------------- TOP NAVIGATION BAR #}
+  <nav class="navbar navbar-expand-lg navbar-dark brydl-navbar sticky-top">
     <div class="container">
       <div class="d-flex align-items-center">
         {% if current_user.is_authenticated %}
@@ -69,16 +70,25 @@
           <span class="d-none d-sm-inline small">Menu</span>
         </button>
         {% endif %}
-        <a class="navbar-brand fw-semibold d-inline-flex align-items-center gap-2"
-           href="{{ url_for('auth.login') }}">
-          <img src="{{ url_for('static', filename='brand/logo-64.png') }}"
-               alt="" width="24" height="24"
-               class="rounded brydl-brand-mark">Brydl
-          <span class="fw-normal opacity-75">Dashboard</span>
+
+        {# Prominent, crisp Brydl Brand Mark with enhanced visibility #}
+        <a class="navbar-brand fw-bold d-inline-flex align-items-center gap-2 py-1"
+           href="{% if current_user.is_authenticated %}{{ url_for('auth.login') }}{% else %}{{ url_for('public.landing') }}{% endif %}"
+           title="Brydl AI — Gretek Technologies">
+          <img src="{{ url_for('static', filename='brand/logo-192.png') }}"
+               alt="Brydl AI Logo" width="38" height="38"
+               class="rounded brydl-brand-logo-img">
+          <div class="d-flex flex-column justify-content-center lh-1">
+            <div class="d-flex align-items-center gap-1">
+              <span class="fs-5 fw-bold text-white tracking-tight">Brydl</span>
+              <span class="badge brydl-badge-ai">AI</span>
+            </div>
+            <span class="brydl-brand-subhead text-white-50">Gretek Technologies</span>
+          </div>
         </a>
       </div>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+      <button class="navbar-toggler border-0 shadow-none px-2" type="button" data-bs-toggle="collapse"
               data-bs-target="#mainNav" aria-controls="mainNav"
               aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -86,7 +96,7 @@
 
       <div class="collapse navbar-collapse" id="mainNav">
         {% if current_user.is_authenticated %}
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-2">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
           {% if current_user.role == 'admin' %}
           <li class="nav-item">{{ nav_link('/admin/', 'bi-speedometer2', 'Dashboard', exact=True) }}</li>
           <li class="nav-item">{{ nav_link('/admin/projects', 'bi-kanban', 'Projects') }}</li>
@@ -200,39 +210,51 @@
           </li>
         </ul>
         {% else %}
-        {# Public Landing Page Menu for Unauthenticated Visitors #}
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-2">
+        {# Public Enterprise Landing Navigation #}
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4 gap-lg-1">
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('public.landing') }}#core-pillars"><i class="bi bi-cpu me-1" aria-hidden="true"></i>Platform</a>
+            <a class="nav-link brydl-nav-link text-white-50" href="{{ url_for('public.landing') }}#problem">The Problem</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('public.landing') }}#redlab-engine"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>RedLab Safety</a>
+            <a class="nav-link brydl-nav-link text-white-50 d-inline-flex align-items-center" href="{{ url_for('public.landing') }}#research">
+              <span class="badge bg-warning text-dark fw-bold me-1" style="font-size:0.65rem;">RESEARCH</span>N-ATLaS Study
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('public.landing') }}#clients"><i class="bi bi-building me-1" aria-hidden="true"></i>Enterprises</a>
+            <a class="nav-link brydl-nav-link text-white-50" href="{{ url_for('public.landing') }}#solutions">Solutions</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('public.landing') }}#how"><i class="bi bi-gear-wide-connected me-1" aria-hidden="true"></i>How It Works</a>
+            <a class="nav-link brydl-nav-link text-white-50" href="{{ url_for('public.landing') }}#how-it-works">How It Works</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('public.landing') }}#faq"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>FAQ</a>
+            <a class="nav-link brydl-nav-link text-white-50" href="{{ url_for('public.landing') }}#platform">Platform &amp; RedLab</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link text-info" href="{{ url_for('onboard.apply') }}"><i class="bi bi-person-badge me-1" aria-hidden="true"></i>Become Annotator</a>
+            <a class="nav-link brydl-nav-link text-white-50" href="{{ url_for('public.landing') }}#why-brydl">Why Brydl</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link brydl-nav-link text-white-50" href="{{ url_for('public.landing') }}#faq">FAQ</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link brydl-nav-link text-warning-emphasis small d-flex align-items-center" href="{{ url_for('onboard.apply') }}">
+              <i class="bi bi-person-workspace me-1"></i>Workforce
+            </a>
           </li>
         </ul>
 
-        <ul class="navbar-nav ms-auto align-items-center flex-row gap-2">
+        <ul class="navbar-nav ms-auto align-items-center flex-row gap-2 mt-2 mt-lg-0">
           <li class="nav-item">
-            <a class="btn btn-outline-light btn-sm px-3 d-inline-flex align-items-center gap-1" href="{{ url_for('auth.login') }}">
+            <a class="btn btn-outline-light btn-sm px-3 fw-medium d-inline-flex align-items-center gap-1" href="{{ url_for('auth.login') }}">
               <i class="bi bi-box-arrow-in-right"></i>
               <span>Sign In</span>
             </a>
           </li>
           <li class="nav-item">
-            <a class="btn btn-primary btn-sm px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-xs" href="{{ url_for('onboard.apply') }}">
-              <i class="bi bi-person-plus-fill"></i>
-              <span>Join Workforce</span>
+            <a class="btn btn-brydl-primary btn-sm px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+               href="{{ url_for('public.landing') }}#inquiry"
+               data-bs-toggle="modal" data-bs-target="#inquiryModal">
+              <i class="bi bi-shield-check"></i>
+              <span>Request an Evaluation</span>
             </a>
           </li>
         </ul>
@@ -241,18 +263,18 @@
     </div>
   </nav>
 
-  <main id="main" class="container py-4 flex-grow-1">
+  {# ---------------------------------------------------- MAIN BODY CONTAINER #}
+  <main id="main" class="{% if request.path == '/' %}flex-grow-1 p-0{% else %}container py-4 flex-grow-1{% endif %}">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-      <div aria-live="polite">
+      <div class="{% if request.path == '/' %}container pt-3{% endif %}" aria-live="polite">
         {% for category, message in messages %}
-        {# Whitelist categories so an unexpected value can never craft an arbitrary CSS class. #}
         {% set alert_class = category if category in ['success', 'info', 'warning', 'danger'] else 'info' %}
         {% set alert_icon = {'success': 'bi-check-circle-fill',
                              'danger': 'bi-exclamation-octagon-fill',
                              'warning': 'bi-exclamation-triangle-fill',
                              'info': 'bi-info-circle-fill'}[alert_class] %}
-        <div class="alert alert-{{ alert_class }} alert-dismissible fade show" role="alert">
+        <div class="alert alert-{{ alert_class }} alert-dismissible fade show shadow-sm" role="alert">
           <i class="bi {{ alert_icon }} me-1" aria-hidden="true"></i>
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -261,15 +283,112 @@
       </div>
       {% endif %}
     {% endwith %}
-    {% block content %}{% endblock %}
+    {% block content %}{% block inner_content %}{% block content_inner %}{% endblock %}{% endblock %}{% endblock %}
   </main>
 
+  {# ---------------------------------------------------- ENTERPRISE FOOTER #}
+  {% if request.path == '/' %}
+  <footer class="brydl-enterprise-footer pt-5 pb-4 text-white">
+    <div class="container">
+      <div class="row g-4 pb-4 border-bottom border-white border-opacity-10">
+        {# Column 1: Brand & Mission #}
+        <div class="col-lg-4 col-md-6">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <img src="{{ url_for('static', filename='brand/logo-192.png') }}"
+                 alt="Brydl AI Logo" width="36" height="36" class="rounded">
+            <div>
+              <span class="fs-5 fw-bold text-white">Brydl</span>
+              <span class="badge brydl-badge-ai ms-1">AI</span>
+            </div>
+          </div>
+          <p class="text-white-50 small mb-3 lh-base">
+            African-language AI evaluation, safety testing, and dataset engineering grounded in real linguistic and cultural contexts. Uncover model weaknesses before deploying across African markets.
+          </p>
+          <div class="d-flex align-items-center gap-2 text-white-50 small">
+            <span class="badge brydl-dark-badge px-2 py-1">
+              <i class="bi bi-shield-check text-warning me-1"></i>Gretek Technologies
+            </span>
+          </div>
+        </div>
+
+        {# Column 2: Solutions #}
+        <div class="col-lg-2 col-md-6 col-6">
+          <h4 class="h6 fw-bold text-white mb-3 text-uppercase tracking-wider small">Solutions</h4>
+          <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+            <li><a href="#solutions" class="text-white-50 text-decoration-none hover-white">Model Evaluation</a></li>
+            <li><a href="#solutions" class="text-white-50 text-decoration-none hover-white">Adversarial Safety &amp; RedLab</a></li>
+            <li><a href="#solutions" class="text-white-50 text-decoration-none hover-white">African Speech Evaluation</a></li>
+            <li><a href="#solutions" class="text-white-50 text-decoration-none hover-white">Dataset Engineering &amp; RLHF</a></li>
+            <li><a href="#solutions" class="text-white-50 text-decoration-none hover-white">Multilingual Annotation</a></li>
+            <li><a href="#solutions" class="text-white-50 text-decoration-none hover-white">Data Privacy &amp; Governance</a></li>
+          </ul>
+        </div>
+
+        {# Column 3: Research & Platform #}
+        <div class="col-lg-3 col-md-6 col-6">
+          <h4 class="h6 fw-bold text-white mb-3 text-uppercase tracking-wider small">Research &amp; Evidence</h4>
+          <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+            <li><a href="#research" class="text-white-50 text-decoration-none hover-white">N-ATLaS Case Study</a></li>
+            <li><a href="https://huggingface.co/datasets/Prince38/natlas-language-dependent-safety" target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none hover-white"><i class="bi bi-box-arrow-up-right me-1 small"></i>Hugging Face Dataset</a></li>
+            <li><a href="#how-it-works" class="text-white-50 text-decoration-none hover-white">Evaluation Workflow</a></li>
+            <li><a href="#platform" class="text-white-50 text-decoration-none hover-white">RedLab Framework</a></li>
+            <li><a href="#why-brydl" class="text-white-50 text-decoration-none hover-white">Native Linguist Pods</a></li>
+            <li><a href="#platform" class="text-white-50 text-decoration-none hover-white">Fernet Key Encryption</a></li>
+          </ul>
+        </div>
+
+        {# Column 4: Engage Brydl #}
+        <div class="col-lg-3 col-md-6">
+          <h4 class="h6 fw-bold text-white mb-3 text-uppercase tracking-wider small">Engage Brydl</h4>
+          <ul class="list-unstyled small d-flex flex-column gap-2 mb-3">
+            <li>
+              <a href="#inquiry" data-bs-toggle="modal" data-bs-target="#inquiryModal" class="text-warning text-decoration-none fw-semibold">
+                <i class="bi bi-shield-check me-1"></i>Request an Evaluation
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('onboard.apply') }}" class="text-white-50 text-decoration-none hover-white">
+                <i class="bi bi-person-badge me-1"></i>Join Specialist Workforce
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.login') }}" class="text-white-50 text-decoration-none hover-white">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Sign In to Brydl
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('public.privacy') }}" class="text-white-50 text-decoration-none hover-white">
+                <i class="bi bi-shield-lock me-1"></i>Data Protection (NDPR)
+              </a>
+            </li>
+          </ul>
+          <div class="p-2 rounded brydl-dark-box small text-white-50">
+            <span class="d-block fw-semibold text-white">Evaluation Inquiries:</span>
+            <span class="font-monospace text-warning">enterprise@brydl.com</span>
+          </div>
+        </div>
+      </div>
+
+      {# Sub-footer credits #}
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 pt-3 small text-white-50">
+        <div>
+          <span>Brydl © 2026 · Gretek Technologies. All rights reserved.</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <a class="text-white-50 text-decoration-none hover-white" href="{{ url_for('public.privacy') }}">Privacy &amp; Data Protection</a>
+          <span>·</span>
+          <span><i class="bi bi-clock me-1"></i>UTC Universal Timestamp</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+  {% else %}
   <footer class="brydl-footer border-top bg-white py-3">
     <div class="container d-flex flex-wrap justify-content-between gap-2 small text-muted">
       <span class="d-inline-flex align-items-center gap-1">
         <img src="{{ url_for('static', filename='brand/logo-64.png') }}"
-             alt="" width="16" height="16" class="rounded">Brydl © 2026
-        <span class="opacity-75">· A Gretek Technologies Enterprise</span>
+             alt="" width="20" height="20" class="rounded">Brydl © 2026
+        <span class="opacity-75">· Gretek Technologies</span>
       </span>
       <span class="d-inline-flex align-items-center gap-3">
         <a class="text-muted link-secondary" href="{{ url_for('public.privacy') }}">Data Protection (NDPR)</a>
@@ -277,6 +396,78 @@
       </span>
     </div>
   </footer>
+  {% endif %}
+
+  {# ---------------------------------------------------- INTERACTIVE PROJECT INQUIRY MODAL #}
+  <div class="modal fade" id="inquiryModal" tabindex="-1" aria-labelledby="inquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content brydl-modal-content border-0 shadow-lg text-white">
+        <div class="modal-header border-bottom border-white border-opacity-10 px-4 pt-4 pb-3">
+          <div>
+            <span class="badge bg-warning text-dark fw-bold px-2 py-1 small mb-1">EVALUATION INQUIRY</span>
+            <h5 class="modal-title h5 fw-bold text-white mb-0" id="inquiryModalLabel">Request an African AI Evaluation</h5>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="enterpriseInquiryForm" method="post" action="{{ url_for('public.enterprise_inquiry') }}" class="p-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-white-50">Full Name *</label>
+              <input type="text" name="full_name" class="form-control brydl-input" placeholder="e.g. Dr. Adaeze Okafor" required minlength="2">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-white-50">Work Email *</label>
+              <input type="email" name="work_email" class="form-control brydl-input" placeholder="e.g. ada@foundationlab.ai" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-white-50">Company / Organization / AI Lab *</label>
+              <input type="text" name="company_name" class="form-control brydl-input" placeholder="e.g. Frontier AI Lab / Regional AI Project" required minlength="2">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-white-50">Primary Service Needed *</label>
+              <select name="project_type" class="form-select brydl-input" required>
+                <option value="AI Model Evaluation & Benchmarking">AI Model Evaluation &amp; Benchmarking</option>
+                <option value="Adversarial Safety Testing & Red-Teaming">Adversarial Safety Testing &amp; Red-Teaming (RedLab)</option>
+                <option value="African Speech & Audio Evaluation">African Speech &amp; Audio Evaluation</option>
+                <option value="Human-in-the-Loop Dataset Engineering & RLHF">Human-in-the-Loop Dataset Engineering &amp; RLHF</option>
+                <option value="Multilingual Annotation & NER Verification">Multilingual Annotation &amp; NER Verification</option>
+                <option value="Research Collaboration & Custom Study">Research Collaboration &amp; Custom Safety Study</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-white-50">Target African Languages</label>
+              <input type="text" name="target_languages" class="form-control brydl-input" placeholder="e.g. Hausa (demonstrated pod), Yoruba, Igbo, Swahili">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-white-50">Project Timeline</label>
+              <select name="timeline" class="form-select brydl-input">
+                <option value="Immediate (< 1 month)">Immediate (&lt; 1 month)</option>
+                <option value="1-3 Months">1 – 3 Months</option>
+                <option value="Quarterly / Long-term Program">Quarterly / Long-term Program</option>
+                <option value="Exploratory / Research Feasibility">Exploratory / Research Feasibility</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold text-white-50">Evaluation Scope &amp; Target Deliverables *</label>
+              <textarea name="project_scope" class="form-control brydl-input" rows="4" placeholder="Briefly describe your model architecture, language requirements, evaluation criteria, or safety goals..." required minlength="10"></textarea>
+            </div>
+          </div>
+
+          <div id="inquiryFormFeedback" class="mt-3 d-none"></div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-white border-opacity-10">
+            <span class="small text-white-50">
+              <i class="bi bi-shield-lock text-warning me-1"></i>Protected under standard Non-Disclosure Agreement (NDA) and privacy safeguards.
+            </span>
+            <button type="submit" id="inquirySubmitBtn" class="btn btn-brydl-primary px-4 py-2 fw-bold">
+              <i class="bi bi-send-fill me-1"></i>Submit Scoping Brief
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   {% if current_user.is_authenticated %}
     {% include "components/staff_sidebar.html" %}
