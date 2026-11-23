@@ -163,21 +163,21 @@ def enterprise_inquiry():
             pass
         data = request.form.to_dict()
 
-    full_name = str(data.get("full_name") or "").strip()
-    work_email = str(data.get("work_email") or "").strip()
-    company_name = str(data.get("company_name") or "").strip()
-    project_type = str(data.get("project_type") or "General Project Scoping").strip()
+    full_name = str(data.get("full_name") or data.get("name") or "").strip()
+    work_email = str(data.get("work_email") or data.get("email") or "").strip()
+    company_name = str(data.get("company_name") or data.get("organization") or data.get("org") or "").strip()
+    project_type = str(data.get("project_type") or data.get("service") or "General Project Scoping").strip()
     timeline = str(data.get("timeline") or "Immediate (< 1 month)").strip()
-    project_scope = str(data.get("project_scope") or "").strip()
+    project_scope = str(data.get("project_scope") or data.get("message") or "").strip()
 
     # Handle target_languages which may come as a list or comma-separated string
-    target_langs_raw = data.get("target_languages") or []
+    target_langs_raw = data.get("target_languages") or data.get("languages") or []
     if isinstance(target_langs_raw, list):
         target_languages = ", ".join(str(l).strip() for l in target_langs_raw if str(l).strip())
     else:
         target_languages = str(target_langs_raw).strip()
     if not target_languages:
-        target_languages = "African Multilingual (Hausa, Yoruba, Igbo, Swahili, etc.)"
+        target_languages = "Hausa (active), Yoruba, Igbo, Swahili, Amharic"
 
     # Validation
     errors = []

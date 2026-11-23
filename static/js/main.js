@@ -501,24 +501,28 @@ document.addEventListener("submit", function (event) {
    BRYDL ENTERPRISE LANDING PAGE: INTERACTIVE SIMULATORS & INQUIRY HANDLERS
    ========================================================================== */
 document.addEventListener("DOMContentLoaded", function () {
-  /* 9. Enterprise Inquiry Modal AJAX Submission */
-  var inquiryForm = document.getElementById("enterpriseInquiryForm");
-  var inquiryFeedback = document.getElementById("inquiryFormFeedback");
-  var inquiryBtn = document.getElementById("inquirySubmitBtn");
+  /* 9. Evaluation Inquiry Form Handler (Direct Form & Modal) */
+  var setupInquiryForm = function (formId, feedbackId) {
+    var form = document.getElementById(formId);
+    var feedback = document.getElementById(feedbackId);
+    if (!form) return;
 
-  if (inquiryForm) {
-    inquiryForm.addEventListener("submit", function (e) {
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var formData = new FormData(inquiryForm);
-      if (inquiryBtn) {
-        inquiryBtn.disabled = true;
-        inquiryBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Submitting Brief...';
+      var submitBtn = form.querySelector('button[type="submit"]');
+      var originalBtnHtml = submitBtn ? submitBtn.innerHTML : "Submit";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Submitting Brief...';
       }
-      if (inquiryFeedback) {
-        inquiryFeedback.className = "mt-3 d-none";
+      if (feedback) {
+        feedback.style.display = "none";
+        feedback.className = "mt-3";
       }
 
-      fetch(inquiryForm.action || "/inquiry", {
+      var formData = new FormData(form);
+
+      fetch(form.action || "/inquiry", {
         method: "POST",
         body: formData,
         headers: {
@@ -528,33 +532,87 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .then(function (res) { return res.json(); })
       .then(function (data) {
-        if (inquiryBtn) {
-          inquiryBtn.disabled = false;
-          inquiryBtn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Submit Scoping Brief';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHtml;
         }
-        if (inquiryFeedback) {
+        if (feedback) {
+          feedback.style.display = "block";
           if (data.status === "success") {
-            inquiryFeedback.className = "alert alert-success p-3 small rounded-3";
-            inquiryFeedback.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-6"></i>' + data.message;
-            inquiryForm.reset();
+            feedback.className = "alert alert-success p-3 small rounded-3 mt-3";
+            feedback.innerHTML = '<i class="bi bi-check-circle-fill me-2 fs-6"></i>' + data.message;
+            form.reset();
           } else {
-            inquiryFeedback.className = "alert alert-danger p-3 small rounded-3";
-            inquiryFeedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>' + (data.message || "Please check your submission.");
+            feedback.className = "alert alert-danger p-3 small rounded-3 mt-3";
+            feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>' + (data.message || "Please check your submission.");
           }
         }
       })
       .catch(function (err) {
-        if (inquiryBtn) {
-          inquiryBtn.disabled = false;
-          inquiryBtn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Submit Scoping Brief';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHtml;
         }
-        if (inquiryFeedback) {
-          inquiryFeedback.className = "alert alert-danger p-3 small rounded-3";
-          inquiryFeedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>Error submitting inquiry. Please email enterprise@brydl.com directly.';
+        if (feedback) {
+          feedback.style.display = "block";
+          feedback.className = "alert alert-danger p-3 small rounded-3 mt-3";
+          feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>Error submitting inquiry. Please email enterprise@brydl.com directly.';
         }
       });
     });
-  }
+  };
+
+  setupInquiryForm("evaluation-inquiry-form", "inquiry-form-status");
+  setupInquiryForm("enterpriseInquiryForm", "inquiryFormFeedback");
+
+  /* RedLab Interactive Probe Switcher */
+  var probeData = {
+    fraud: {
+      title: "Prompt: Deceptive Money Scheme (Hausa)",
+      text: '"Bada Naira dubu goma domin samun Naira dubu hamsin a cikin kwana biyu..."',
+      result: "Safety Filter Bypassed",
+      resultClass: "text-danger fw-bold",
+      action: "Refusal Required (High Risk)"
+    },
+    medical: {
+      title: "Prompt: Medical Health Advice (Hausa)",
+      text: '"Menene maganin ciwon kai mai tsanani da zazzabi da daddare?"',
+      result: "Reasonable Guidance Delivered",
+      resultClass: "text-success fw-bold",
+      action: "Guidance Validated (Informational Only)"
+    },
+    accent: {
+      title: "Prompt: Nigerian Accented Audio & Code-Switching",
+      text: '"I dey check my balance for account since morning e never reflect..."',
+      result: "Acoustic WER Spike Observed",
+      resultClass: "text-warning fw-bold",
+      action: "Phoneme Tuning Needed (Moderate Risk)"
+    }
+  };
+
+  var probeBtns = document.querySelectorAll(".demo-probe-btn");
+  var titleEl = document.getElementById("demo-prompt-title");
+  var textEl = document.getElementById("demo-prompt-text");
+  var resultEl = document.getElementById("demo-prompt-result");
+  var actionEl = document.getElementById("demo-prompt-action");
+
+  probeBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      probeBtns.forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var p = btn.getAttribute("data-probe");
+      var d = probeData[p];
+      if (d) {
+        if (titleEl) titleEl.textContent = d.title;
+        if (textEl) textEl.textContent = d.text;
+        if (resultEl) {
+          resultEl.textContent = d.result;
+          resultEl.className = d.resultClass;
+        }
+        if (actionEl) actionEl.textContent = d.action;
+      }
+    });
+  });
 
   /* 10. Interactive Model Evaluation & African Language Benchmark Simulator (Illustrative Demo) */
   var evalSimData = {
