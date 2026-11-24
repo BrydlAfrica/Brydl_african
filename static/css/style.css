@@ -999,3 +999,67 @@ kbd {
   box-shadow: 0 0 0 1px var(--brydl-accent-bright);
 }
 
+
+/* Responsive adjustments & mobile overflow protection */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.brydl-hero {
+  overflow-x: hidden;
+}
+
+/* Responsive badges and finding pills */
+.badge-wrap,
+.badge.text-wrap,
+.badge {
+  white-space: normal;
+  text-align: left;
+  word-break: break-word;
+}
+
+.research-finding-pill {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: normal;
+  max-width: 100%;
+}
+
+code, pre, .font-monospace {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+@media (max-width: 576px) {
+  .brydl-hero {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+  }
+  .brydl-hero-title {
+    font-size: 1.85rem;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+  .brydl-hero-sub {
+    font-size: 0.95rem;
+  }
+  .brydl-cta-band {
+    padding: 2.5rem 1.25rem !important;
+  }
+  .brydl-footer .container {
+    text-align: center;
+  }
+}
