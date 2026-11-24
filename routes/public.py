@@ -382,13 +382,31 @@ def sitemap_xml():
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>{base_url}/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-11-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>{base_url}/inquiry</loc>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>{base_url}/onboard/apply</loc>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>{base_url}/onboard/guidelines</loc>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>{base_url}/privacy</loc>
-    <lastmod>2026-09-15</lastmod>
+    <lastmod>2026-11-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

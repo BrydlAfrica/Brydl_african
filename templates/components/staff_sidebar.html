@@ -5,7 +5,7 @@
 <div class="offcanvas offcanvas-start brydl-sidebar" tabindex="-1" id="staffSidebar" aria-labelledby="staffSidebarLabel">
   <div class="offcanvas-header border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center gap-2">
-      <img src="{{ url_for('static', filename='brand/logo-64.png') }}" alt="" width="28" height="28" class="rounded">
+      <img src="{{ url_for('static', filename='brand/logo-64.png') }}" alt="Brydl AI logo" width="28" height="28" class="rounded">
       <div>
         <h5 class="offcanvas-title fw-bold mb-0 fs-6" id="staffSidebarLabel">Brydl Workspace</h5>
         <span class="badge role-badge {% if current_user.role == 'admin' %}bg-warning text-dark{% elif current_user.role == 'project_manager' %}bg-success text-white{% elif current_user.role == 'qa' %}bg-info text-dark{% elif current_user.role == 'auditor' %}bg-light text-dark{% else %}bg-secondary{% endif %}">{{ current_user.role|upper }} PORTAL</span>
