@@ -26,7 +26,8 @@ from app import create_app
 from audit import log_event
 from extensions import db
 import quizzes
-from models import Project, Task, User, QualificationQuiz, utc_now
+from models import Project, Task, User, QualificationQuiz, ContributorConsent, utc_now
+from legal_docs import TERMS_VERSION, compute_document_hash
 
 ADMIN_EMAIL = "admin@brydl.com"
 ADMIN_PASSWORD = "admin123"
@@ -149,6 +150,7 @@ def main() -> None:
     _refuse_production()
     app = create_app()
     with app.app_context():
+        db.create_all()
         created_users = 0
         admin, made = _get_or_create_user(
             "Brydl Admin", ADMIN_EMAIL, ADMIN_PASSWORD, "admin"
@@ -160,12 +162,26 @@ def main() -> None:
             created_users += int(made)
 
         annotators = []
+        doc_hash = compute_document_hash("terms_and_conditions", TERMS_VERSION)
         for name, email in ANNOTATORS:
             annotator, made = _get_or_create_user(
                 name, email, ANNOTATOR_PASSWORD, "annotator"
             )
             annotators.append(annotator)
             created_users += int(made)
+            if made:
+                consent = ContributorConsent(
+                    user_id=annotator.id,
+                    document_type="terms_and_conditions",
+                    version=TERMS_VERSION,
+                    accepted_at=utc_now(),
+                    document_hash=doc_hash,
+                    ip_address="127.0.0.1",
+                    user_agent="BrydlDevSeed/1.0",
+                    consent_method="system_seed",
+                    is_active=True,
+                )
+                db.session.add(consent)
 
         project = db.session.scalar(
             db.select(Project).where(Project.name == SAMPLE_PROJECT["name"])

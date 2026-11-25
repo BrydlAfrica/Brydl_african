@@ -407,9 +407,23 @@ r_act_post = active_client.post(
 )
 expect(r_act_post.status_code == 200, "POST /activate/<token> successfully sets password and logs in")
 
-# Verified annotator accessing official production /annotator/
+# Verified annotator accessing official production /annotator/ without terms consent is gated
+r_official_gate = active_client.get("/annotator/", follow_redirects=False)
+expect(r_official_gate.status_code == 302 and "/annotator/terms" in r_official_gate.headers.get("Location", ""),
+       "Newly verified annotator without v2.1 consent is GATED and redirected to /annotator/terms")
+
+# Affirmative acceptance of Terms v2.1
+csrf_terms = get_csrf(active_client, "/annotator/terms")
+r_accept_terms = active_client.post(
+    "/annotator/terms/accept",
+    data={"csrf_token": csrf_terms, "terms_confirm": "on"},
+    follow_redirects=True,
+)
+expect(r_accept_terms.status_code == 200, "Affirmative acceptance of Contributor Terms v2.1 succeeds")
+
+# Now accesses official production workspace
 r_official_dash = active_client.get("/annotator/")
-expect(r_official_dash.status_code == 200, "Verified annotator successfully accesses /annotator/ (got 200)")
+expect(r_official_dash.status_code == 200, "Verified annotator with valid consent accesses /annotator/ (got 200)")
 
 # Verify old provisional login is rejected / retired
 old_login_client = app.test_client()

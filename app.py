@@ -81,10 +81,17 @@ def create_app(config_class: type = Config) -> Flask:
     # Render terminates TLS at its edge proxy, so the app itself sees
     # plain http. ProxyFix restores the real scheme/client from Render's
     # X-Forwarded-* headers, keeping secure-cookie and scheme logic
-    # correct. Only enabled on Render (RENDER env var) — never trust
-    # these headers from a client on a direct connection.
-    if os.environ.get("RENDER"):
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+    # correct. Enabled when running on Render (RENDER env var) or in production
+    # (FLASK_ENV=production) — never trust these headers on a direct connection.
+    if os.environ.get("RENDER") or os.environ.get("FLASK_ENV") == "production":
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=1,
+            x_proto=1,
+            x_host=0,
+            x_port=0,
+            x_prefix=0,
+        )
 
     # --- Extensions -----------------------------------------------------
     # Register RedLab (v14) model metadata so db.create_all() and

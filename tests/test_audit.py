@@ -45,6 +45,8 @@ with app.app_context():
     ann_a.set_password("annotator-pass-1")
     db.session.add_all([admin, ann_a])
     db.session.commit()
+    ann_a.record_consent()
+    db.session.commit()
     ann_a_id = ann_a.id
 
 # ---- 1. auth events ----

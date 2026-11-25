@@ -30,7 +30,7 @@ with app.app_context():
     pm.set_password("x")
     ad = User(name="Ad", email="a@x.com", role="admin")
     ad.set_password("x")
-    an = User(name="N", email="n@x.com", role="annotator", terms_version="1.0")
+    an = User(name="N", email="n@x.com", role="annotator", terms_version="2.1")
     an.set_password("x")
     db.session.add_all([pm, ad, an])
     db.session.flush()

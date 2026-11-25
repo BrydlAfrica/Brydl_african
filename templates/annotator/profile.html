@@ -44,16 +44,24 @@
           </div>
         </div>
         <div class="border-top pt-3 mt-3 small text-muted">
-          <i class="bi bi-file-earmark-check me-1" aria-hidden="true"></i>
-          {% if current_user.terms_version == config.TERMS_VERSION %}
-          Terms accepted
-          {% if current_user.terms_accepted_at %}
-          · {{ current_user.terms_accepted_at.strftime('%d %b %Y') }}
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <span><i class="bi bi-file-earmark-check me-1" aria-hidden="true"></i>Terms of Service</span>
+            {% if current_user.terms_version == config.TERMS_VERSION %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Accepted v{{ config.TERMS_VERSION }}</span>
+            {% else %}
+            <a href="{{ url_for('annotator.terms') }}" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-decoration-none">Accept v{{ config.TERMS_VERSION }}</a>
+            {% endif %}
+          </div>
+          {% if current_user.terms_version == config.TERMS_VERSION and current_user.terms_accepted_at %}
+          <div class="text-muted small mb-2" style="font-size: 0.75rem;">Accepted on {{ current_user.terms_accepted_at.strftime('%d %b %Y at %H:%M UTC') }}</div>
           {% endif %}
-          (v{{ config.TERMS_VERSION }})
-          {% else %}
-          <a href="{{ url_for('annotator.terms') }}">Terms await your acceptance</a>
-          {% endif %}
+          <div class="d-flex gap-2 pt-1 border-top mt-2">
+            <a href="{{ url_for('annotator.terms') }}" class="text-decoration-none small"><i class="bi bi-file-earmark-text me-1"></i>Terms</a>
+            <span class="text-muted">&bull;</span>
+            <a href="{{ url_for('annotator.policies') }}" class="text-decoration-none small"><i class="bi bi-journal-check me-1"></i>Policies</a>
+            <span class="text-muted">&bull;</span>
+            <a href="{{ url_for('public.privacy') }}" class="text-decoration-none small" target="_blank"><i class="bi bi-shield-lock me-1"></i>Privacy</a>
+          </div>
         </div>
       </div>
     </div>

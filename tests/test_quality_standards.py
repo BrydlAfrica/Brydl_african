@@ -144,6 +144,9 @@ with app.app_context():
 
     db.session.add_all([admin, qa_reviewer, ann_gold, ann_dispute])
     db.session.commit()
+    ann_gold.record_consent()
+    ann_dispute.record_consent()
+    db.session.commit()
 
     admin_id = admin.id
     qa_id = qa_reviewer.id

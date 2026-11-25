@@ -66,10 +66,10 @@ with app.app_context():
     db.session.add(admin)
     db.session.flush()
     ann1 = User(name="Ada One", email="one@brydl.ng", role="annotator",
-                terms_version="1.0")
+                terms_version="2.1")
     ann1.set_password("annot-pass-1")
     ann2 = User(name="Ben Two", email="two@brydl.ng", role="annotator",
-                terms_version="1.0")
+                terms_version="2.1")
     ann2.set_password("annot-pass-1")
     db.session.add_all([ann1, ann2])
     db.session.flush()
@@ -95,6 +95,8 @@ with app.app_context():
     t1.expected_output = (
         "a" if not _preference_flipped(t1.id, ann1.id) else "b"
     )
+    db.session.commit()
+    ann1.record_consent(); ann2.record_consent()
     db.session.commit()
     project_id, t1_id, t2_id = project.id, t1.id, t2.id
     ann1_id, ann2_id = ann1.id, ann2.id

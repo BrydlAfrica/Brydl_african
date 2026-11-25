@@ -199,7 +199,9 @@ USD_TO_NGN_RATE = _env_decimal("USD_TO_NGN_RATE", "1600")
 # Version tag of the annotator Terms & Conditions. Bump it (or set
 # BRYDL_TERMS_VERSION) to re-prompt every annotator to accept the new
 # version before they can work again.
-TERMS_VERSION = os.environ.get("BRYDL_TERMS_VERSION", "").strip() or "1.0"
+TERMS_VERSION = os.environ.get("BRYDL_TERMS_VERSION", "").strip() or "2.1"
+PRIVACY_NOTICE_VERSION = os.environ.get("BRYDL_PRIVACY_NOTICE_VERSION", "").strip() or "1.0"
+CONTRIBUTOR_POLICIES_VERSION = os.environ.get("BRYDL_CONTRIBUTOR_POLICIES_VERSION", "").strip() or "1.0"
 # Local dev convenience: create_app() builds missing tables directly.
 # Production leaves this OFF (render.yaml sets BRYDL_AUTO_SCHEMA=0) and
 # creates/evolves the schema exclusively through `flask db upgrade`.
@@ -442,6 +444,8 @@ class Config:
 
     # Annotator terms version (see routes/annotator.py gate).
     TERMS_VERSION = TERMS_VERSION
+    PRIVACY_NOTICE_VERSION = PRIVACY_NOTICE_VERSION
+    CONTRIBUTOR_POLICIES_VERSION = CONTRIBUTOR_POLICIES_VERSION
     # Tier 1 knobs (mirrored for templates).
     CLAIM_DAILY_CAP = CLAIM_DAILY_CAP
     SITE_URL = SITE_URL

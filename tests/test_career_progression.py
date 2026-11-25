@@ -87,6 +87,8 @@ with app.app_context():
     u_default.set_password("Password123!")
     db.session.add(u_default)
     db.session.commit()
+    u_default.record_consent()
+    db.session.commit()
 
     expect(u_default.seniority_level == "verified", "Default User seniority_level is 'verified'")
     expect(u_default.specialist_badge is None, "Default User specialist_badge is None")
@@ -179,6 +181,9 @@ with app.app_context():
     tunde.set_password("Password123!")
 
     db.session.add_all([admin_user, prov_user, chioma, ibrahim, amara, tunde])
+    db.session.commit()
+    for u in [prov_user, chioma, ibrahim, amara, tunde]:
+        u.record_consent()
     db.session.commit()
 
     admin_id = admin_user.id

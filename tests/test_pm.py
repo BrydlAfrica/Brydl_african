@@ -32,11 +32,11 @@ with app.app_context():
     db.create_all()
     admin = User(name="Admin", email="admin@brydl.com", role="admin")
     admin.set_password("admin123")
-    pm = User(name="PM Aisha", email="pm@brydl.com", role="project_manager", terms_version="1.0")
+    pm = User(name="PM Aisha", email="pm@brydl.com", role="project_manager", terms_version="2.1")
     pm.set_password("pm12345!")
-    qa = User(name="QA Kemi", email="qa@brydl.com", role="qa", terms_version="1.0")
+    qa = User(name="QA Kemi", email="qa@brydl.com", role="qa", terms_version="2.1")
     qa.set_password("qa12345!")
-    ann = User(name="Tunde A", email="ann@brydl.com", role="annotator", terms_version="1.0")
+    ann = User(name="Tunde A", email="ann@brydl.com", role="annotator", terms_version="2.1")
     ann.set_password("ann123!")
     other_proj = Project(name="Existing", client_name="OldCo", task_type="classification",
                          pay_per_task=0.25, instructions="x", created_by=admin.id,

@@ -339,6 +339,34 @@ class User(UserMixin, db.Model):
     #   submissions      (Submission.annotator_id)
     #   payments         (Payment.annotator_id)
 
+    def record_consent(
+        self,
+        document_type: str = "terms_and_conditions",
+        version: str | None = None,
+        ip_address: str = "127.0.0.1",
+        user_agent: str = "System/1.0",
+        consent_method: str = "system_seed",
+    ):
+        """Record a durable ContributorConsent entry for this user."""
+        from legal_docs import TERMS_VERSION, compute_document_hash
+        ver = version or TERMS_VERSION
+        h = compute_document_hash(document_type, ver)
+        consent = ContributorConsent(
+            user_id=self.id,
+            document_type=document_type,
+            version=ver,
+            accepted_at=utc_now(),
+            document_hash=h,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            consent_method=consent_method,
+            is_active=True,
+        )
+        db.session.add(consent)
+        self.terms_version = ver
+        self.terms_accepted_at = utc_now()
+        return consent
+
     def set_password(self, password: str) -> None:
         """Hash and store *password* using Werkzeug's defaults.
 
@@ -1951,5 +1979,56 @@ class CareerPromotionRequest(db.Model):
 
     def __repr__(self) -> str:
         return f"<CareerPromotionRequest id={self.id} user={self.user_id} target={self.target_role!r} status={self.status!r}>"
+
+
+class ContributorConsent(db.Model):
+    """Immutable audit record of contributor legal consent and policy acceptance.
+
+    Preserves historical acceptance records across terms versions, tracking
+    contributor account identity, document type, exact version, SHA-256 document
+    hash, UTC timestamp, and network/session metadata.
+    """
+
+    __tablename__ = "contributor_consents"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    document_type = db.Column(
+        db.String(64), nullable=False, default="terms_and_conditions"
+    )
+    version = db.Column(db.String(32), nullable=False)
+    accepted_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+    document_hash = db.Column(db.String(64), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    consent_method = db.Column(
+        db.String(32), nullable=False, default="web_form", server_default="web_form"
+    )
+    is_active = db.Column(
+        db.Boolean, nullable=False, default=True, server_default=true()
+    )
+
+    user = db.relationship(
+        "User",
+        backref=db.backref("consents", lazy="dynamic", cascade="all, delete-orphan"),
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "document_type", "version", name="uq_contributor_consents_user_doc_ver"
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<ContributorConsent id={self.id} user_id={self.user_id} "
+            f"type={self.document_type!r} version={self.version!r}>"
+        )
+
 
 

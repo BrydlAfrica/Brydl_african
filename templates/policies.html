@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Contributor Policies (v1.0) — Brydl AI{% endblock %}
+{% block meta_description %}Read the official Brydl Contributor Policies covering Code of Conduct, Work Quality & Review, Compensation, Confidentiality, Wellbeing, and Appeals.{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10 col-xl-9">
+
+      {# ---- Document Navigation Tabs ---- #}
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary text-white px-2.5 py-1 small fw-semibold">Legal &amp; Policy Pack</span>
+          <span class="badge bg-secondary-subtle text-body-emphasis border small fw-bold">Version 1.0</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 small">
+          <a href="{{ url_for('public.terms') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-text me-1"></i>Terms &amp; Conditions</a>
+          <a href="{{ url_for('public.privacy') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-shield-lock me-1"></i>Privacy Notice</a>
+          <a href="{{ url_for('public.policies') }}" class="btn btn-sm btn-primary fw-semibold"><i class="bi bi-journal-check me-1"></i>Contributor Policies</a>
+        </div>
+      </div>
+
+      {# ---- Main Document Card ---- #}
+      <div class="card border-0 shadow-sm overflow-hidden mb-4">
+        <div class="card-header bg-white p-4 p-md-5 border-bottom">
+          <p class="text-primary text-uppercase small fw-bold mb-1 tracking-wider">Operational Standards</p>
+          <h1 class="h3 fw-bold text-body-emphasis mb-1">BRYDL CONTRIBUTOR POLICIES</h1>
+          <p class="text-muted small mb-0">
+            These policies supplement the Contributor Terms &amp; Conditions and govern all data evaluation, annotation, and red-teaming activities across the Platform.
+          </p>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+
+          {# ---- Policy Navigation Pills ---- #}
+          <div class="p-3 bg-light rounded-3 border mb-4">
+            <h2 class="h6 fw-bold text-body-emphasis mb-2"><i class="bi bi-compass me-1 text-primary"></i>Policy Index (8 Operational Standards)</h2>
+            <div class="d-flex flex-wrap gap-1.5 small">
+              <a href="#pol-1" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">1. Code of Conduct</a>
+              <a href="#pol-2" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">2. Work Quality &amp; Review</a>
+              <a href="#pol-3" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">3. Compensation &amp; Payments</a>
+              <a href="#pol-4" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">4. Confidentiality &amp; Data</a>
+              <a href="#pol-5" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">5. Sensitive Content &amp; Wellbeing</a>
+              <a href="#pol-6" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">6. Complaints &amp; Appeals</a>
+              <a href="#pol-7" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">7. Account Security &amp; Acceptable Use</a>
+              <a href="#pol-8" class="badge bg-white text-body-emphasis border text-decoration-none py-1.5 px-2.5">8. Policy Administration</a>
+            </div>
+          </div>
+
+          {# ---- Policy 1 ---- #}
+          <section id="pol-1" class="mb-4 pt-2">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 1</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Contributor Code of Conduct</h2>
+            </div>
+            <p class="small text-body-secondary mb-2">Contributors must:</p>
+            <ol class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li>Treat other contributors, reviewers, clients and Platform staff respectfully.</li>
+              <li>Submit honest, original and good-faith work.</li>
+              <li>Follow project instructions and disclose relevant limitations.</li>
+              <li>Respect language, cultural and contextual differences.</li>
+              <li>Avoid harassment, threats, discrimination and intimidation.</li>
+              <li>Protect confidential information and personal data.</li>
+              <li>Avoid conflicts of interest or disclose them promptly.</li>
+              <li>Report suspected misconduct, fraud or security issues.</li>
+              <li>Avoid misrepresenting qualifications, identity or experience.</li>
+              <li>Use the Platform only for authorised activities.</li>
+            </ol>
+          </section>
+
+          {# ---- Policy 2 ---- #}
+          <section id="pol-2" class="mb-4 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 2</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Work Quality and Review Policy</h2>
+            </div>
+            <ol class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li>Every project must provide clear task instructions and acceptance criteria before work begins.</li>
+              <li>Contributors must complete work independently unless collaboration is expressly permitted.</li>
+              <li>Reviewers should assess submissions against stated criteria rather than personal preference.</li>
+              <li>A rejection should include a reason or relevant quality category where reasonably practicable.</li>
+              <li>Contributors should have a reasonable way to request clarification or appeal.</li>
+              <li>Reviewers must not falsify scores, retaliate against contributors or manipulate acceptance decisions.</li>
+              <li>Disagreement about language interpretation should be recorded where relevant, not automatically treated as poor performance.</li>
+              <li>Project owners should monitor reviewer consistency and escalate recurring disagreements.</li>
+              <li>Any gold-standard or reference answer must be protected from unauthorised disclosure.</li>
+              <li>Quality thresholds and material changes must be communicated before they affect contributor compensation.</li>
+            </ol>
+          </section>
+
+          {# ---- Policy 3 ---- #}
+          <section id="pol-3" class="mb-4 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 3</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Compensation and Payment Policy</h2>
+            </div>
+            <ol class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li>The compensation basis and rate must be disclosed before task acceptance.</li>
+              <li>Contributors must be informed of relevant payment conditions, schedules, thresholds and transaction charges.</li>
+              <li>Approved work must be recorded accurately.</li>
+              <li>Payment status should distinguish at least: pending review, approved, payment processing, paid, disputed and rejected.</li>
+              <li>A disputed task should not automatically place all unrelated approved earnings on hold.</li>
+              <li>Payment holds must have a documented reason and be limited to what is reasonably necessary.</li>
+              <li>Contributors must have a support route for payment questions (<a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>).</li>
+              <li>The Platform must not advertise payment methods or timelines that have not been verified in production.</li>
+              <li>Contributors must never be asked for a banking PIN, password or OTP.</li>
+              <li>No guaranteed task volume or earnings should be implied.</li>
+            </ol>
+          </section>
+
+          {# ---- Policy 4 ---- #}
+          <section id="pol-4" class="mb-4 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 4</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Confidentiality and Data Handling Policy</h2>
+            </div>
+            <ol class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li>Project information must be used only for the assigned purpose.</li>
+              <li>Contributors must not publish or share task content, prompts, model responses, datasets or client materials without permission.</li>
+              <li>Personal data must not be copied into unauthorised tools or external services.</li>
+              <li>Contributors must use secure devices and protect account credentials.</li>
+              <li>Contributors must not attempt to identify anonymised individuals or re-identify datasets.</li>
+              <li>Suspected data exposure must be reported promptly.</li>
+              <li>Project files must be deleted or returned when instructed, subject to lawful retention requirements.</li>
+              <li>Access must be limited to people authorised for the relevant project.</li>
+              <li>Administrators and reviewers must follow confidentiality obligations.</li>
+              <li>Any project involving sensitive or special-category data requires additional documented safeguards.</li>
+            </ol>
+          </section>
+
+          {# ---- Policy 5 ---- #}
+          <section id="pol-5" class="mb-4 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 5</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Sensitive Content and Wellbeing Policy</h2>
+            </div>
+            <ol class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li>Projects involving potentially disturbing material should disclose the nature of the content before acceptance where reasonably practicable.</li>
+              <li>Contributors may decline a project before beginning it.</li>
+              <li>Contributors should follow project-specific exposure limits and handling instructions.</li>
+              <li>Contributors may report content that falls outside the stated project scope.</li>
+              <li>Reviewers must not ridicule or penalise a contributor merely for raising a good-faith wellbeing concern.</li>
+              <li>Any pause, reassignment or support process must be described accurately and offered only where operationally available.</li>
+              <li>The Platform must not promise counselling or clinical support unless such a service has actually been arranged.</li>
+            </ol>
+          </section>
+
+          {# ---- Policy 6 ---- #}
+          <section id="pol-6" class="mb-4 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 6</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Complaints and Appeals Policy</h2>
+            </div>
+            <p class="small text-body-secondary mb-2">Contributors may raise complaints regarding task rejections, compensation, account restrictions, harassment, privacy, or working conditions. The complaint process should:</p>
+            <ol class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li>Provide a clear contact channel: <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>.</li>
+              <li>Record the date, category and relevant project reference.</li>
+              <li>Acknowledge receipt within a reasonable operational timeframe.</li>
+              <li>Assign the issue to an appropriate reviewer who is not directly responsible for the disputed decision where practicable.</li>
+              <li>Review relevant evidence and give a reasoned outcome.</li>
+              <li>Explain any available escalation route.</li>
+              <li>Protect complainants from retaliation for raising good-faith concerns.</li>
+              <li>Keep complaint records only for as long as necessary and lawfully permitted.</li>
+            </ol>
+          </section>
+
+          {# ---- Policy 7 ---- #}
+          <section id="pol-7" class="mb-4 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 7</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Account Security and Acceptable Use Policy</h2>
+            </div>
+            <p class="small text-body-secondary mb-2">Contributors must not:</p>
+            <ul class="small text-body-secondary mb-0 ps-3 d-flex flex-column gap-1">
+              <li>Share account credentials or impersonate another person.</li>
+              <li>Attempt to bypass access controls or exploit software vulnerabilities.</li>
+              <li>Upload malware, malicious files, or scrape data without authorisation.</li>
+              <li>Manipulate task assignment, qualification, or payment processes.</li>
+              <li>Use another contributor's account or submit work on their behalf without permission.</li>
+            </ul>
+          </section>
+
+          {# ---- Policy 8 ---- #}
+          <section id="pol-8" class="mb-2 pt-2 border-top pt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-white">Policy 8</span>
+              <h2 class="h5 fw-bold text-body-emphasis mb-0">Policy Administration</h2>
+            </div>
+            <p class="small text-body-secondary lh-base mb-3">
+              The Platform displays current policy versions, retains historical versions, trains authorised personnel, applies policies consistently, and avoids representing operational services or technical controls that have not been implemented.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ url_for('public.terms') }}" class="btn btn-primary"><i class="bi bi-file-earmark-text me-1"></i>View Terms &amp; Conditions</a>
+              <a href="{{ url_for('public.privacy') }}" class="btn btn-outline-secondary"><i class="bi bi-shield-lock me-1"></i>View Privacy Notice</a>
+              <a href="mailto:inquiry@brydldata.com.ng" class="btn btn-outline-secondary"><i class="bi bi-envelope me-1"></i>Contact Support</a>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

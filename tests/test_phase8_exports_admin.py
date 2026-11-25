@@ -228,6 +228,8 @@ with flask_app.app_context():
     db.session.add(sub_std)
 
     db.session.commit()
+    ann.record_consent()
+    db.session.commit()
     print("Seed complete.")
 
 

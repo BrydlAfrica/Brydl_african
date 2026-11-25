@@ -27,6 +27,7 @@ from extensions import db
 from mailer import send_verification_activation_email
 from models import (
     Applicant,
+    ContributorConsent,
     Payment,
     Project,
     Submission,
@@ -227,6 +228,12 @@ def execute_annotator_cutover(
         update(Payment)
         .where(Payment.annotator_id == old_user.id)
         .values(annotator_id=new_user.id)
+    )
+    # Migrate any existing legitimate consent records from provisional user to new user
+    db.session.execute(
+        update(ContributorConsent)
+        .where(ContributorConsent.user_id == old_user.id)
+        .values(user_id=new_user.id)
     )
 
     # 5. Link Applicant record to new official user

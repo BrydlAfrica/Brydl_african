@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Data Protection &amp; Privacy Notice — Brydl AI{% endblock %}
-{% block meta_description %}Learn how Brydl AI and Gretek Technologies process, protect, and secure data in alignment with Nigeria Data Protection Regulation (NDPR) principles.{% endblock %}
-{% block og_description %}Learn how Brydl AI and Gretek Technologies process, protect, and secure data in alignment with Nigeria Data Protection Regulation (NDPR) principles.{% endblock %}
-{% block twitter_description %}Learn how Brydl AI and Gretek Technologies process, protect, and secure data in alignment with Nigeria Data Protection Regulation (NDPR) principles.{% endblock %}
+
+{% block title %}Contributor Privacy Notice (v1.1) — Brydl AI{% endblock %}
+{% block meta_description %}Learn how Brydl AI processes and protects contributor and platform data under the Nigeria Data Protection Act (NDPA 2023) and NDPR principles.{% endblock %}
+{% block og_description %}Learn how Brydl AI processes and protects contributor and platform data under the Nigeria Data Protection Act (NDPA 2023) and NDPR principles.{% endblock %}
+{% block twitter_description %}Learn how Brydl AI processes and protects contributor and platform data under the Nigeria Data Protection Act (NDPA 2023) and NDPR principles.{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -11,11 +12,11 @@
   "@type": "WebPage",
   "@id": "{{ site_url }}/privacy#webpage",
   "url": "{{ site_url }}/privacy",
-  "name": "Data Protection & Privacy Notice — Brydl AI",
-  "description": "Data protection policy and privacy framework for Brydl AI under Nigeria Data Protection Regulation (NDPR) principles.",
+  "name": "Contributor Privacy Notice — Brydl AI",
+  "description": "Contributor data protection policy and privacy notice for Brydl AI under Nigeria Data Protection Act 2023 and NDPR principles.",
   "publisher": {
     "@type": "Organization",
-    "name": "Gretek Technologies",
+    "name": "Brydl Platform",
     "url": "{{ site_url }}"
   }
 }
@@ -23,86 +24,224 @@
 {% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 860px;">
-  <h1 class="h3 fw-bold mt-4 mb-1">Data Protection &amp; Privacy Notice</h1>
-  <p class="text-muted small">Nigeria Data Protection Regulation (NDPR) principles &mdash; how Brydl collects, uses, protects and retains personal data. Last updated: September 2026.</p>
+<div class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10 col-xl-9">
 
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">1. Who we are</h2>
-      <p class="small mb-2">Brydl is an African-language AI evaluation and safety platform developed by Gretek Technologies, based in Kano, Nigeria. For the personal data of our contributors, researchers, and website visitors, Brydl is the <strong>data controller</strong>. For the source model prompts and evaluation datasets our clients upload for testing, the client remains the <strong>data controller</strong> and Brydl acts as the <strong>data processor</strong>, handling that data strictly on the client's documented instructions.</p>
-      <p class="small mb-0"><strong>Data protection contact:</strong> the Data Protection focal point, reachable through your Brydl team contact or at our Kano office address.</p>
+      {# ---- Document Navigation Tabs ---- #}
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary text-white px-2.5 py-1 small fw-semibold">Legal &amp; Policy Pack</span>
+          <span class="badge bg-secondary-subtle text-body-emphasis border small fw-bold">Version 1.1</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 small">
+          <a href="{{ url_for('public.terms') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-text me-1"></i>Terms &amp; Conditions</a>
+          <a href="{{ url_for('public.privacy') }}" class="btn btn-sm btn-primary fw-semibold"><i class="bi bi-shield-lock me-1"></i>Privacy Notice</a>
+          <a href="{{ url_for('public.policies') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-journal-check me-1"></i>Contributor Policies</a>
+        </div>
+      </div>
+
+      {# ---- Main Document Card ---- #}
+      <div class="card border-0 shadow-sm overflow-hidden mb-4">
+        <div class="card-header bg-white p-4 p-md-5 border-bottom">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+              <p class="text-primary text-uppercase small fw-bold mb-1 tracking-wider">Data Protection (NDPR &amp; NDPA 2023)</p>
+              <h1 class="h3 fw-bold text-body-emphasis mb-1">BRYDL CONTRIBUTOR PRIVACY NOTICE</h1>
+              <p class="text-muted small mb-0">
+                Operating country: <strong>Nigeria</strong> &bull; Contact: <a href="mailto:inquiry@brydldata.com.ng" class="text-decoration-none">inquiry@brydldata.com.ng</a> / <a href="mailto:privacy@brydldata.com.ng" class="text-decoration-none">privacy@brydldata.com.ng</a>
+              </p>
+            </div>
+            <div class="text-md-end">
+              <span class="badge bg-light text-body-secondary border p-2 text-start d-block">
+                <i class="bi bi-file-earmark-check me-1"></i><strong>Version 1.1</strong><br>
+                <small class="text-muted">Effective: November 2026</small>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+
+          {# ---- Section 1 ---- #}
+          <section id="priv-1" class="mb-4 pt-2">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">1. About This Notice &amp; Data Controller Details (NDPA Section 27)</h2>
+            <p class="small text-body-secondary lh-base mb-3">
+              This Privacy Notice is issued pursuant to Section 27 of the Nigeria Data Protection Act 2023 (NDPA) and NDPR principles. It explains how personal data relating to applicants, registered contributors and other individuals interacting with the Brydl contributor platform may be collected, used, stored, shared and protected.
+            </p>
+            <div class="p-3 bg-body-tertiary rounded border mb-2">
+              <span class="d-block fw-semibold text-body-emphasis small mb-1">Platform and Data Controller Information:</span>
+              <ul class="list-unstyled small text-muted mb-0 ps-2">
+                <li>&bull; <strong>Platform &amp; Brand:</strong> Brydl Platform (operating under Gretek Technologies, an unincorporated technology initiative)</li>
+                <li>&bull; <strong>Data Controllers:</strong> The founding and operational leadership team of Gretek Technologies / Brydl (acting as joint data controllers under Section 65 of the NDPA)</li>
+                <li>&bull; <strong>Operating locations:</strong> Kano (Evaluator &amp; Linguist Operations) and Abuja (Administrative &amp; Regulatory Coordination), Nigeria</li>
+                <li>&bull; <strong>Privacy focal contacts:</strong> <a href="mailto:privacy@brydldata.com.ng">privacy@brydldata.com.ng</a> &bull; <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a></li>
+              </ul>
+            </div>
+          </section>
+
+          {# ---- Section 2 ---- #}
+          <section id="priv-2" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">2. Principles of Personal Data Processing (NDPA Section 24)</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Personal data is processed in strict compliance with the core principles established under Section 24 of the NDPA: processed lawfully, fairly, and in a transparent manner; collected for specified, explicit, and legitimate purposes; adequate, relevant, and limited to what is necessary; accurate and kept up to date; retained no longer than necessary; and secured with appropriate technical and organisational safeguards.
+            </p>
+          </section>
+
+          {# ---- Section 3 ---- #}
+          <section id="priv-3" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">3. Personal Data We May Collect</h2>
+            <p class="small text-body-secondary mb-2">Depending on the features used and projects in which you participate, we may collect:</p>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-2">
+              <li><strong>3.1 Account and contact information:</strong> Name, username, email address, telephone number, authentication records, profile details, and communication preferences.</li>
+              <li><strong>3.2 Eligibility and qualification information:</strong> Age/eligibility confirmation, language proficiency and assessment scores, educational/skills background, calibration results, and identity verification records where required.</li>
+              <li><strong>3.3 Project and work information:</strong> Task submissions, annotations, evaluation responses, classifications, reviewer feedback, quality scores, revision history, and task timestamps.</li>
+              <li><strong>3.4 Payment information:</strong> Bank name, account name, and bank account number (encrypted at rest), payout status, transaction references, and payment correspondence. Banking PINs, passwords, and OTPs are never requested.</li>
+              <li><strong>3.5 Technical and security information:</strong> IP address, access logs, device/browser details, session authentication logs, and security event trails.</li>
+              <li><strong>3.6 Support and complaint information:</strong> Messages sent to support, complaints, appeals, and records of dispute determinations.</li>
+              <li><strong>3.7 Sensitive or special-category information:</strong> Certain safety evaluation projects may involve sensitive prompt content. Contributors are not asked to disclose personal sensitive data about themselves unless lawfully justified.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 4 ---- #}
+          <section id="priv-4" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">4. Why We Process Personal Data</h2>
+            <p class="small text-body-secondary mb-2">Personal data is processed strictly to:</p>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1">
+              <li>Create and administer contributor accounts.</li>
+              <li>Assess eligibility and language or task qualifications.</li>
+              <li>Match contributors to relevant project requirements.</li>
+              <li>Assign, receive and review project work.</li>
+              <li>Communicate instructions, revisions and project updates.</li>
+              <li>Calculate and process approved compensation.</li>
+              <li>Prevent fraud, account abuse and unauthorised access.</li>
+              <li>Investigate complaints, appeals and security incidents.</li>
+              <li>Maintain records required for accounting, contractual or legal purposes.</li>
+              <li>Improve the quality, reliability and security of the Platform.</li>
+              <li>Meet legal and regulatory obligations under Nigerian law.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 5 ---- #}
+          <section id="priv-5" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">5. Lawful Bases for Processing (NDPA Section 25)</h2>
+            <p class="small text-body-secondary lh-base mb-2">
+              Under Section 25 of the Nigeria Data Protection Act 2023 (NDPA), processing is conducted strictly under recognised statutory lawful bases:
+            </p>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1">
+              <li><strong>Section 25(1)(b)(i) Contractual Necessity:</strong> Performing contributor agreements, assigning tasks, evaluating submissions, and processing approved compensation to your registered bank account under the Contributor Terms &amp; Conditions.</li>
+              <li><strong>Section 25(1)(b)(ii) Legal Obligation:</strong> Compliance with applicable Personal Income Tax Act (PITA) / State Internal Revenue Service withholding rules, AML/CBN financial record-keeping for NUBAN transfers, and NDPA compliance audit trails.</li>
+              <li><strong>Section 25(1)(b)(v) Legitimate Interests:</strong> Protecting platform integrity, verifying quality rubrics, preventing multi-account abuse/fraud, and maintaining security audit logging (balanced against contributor rights).</li>
+              <li><strong>Section 25(1)(a) &amp; Section 26 Consent:</strong> Where specific secondary processing relies on voluntary consent (such as optional platform updates and newsletter notifications). Section 26 governs the conditions, proof, clear withdrawal mechanisms, and affirmative unbundled nature of such consent.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 6 ---- #}
+          <section id="priv-6" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">6. How We Share Personal Data</h2>
+            <p class="small text-body-secondary lh-base mb-2">
+              Personal data is shared only with authorised project clients (anonymised deliverable outputs), authorised reviewers/administrators, hosting/infrastructure providers, and licensed Nigerian payment processors (Paystack/banking institutions) involved in processing compensation. Contributor personal identities are severed from public deliverables.
+            </p>
+          </section>
+
+          {# ---- Section 7 ---- #}
+          <section id="priv-7" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">7. Cross-Border Transfers (NDPA Sections 41–43)</h2>
+            <p class="small text-body-secondary lh-base mb-2">
+              Platform cloud infrastructure is hosted on secure servers located in Frankfurt, Germany (EU) and the United States (Render Services, Inc. and Supabase / AWS). Cross-border transfers to these cloud infrastructure providers are governed by Data Processing Addenda (DPAs) and Standard Contractual Clauses under NDPA Sections 41–42, and are necessary for the performance of the contributor contract under Section 43(1)(b).
+            </p>
+          </section>
+
+          {# ---- Section 8 ---- #}
+          <section id="priv-8" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">8. Data Retention Periods &amp; Justifications</h2>
+            <p class="small text-body-secondary lh-base mb-2">
+              Personal data is retained only for as long as necessary to fulfill its processing purpose and statutory obligations:
+            </p>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1">
+              <li><strong>Account &amp; Profile Details:</strong> Retained for active account duration + 12 months post-closure for contractual dispute limitation compliance.</li>
+              <li><strong>Payment &amp; Financial Records:</strong> Retained for 7 years under Nigerian financial and tax audit standards (PITA / SIRS rules).</li>
+              <li><strong>Consent Records &amp; Legal Evidence:</strong> Retained for 7 years as statutory proof of consent under NDPA Section 26(1).</li>
+              <li><strong>IP Addresses &amp; Security Logs:</strong> Retained for 24 months for threat intelligence, cybersecurity investigation, and audit trail integrity under NDPA Section 39.</li>
+              <li><strong>Task Submissions &amp; Work Product:</strong> Retained for project lifecycle + 3 years as client benchmark assets with personal identifiers severed.</li>
+              <li><strong>Security Backups:</strong> System backups rotated on a scheduled 30–90 day cycle with encrypted storage.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 9 ---- #}
+          <section id="priv-9" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">9. Security, Integrity and Confidentiality (NDPA Section 39)</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              In accordance with Section 39 of the NDPA, technical and organisational safeguards include role-based access controls, scrypt password hashing, AES cipher-based encryption at rest for bank details, HTTPS / TLS 1.3 transport encryption, single-hop proxy filtering, and append-only security audit logging.
+            </p>
+          </section>
+
+          {# ---- Section 10 ---- #}
+          <section id="priv-10" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">10. Your rights and NDPA Protections (Sections 34–38)</h2>
+            <p class="small text-body-secondary mb-2">Under the Nigeria Data Protection Act 2023 (Sections 34–38) and NDPR principles, your statutory rights are supported through the following workflows:</p>
+            <div class="mb-3">
+              <h3 class="h6 fw-semibold text-body-emphasis mb-1">Self-Service Workflows:</h3>
+              <ul class="small text-body-secondary lh-base mb-2 ps-3 d-flex flex-column gap-1">
+                <li><strong>Profile Review &amp; Confirmation (Section 34):</strong> View account information directly on <a href="{{ url_for('annotator.profile') if current_user.is_authenticated else '#' }}">Profile</a>.</li>
+                <li><strong>Consent History Log (Section 34):</strong> Inspect your durable consent history table at <a href="{{ url_for('annotator.terms') if current_user.is_authenticated else '#' }}">Acceptance History</a>.</li>
+                <li><strong>Work &amp; Earnings History (Section 34):</strong> Review tasks, QC scores, and payouts on <a href="{{ url_for('annotator.history') if current_user.is_authenticated else '#' }}">Task History</a>.</li>
+                <li><strong>Data Portability (Section 38):</strong> Export personal submission history via structured CSV download on the History view.</li>
+                <li><strong>Withdrawal of Optional Consent (Section 35):</strong> Toggle optional email preferences on the Profile settings view at any time with zero impact on task access.</li>
+              </ul>
+            </div>
+            <div class="mb-2">
+              <h3 class="h6 fw-semibold text-body-emphasis mb-1">Manual Request Workflows (via privacy@brydldata.com.ng):</h3>
+              <ul class="small text-body-secondary lh-base mb-2 ps-3 d-flex flex-column gap-1">
+                <li><strong>Full Subject Access Requests (SARs) (Section 34):</strong> Request comprehensive security and audit logs.</li>
+                <li><strong>Rectification of Identity Data (Section 34):</strong> Request correction of locked fields (e.g. registered email or bank account mismatch).</li>
+                <li><strong>Account Erasure &amp; Restriction (Sections 34 &amp; 38):</strong> Request erasure or restriction of processing under contested circumstances (subject to statutory tax retention).</li>
+                <li><strong>Right to Object (Section 36):</strong> Object to processing based on legitimate interests.</li>
+                <li><strong>Automated Decision-Making Safeguards (Section 37):</strong> Right not to be subject to decisions based solely on automated profiling or automated QA scoring without human auditor arbitration.</li>
+                <li><strong>Regulatory Complaint:</strong> Lodge a complaint with the Nigeria Data Protection Commission (NDPC).</li>
+              </ul>
+            </div>
+            <p class="small text-body-secondary mb-0">Send manual privacy requests to: <a href="mailto:privacy@brydldata.com.ng">privacy@brydldata.com.ng</a> / <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>.</p>
+          </section>
+
+          {# ---- Sections 11-14 ---- #}
+          <section id="priv-11" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">11. Cookies and Technical Storage</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              The Platform uses essential session cookies for authentication, CSRF security tokens, and theme preferences. No third-party advertising or cross-site tracking cookies are deployed.
+            </p>
+          </section>
+
+          <section id="priv-12" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">12. Children's Data</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              The contributor platform is strictly intended for adults aged 18 and above. The Platform does not knowingly collect personal data from minors.
+            </p>
+          </section>
+
+          <section id="priv-13" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">13. Changes to This Notice</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Updates to this Privacy Notice are posted with a revised version number and publication date.
+            </p>
+          </section>
+
+          <section id="priv-14" class="mb-2 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">14. Contact and Inquiries</h2>
+            <p class="small text-body-secondary lh-base mb-3">
+              For privacy requests, questions, or complaints:<br>
+              Email: <a href="mailto:privacy@brydldata.com.ng">privacy@brydldata.com.ng</a> / <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a> &bull; Platform: <strong>Brydl</strong>
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ url_for('public.terms') }}" class="btn btn-primary"><i class="bi bi-file-earmark-text me-1"></i>View Terms &amp; Conditions</a>
+              <a href="{{ url_for('public.policies') }}" class="btn btn-outline-secondary"><i class="bi bi-journal-check me-1"></i>View Contributor Policies</a>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">2. Data we collect</h2>
-      <ul class="small mb-2">
-        <li><strong>Worker account data:</strong> full name, email address, role, password (stored only as a modern salted hash), theme preference, and terms-acceptance records.</li>
-        <li><strong>Payout data:</strong> bank name, bank account type, and bank account number — the account number is <strong>encrypted at rest</strong> with an industry-standard cipher and only ever decrypted inside a payout process by authorised staff.</li>
-        <li><strong>Work records:</strong> task submissions, quality scores, reviewer notes, consensus verdicts and justification texts — this is the work product you produce on the platform.</li>
-        <li><strong>Security records:</strong> sign-in audit events (email, IP address, timestamp, action) kept in an append-only trail.</li>
-        <li><strong>Client project data:</strong> project definitions, uploaded source data and export deliveries.</li>
-      </ul>
-      <p class="small mb-0">We do not collect advertising identifiers, and we run no third-party advertising or tracking scripts on this platform.</p>
-    </div>
-  </div>
-
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">3. Why we use it (lawful basis)</h2>
-      <ul class="small mb-0">
-        <li><strong>Contract:</strong> running your account, assigning work, reviewing submissions and paying you exactly what you earned.</li>
-        <li><strong>Legal obligation:</strong> payroll, tax and accounting records; audit trails required of a financial platform.</li>
-        <li><strong>Legitimate interests:</strong> platform security (login lockouts, session revocation, fraud prevention) and service integrity.</li>
-        <li><strong>Client instructions:</strong> labelling work performed on client source data is processed purely to deliver the contracted dataset.</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">4. Sharing</h2>
-      <p class="small mb-2">Personal data is shared only when the job requires it:</p>
-      <ul class="small mb-0">
-        <li><strong>Payout providers</strong> (our bank or our licensed payment processor) receive the bank details needed to send your money — nothing more.</li>
-        <li><strong>Clients</strong> receive work product (labels, scores, justifications) for the projects they commissioned — never your bank details or password.</li>
-        <li><strong>Nobody else.</strong> We sell no data, and we run no ad trackers.</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">5. Security</h2>
-      <p class="small mb-0">Bank numbers encrypted at rest; passwords hashed, never stored in readable form; HTTPS enforced in production; per-role access control (annotators never see gold answers or payout data); every administrative action written to an append-only audit trail; regular credential rotation and verified off-site backups. Workers are issued individual accounts so all actions are attributable.</p>
-    </div>
-  </div>
-
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">6. Retention</h2>
-      <ul class="small mb-0">
-        <li><strong>Account and payout records:</strong> retained for as long as your account is active, then as long as Nigerian payroll, tax and accounting rules require.</li>
-        <li><strong>Work product:</strong> retained per the client's project contract so quality can be audited and datasets re-delivered.</li>
-        <li><strong>Security logs:</strong> retained in the append-only audit trail for platform integrity investigations.</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-4">
-      <h2 class="h5 fw-bold">7. Your rights</h2>
-      <p class="small mb-2">You may request: access to your personal data; correction of inaccurate data; deletion of data we no longer need (subject to payroll/audit retention); and restriction of processing while a dispute is resolved. Requests are free, answered within a reasonable time, and verifiable — we will confirm your identity before acting.</p>
-      <p class="small mb-0">You also have the right to lodge a complaint with the Nigeria Data Protection Commission.</p>
-    </div>
-  </div>
-
-  <p class="text-center pb-4">
-    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('public.landing') }}">
-      <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to the homepage
-    </a>
-  </p>
 </div>
 {% endblock %}

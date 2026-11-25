@@ -131,6 +131,8 @@ with app.app_context():
                    status="assigned", assigned_to=other_id)
     db.session.add_all([t_img, t_broken, t_plain])
     db.session.commit()
+    holder.record_consent(); other.record_consent()
+    db.session.commit()
     t_img_id, t_broken_id, t_plain_id = (
         t_img.id, t_broken.id, t_plain.id)
 

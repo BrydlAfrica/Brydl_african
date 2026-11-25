@@ -137,7 +137,7 @@ with app.app_context():
                  role="admin")
     admin.set_password("admin-pass-1")
     ann = User(name="Ann Four", email="four@brydl.ng", role="annotator",
-               terms_version="1.0")
+               terms_version="2.1")
     ann.set_password("annot-pass-4")
     db.session.add_all([admin, ann])
     db.session.flush()

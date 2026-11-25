@@ -90,7 +90,7 @@ with app.app_context():
                role="auditor")
     aud.set_password("aud-pass-1")
     ann = User(name="Ann One", email="one@brydl.ng", role="annotator",
-               terms_version="1.0")
+               terms_version="2.1")
     ann.set_password("annot-pass-1")
     db.session.add_all([admin, qa, aud, ann])
     db.session.flush()

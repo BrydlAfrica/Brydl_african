@@ -29,6 +29,7 @@ from models import Payment, utc_now
 from routes import dashboard_endpoint_for_role
 from sqlalchemy import select
 from flask import flash, jsonify
+from legal_docs import get_document_metadata, get_canonical_document
 
 public_bp = Blueprint("public", __name__)
 
@@ -127,13 +128,34 @@ def offline():
 
 @public_bp.route("/privacy")
 def privacy():
-    """Render the NDPR data-protection notice (public, no auth).
+    """Render the NDPR and NDPA 2023 Contributor Privacy Notice (public, no auth).
 
-    Clients and workers both need the data-handling statement before
-    trusting the platform with source data or personal details, so it
-    is a plain public page linked from the footer.
+    Clients, contributors, and researchers can review data-handling, retention,
+    and rights policies before registering or submitting data.
     """
-    return render_template("privacy.html")
+    meta = get_document_metadata("privacy_notice")
+    return render_template("privacy.html", meta=meta)
+
+
+@public_bp.route("/terms")
+def terms():
+    """Render the Contributor Terms & Conditions (Version 2.1 Draft, public).
+
+    Accessible to prospective contributors and clients prior to registration.
+    """
+    meta = get_document_metadata("terms_and_conditions")
+    return render_template("terms.html", meta=meta)
+
+
+@public_bp.route("/policies")
+def policies():
+    """Render the official Contributor Policies (Version 1.0, public).
+
+    Presents the 8 operational standards governing code of conduct, quality,
+    compensation, confidentiality, wellbeing, and appeals.
+    """
+    meta = get_document_metadata("contributor_policies")
+    return render_template("policies.html", meta=meta)
 
 
 @public_bp.route("/contact", methods=["GET", "POST"])
@@ -385,6 +407,18 @@ def sitemap_xml():
     <lastmod>2026-11-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>{base_url}/terms</loc>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>{base_url}/policies</loc>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>{base_url}/inquiry</loc>

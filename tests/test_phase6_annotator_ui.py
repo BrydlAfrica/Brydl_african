@@ -130,6 +130,8 @@ with flask_app.app_context():
     t_cls = Task(id=9602, project_id=9102, input_data="cls prompt", status="pending")
     db.session.add_all([t_rt, t_cls])
     db.session.commit()
+    ann.record_consent()
+    db.session.commit()
 
 
 CSRF_RAW = "phase6-csrf-token-" + "z" * 32

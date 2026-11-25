@@ -83,7 +83,7 @@ with app.app_context():
     anns = []
     for i in range(12):
         u = User(name=f"Ann {i}", email=f"ann{i}@brydl.ng",
-                 role="annotator", terms_version="1.0")
+                 role="annotator", terms_version="2.1")
         u.set_password("annot-pass-1")
         anns.append(u)
     db.session.add_all(anns)
@@ -100,6 +100,8 @@ with app.app_context():
         t = Task(project_id=project.id, input_data=f"pending text {i}")
         pending.append(t)
     db.session.add_all(pending)
+    db.session.commit()
+    for a in anns: a.record_consent()
     db.session.commit()
     project_id = project.id
     ann_ids = [u.id for u in anns]

@@ -71,7 +71,7 @@ from mailer import (
     mail_enabled,
     send_password_reset_email,
 )
-from models import User, utc_now
+from models import User, ContributorConsent, utc_now
 from routes import dashboard_endpoint_for_role
 
 auth_bp = Blueprint("auth", __name__)
@@ -327,13 +327,19 @@ def login():
 
         # The Terms gate comes FIRST: an annotator who has not accepted
         # the current terms lands on the terms page before anything else
-        # in the app (the annotator blueprint re-enforces this on every
-        # request; this makes it the visible first screen after login).
-        if (
-            user.role == "annotator"
-            and user.terms_version
-            != current_app.config.get("TERMS_VERSION")
-        ):
+        # in the app (the durable ContributorConsent record is checked).
+        current_terms_v = current_app.config.get("TERMS_VERSION", "2.1")
+        has_consent = (
+            ContributorConsent.query.filter_by(
+                user_id=user.id,
+                document_type="terms_and_conditions",
+                version=current_terms_v,
+                is_active=True,
+            ).first()
+            is not None
+        )
+
+        if user.role == "annotator" and not has_consent:
             flash(
                 "Welcome! Please review and accept the Terms &"
                 " Conditions to continue.",

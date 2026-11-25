@@ -83,7 +83,7 @@ with app.app_context():
     db.session.add(admin)
     db.session.flush()
     ann = User(name="Tunde A", email="a@brydl.ng", role="annotator",
-               terms_version="1.0")
+               terms_version="2.1")
     ann.set_password("annot-pass-1")
     db.session.add(ann)
     db.session.flush()
@@ -93,6 +93,8 @@ with app.app_context():
                       instructions="Label it.", created_by=admin.id)
     db.session.add(project)
     db.session.flush()
+    db.session.commit()
+    ann.record_consent()
     db.session.commit()
     project_id, ann_id = project.id, ann.id
     ann_email = ann.email
@@ -150,7 +152,7 @@ expect("0123456789" in csv_text, "payout CSV carries the DECRYPTED NUBAN")
 with app.app_context():
     legacy = User(
         name="Legacy", email="legacy@brydl.ng",
-        role="annotator", terms_version="1.0",
+        role="annotator", terms_version="2.1",
         bank_account_number="0987654321",
         bank_account_last4="4321",
     )

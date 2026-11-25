@@ -88,7 +88,7 @@ with app.app_context():
                  role="admin")
     admin.set_password("admin-pass-1")
     worker = User(name="Ngozi Work", email="ngozi@brydl.ng",
-                  role="annotator", terms_version="1.0",
+                  role="annotator", terms_version="2.1",
                   bank_name="Guaranty Trust Bank",
                   bank_account_name="Ngozi Work",
                   bank_account_type="savings")
@@ -101,6 +101,8 @@ with app.app_context():
                   period_start=utc_now(), period_end=utc_now(),
                   tasks_count=8, status="pending")
     db.session.add(pay)
+    db.session.commit()
+    worker.record_consent()
     db.session.commit()
     payment_id = pay.id
 
@@ -273,7 +275,7 @@ with app.app_context():
     db.session.commit()
     pay3_id = pay3.id
     bad = User(name="Bad Bank", email="badbank@brydl.ng",
-               role="annotator", terms_version="1.0",
+               role="annotator", terms_version="2.1",
                bank_name="Mystery Money Bank",
                bank_account_name="Bad Bank",
                bank_account_type="savings")

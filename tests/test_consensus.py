@@ -78,9 +78,12 @@ with app.app_context():
     db.session.flush()
     for suffix in ("one", "two", "three"):
         u = User(name=f"Ann {suffix}", email=f"{suffix}@brydl.ng",
-                 role="annotator", terms_version="1.0")
+                 role="annotator", terms_version="2.1")
         u.set_password("annot-pass-1")
         db.session.add(u)
+    db.session.commit()
+    for ann in User.query.filter_by(role="annotator").all():
+        ann.record_consent()
     db.session.commit()
 
 with app.app_context():

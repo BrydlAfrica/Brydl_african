@@ -29,6 +29,9 @@ with app.app_context():
     ann_b = User(name="Bisi B", email="b@brydl.ng", role="annotator")
     ann_b.set_password("annotator-pass-2")
     db.session.add_all([admin, ann_a, ann_b]); db.session.commit()
+    ann_a.record_consent()
+    ann_b.record_consent()
+    db.session.commit()
     admin_id, ann_a_id, ann_b_id = admin.id, ann_a.id, ann_b.id
 
     p1 = Project(name="Gold Project", client_name="Acme", task_type="classification",

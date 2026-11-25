@@ -53,7 +53,7 @@ with app.app_context():
     db.create_all()
     adm = User(name="A", email="a@x.com", role="admin")
     adm.set_password("x")
-    pm = User(name="P", email="p@x.com", role="project_manager", terms_version="1.0")
+    pm = User(name="P", email="p@x.com", role="project_manager", terms_version="2.1")
     pm.set_password("x")
     db.session.add_all([adm, pm])
     db.session.commit()

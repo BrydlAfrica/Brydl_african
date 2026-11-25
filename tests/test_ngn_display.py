@@ -34,6 +34,8 @@ with app.app_context():
     ann.set_password("x")
     db.session.add(ann)
     db.session.commit()
+    ann.record_consent()
+    db.session.commit()
     pr = Project(name="P", client_name="C", task_type="classification",
                  pay_per_task=Decimal("0.10"), instructions="x",
                  created_by=ad.id, approved_by=ad.id, approved_at=utc_now(), status="active")

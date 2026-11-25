@@ -14,7 +14,8 @@ shutil.rmtree("backups", ignore_errors=True)
 
 from app import create_app  # noqa: E402
 from extensions import db  # noqa: E402
-from models import AuditLog, Project, Submission, Task, User, utc_now  # noqa: E402
+from models import AuditLog, ContributorConsent, Project, Submission, Task, User, utc_now  # noqa: E402
+from legal_docs import TERMS_VERSION, compute_document_hash  # noqa: E402
 
 FAILURES = []
 
@@ -62,6 +63,21 @@ with app.app_context():
     db.session.add_all([gated, empty])
     db.session.commit()
     gated_id, empty_id = gated.id, empty.id
+    # Seeded acceptance record for empty
+    doc_hash = compute_document_hash("terms_and_conditions", TERMS_VERSION)
+    empty_consent = ContributorConsent(
+        user_id=empty_id,
+        document_type="terms_and_conditions",
+        version=TERMS_VERSION,
+        accepted_at=utc_now(),
+        document_hash=doc_hash,
+        ip_address="127.0.0.1",
+        user_agent="TestDevSeed/1.0",
+        consent_method="system_seed",
+        is_active=True,
+    )
+    db.session.add(empty_consent)
+    db.session.commit()
     ann1_id = db.session.scalar(db.select(User.id).where(
         User.email == "annotator1@brydl.com"))
     # give the gated annotator a task (assignment flips status, per
@@ -111,7 +127,7 @@ body = r.get_data(as_text=True)
 expect(r.status_code == 200 and "Terms &amp; Conditions" in body
        and 'type="checkbox"' in body,
        "terms page shows the agreement with an accept form")
-expect("$0.05" in body and "Confidentiality" in body and "Nigeria" in body,
+expect("Compensation" in body and "Confidentiality" in body and "Nigeria" in body,
        "terms cover pay, confidentiality and governing law")
 r = gated_c.post("/annotator/terms/accept", data={})
 expect(r.status_code == 302, "acceptance without CSRF is refused")
@@ -119,6 +135,7 @@ with app.app_context():
     expect(db.session.scalar(db.select(User.terms_version).where(
         User.id == gated_id)) == "", "no consent recorded without CSRF")
 
+current_terms_v = app.config.get("TERMS_VERSION", "2.1")
 page = gated_c.get("/annotator/terms").get_data(as_text=True)
 r = gated_c.post("/annotator/terms/accept", data={
     "csrf_token": get_csrf(page)})
@@ -126,29 +143,31 @@ body = flash_of(r, gated_c)
 expect("terms are accepted" in body, "acceptance flashes success")
 with app.app_context():
     row = db.session.get(User, gated_id)
-    expect(row.terms_version == "1.0"
+    expect(row.terms_version == current_terms_v
            and row.terms_accepted_at is not None,
            "consent (version + UTC timestamp) stored on the account")
     audit_ok = db.session.scalar(db.select(AuditLog).where(
         AuditLog.action == "user.terms_accept",
         AuditLog.entity_id == gated_id,
-        AuditLog.detail.like("%1.0%"))) is not None
+        AuditLog.detail.like(f"%{current_terms_v}%"))) is not None
 expect(audit_ok, "user.terms_accept audited")
 
 r = gated_c.get("/annotator/")
 expect(r.status_code == 200, "workspace opens after acceptance")
 r = gated_c.get("/annotator/terms")
-expect("You accepted version 1.0" in r.get_data(as_text=True),
+terms_accepted_body = r.get_data(as_text=True)
+expect(f"You accepted Version {current_terms_v}" in terms_accepted_body or
+       f"You accepted version {current_terms_v}" in terms_accepted_body,
        "terms page reflects acceptance status")
 
 # version bump re-prompts everyone
-app.config["TERMS_VERSION"] = "2.0"
+app.config["TERMS_VERSION"] = "99.0"
 r = gated_c.get("/annotator/")
 expect(r.status_code == 302 and "/annotator/terms" in r.headers["Location"],
        "bumping the version re-prompts previously accepted annotators")
 r = ann1.get("/annotator/")
 expect(r.status_code == 302, "bump re-prompts seeded annotators too")
-app.config["TERMS_VERSION"] = "1.0"
+app.config["TERMS_VERSION"] = current_terms_v
 
 # ---- profile -----------------------------------------------------------
 print("== Profile ==")

@@ -106,7 +106,7 @@ with app.app_context():
     db.session.flush()
     admin_id = admin.id
     ann = User(name="Ann One", email="one@brydl.ng", role="annotator",
-               terms_version="1.0")
+               terms_version="2.1")
     ann.set_password("annot-pass-1")
     db.session.add(ann)
     db.session.flush()
@@ -133,6 +133,8 @@ with app.app_context():
         ]}),
     )
     db.session.add_all([md_task, conv_task])
+    db.session.commit()
+    ann.record_consent()
     db.session.commit()
     md_id, conv_id = md_task.id, conv_task.id
     project_id, conv_input = project.id, conv_task.input_data

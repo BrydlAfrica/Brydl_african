@@ -108,10 +108,10 @@ with app.app_context():
                  role="admin")
     admin.set_password("admin-pass-1")
     ann1 = User(name="Ann One", email="one@brydl.ng", role="annotator",
-                terms_version="1.0")
+                terms_version="2.1")
     ann1.set_password("annot-pass-1")
     ann2 = User(name="Ann Two", email="two@brydl.ng", role="annotator",
-                terms_version="1.0")
+                terms_version="2.1")
     ann2.set_password("annot-pass-2")
     db.session.add_all([admin, ann1, ann2])
     db.session.flush()
@@ -151,6 +151,9 @@ with app.app_context():
     g1.consensus_group_id = grp.id
     g2.consensus_group_id = grp.id
     db.session.add_all([t1, t2, t3, g1, g2])
+    db.session.commit()
+    ann1.record_consent()
+    ann2.record_consent()
     db.session.commit()
     t1_id, t2_id, t3_id = t1.id, t2.id, t3.id
     g1_id, g2_id = g1.id, g2.id

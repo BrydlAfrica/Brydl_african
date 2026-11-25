@@ -77,7 +77,16 @@ import quizzes as quiz_engine
 from models import MediaAsset, Notification
 from models import QualificationQuiz, QuizAttempt
 from models import Project, Submission, Task, money, utc_now
-from models import CareerPromotionRequest, Payment
+from models import CareerPromotionRequest, Payment, ContributorConsent
+from legal_docs import (
+    TERMS_VERSION,
+    PRIVACY_NOTICE_VERSION,
+    CONTRIBUTOR_POLICIES_VERSION,
+    compute_document_hash,
+    get_canonical_document,
+    get_document_metadata,
+)
+from sqlalchemy.exc import IntegrityError
 from quality_standards import (
     DEFECT_CATEGORIES,
     DEFECT_SEVERITIES,
@@ -106,32 +115,65 @@ CLASSIFICATION_LABELS = ("positive", "negative", "neutral")
 TERMS_EXEMPT_ENDPOINTS = frozenset({
     "annotator.terms",
     "annotator.accept_terms",
+    "annotator.policies",
 })
+
+
+def has_accepted_current_terms(user, version: str | None = None) -> bool:
+    """Return True if the user has an active, durable ContributorConsent record.
+
+    The ContributorConsent ledger is the authoritative source of truth.
+    User.terms_version is a legacy mirror field that does not grant access
+    independently.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "role", None) != "annotator":
+        return False
+    if version is None:
+        version = current_app.config.get("TERMS_VERSION", "2.1")
+    consent = ContributorConsent.query.filter_by(
+        user_id=user.id,
+        document_type="terms_and_conditions",
+        version=version,
+        is_active=True,
+    ).first()
+    return consent is not None
 
 
 @annotator_bp.before_request
 def require_current_terms():
-    """Gate the annotator workspace behind the current T&C version.
+    """Gate the annotator workspace behind durable ContributorConsent records.
 
-    Anonymous visitors are skipped (Flask-Login redirects them) and so
-    are admins (their decorator answers 403). Annotators whose stored
-    terms_version differs from config.TERMS_VERSION are redirected to
-    the terms page until they accept — bumping the config version
-    re-prompts the whole team at once.
+    Anonymous visitors are skipped (Flask-Login redirects them) and non-annotators
+    are skipped (handled by role decorators). Annotators who lack a durable
+    ContributorConsent record for config.TERMS_VERSION are redirected to
+    /annotator/terms until they affirm acceptance.
 
     Returns:
-        None to allow the request, or a redirect to the terms page.
+        None to allow the request, or a redirect to url_for('annotator.terms').
     """
     if not current_user.is_authenticated:
         return None
     if current_user.role != "annotator":
         return None
-    if current_user.terms_version == current_app.config.get(
-        "TERMS_VERSION"
-    ):
+    # Let annotator_required handle unverified / provisional annotator redirects to provisional workspace
+    applicant = getattr(current_user, "applicant_profile", None)
+    if applicant is not None and not getattr(current_user, "is_verified", False):
+        return None
+    if getattr(current_user, "seniority_level", "") == "provisional":
         return None
     if request.endpoint in TERMS_EXEMPT_ENDPOINTS:
         return None
+
+    version = current_app.config.get("TERMS_VERSION", "2.1")
+    if has_accepted_current_terms(current_user, version):
+        # Sync legacy field if out of date for backward compatibility / display
+        if current_user.terms_version != version:
+            current_user.terms_version = version
+            db.session.commit()
+        return None
+
     return redirect(url_for("annotator.terms"))
 
 
@@ -1767,17 +1809,31 @@ def profile():
 @annotator_bp.route("/terms", endpoint="terms")
 @annotator_required
 def terms():
-    """Show the current Terms & Conditions with acceptance status.
-
-    Returns:
-        The rendered terms template; includes the acceptance form when
-        this annotator has not yet accepted the current version.
-    """
-    version = current_app.config.get("TERMS_VERSION", "1.0")
-    accepted = current_user.terms_version == version
-    return render_template(
-        "annotator/terms.html", version=version, accepted=accepted
+    """Show the current Terms & Conditions with authoritative acceptance status."""
+    version = current_app.config.get("TERMS_VERSION", "2.1")
+    accepted = has_accepted_current_terms(current_user, version)
+    consents = (
+        ContributorConsent.query.filter_by(user_id=current_user.id)
+        .order_by(ContributorConsent.accepted_at.desc())
+        .all()
     )
+    doc_hash = compute_document_hash("terms_and_conditions", version)
+    meta = get_document_metadata("terms_and_conditions")
+    return render_template(
+        "annotator/terms.html",
+        version=version,
+        accepted=accepted,
+        consents=consents,
+        doc_hash=doc_hash,
+        meta=meta,
+    )
+
+
+@annotator_bp.route("/policies", endpoint="policies")
+@annotator_required
+def policies():
+    """Show the official Brydl Contributor Policies."""
+    return render_template("annotator/policies.html")
 
 
 @annotator_bp.route(
@@ -1787,31 +1843,80 @@ def terms():
 def accept_terms():
     """Record acceptance of the current terms version (POST + CSRF).
 
-    Stores the version and UTC timestamp on the account and writes a
-    ``user.terms_accept`` audit row — the consent record.
+    Stores the version, UTC timestamp, and SHA-256 document content hash in the
+    durable ContributorConsent ledger and writes a ``user.terms_accept``
+    audit row — the legal consent record.
 
     Returns:
         A redirect to the dashboard (or back to the terms page when
-        the CSRF check fails).
+        the CSRF or confirmation checkbox fails).
     """
     try:
         validate_csrf(request.form.get("csrf_token", ""))
     except ValidationError:
         flash("Security check failed. Please try again.", "warning")
         return redirect(url_for("annotator.terms"))
-    version = current_app.config.get("TERMS_VERSION", "1.0")
-    current_user.terms_version = version
-    current_user.terms_accepted_at = utc_now()
-    log_event(
-        "user.terms_accept",
-        actor=current_user,
-        entity_type="user",
-        entity_id=current_user.id,
-        detail={"version": version},
-        commit=True,
-    )
-    flash("Thank you — the terms are accepted. You're all set!", "success")
-    return redirect(url_for("annotator.dashboard"))
+
+    version = current_app.config.get("TERMS_VERSION", "2.1")
+    doc_hash = compute_document_hash("terms_and_conditions", version)
+
+    # 1. Check idempotency: if already accepted for this version, avoid duplicate
+    existing_consent = ContributorConsent.query.filter_by(
+        user_id=current_user.id,
+        document_type="terms_and_conditions",
+        version=version,
+        is_active=True,
+    ).first()
+
+    if existing_consent:
+        if current_user.terms_version != version:
+            current_user.terms_version = version
+            db.session.commit()
+        flash(f"You have already accepted Terms & Conditions Version {version}.", "info")
+        return redirect(url_for("annotator.dashboard"))
+
+    try:
+        # 2. Record durable historical consent row
+        consent_record = ContributorConsent(
+            user_id=current_user.id,
+            document_type="terms_and_conditions",
+            version=version,
+            accepted_at=utc_now(),
+            document_hash=doc_hash,
+            ip_address=request.remote_addr,
+            user_agent=(request.headers.get("User-Agent") or "")[:255],
+            consent_method="web_form",
+            is_active=True,
+        )
+        db.session.add(consent_record)
+
+        current_user.terms_version = version
+        current_user.terms_accepted_at = utc_now()
+        db.session.commit()
+
+        log_event(
+            "user.terms_accept",
+            actor=current_user,
+            entity_type="user",
+            entity_id=current_user.id,
+            detail={"version": version, "document_hash": doc_hash},
+            commit=True,
+        )
+        flash("Thank you — the terms are accepted. You're all set!", "success")
+        return redirect(url_for("annotator.dashboard"))
+    except IntegrityError:
+        db.session.rollback()
+        current_app.logger.info(
+            "Duplicate terms acceptance caught by unique constraint for user %s",
+            current_user.id,
+        )
+        flash(f"You have already accepted Terms & Conditions Version {version}.", "info")
+        return redirect(url_for("annotator.dashboard"))
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error("Failed to record terms consent: %s", exc)
+        flash("An unexpected error occurred while saving your consent. Please try again.", "danger")
+        return redirect(url_for("annotator.terms"))
 
 
 @annotator_bp.route(

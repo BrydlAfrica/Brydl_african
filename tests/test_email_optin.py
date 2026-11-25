@@ -25,7 +25,7 @@ app = create_app()
 with app.app_context():
     db.drop_all()
     db.create_all()
-    a = User(name="A", email="a@x.com", role="annotator", terms_version="1.0")
+    a = User(name="A", email="a@x.com", role="annotator", terms_version="2.1")
     a.set_password("x")
     db.session.add(a)
     db.session.commit()

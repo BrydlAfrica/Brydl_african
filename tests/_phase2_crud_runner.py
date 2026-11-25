@@ -53,7 +53,7 @@ with app.app_context():
     admin = User(name="Admin", email="p2-admin@brydl.test", role="admin")
     admin.set_password("adminx")
     ann = User(name="Ann", email="p2-ann@brydl.test", role="annotator",
-               terms_version="1.0")
+               terms_version="2.1")
     ann.set_password("pass")
     db.session.add_all([admin, ann])
     db.session.flush()

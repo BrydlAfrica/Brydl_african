@@ -45,6 +45,8 @@ with app.app_context():
     ann_a.set_password("annotator-pass-1")
     db.session.add_all([admin, ann_a])
     db.session.commit()
+    ann_a.record_consent()
+    db.session.commit()
     admin_id, ann_a_id = admin.id, ann_a.id
 
 c = app.test_client()

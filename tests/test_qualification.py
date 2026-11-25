@@ -139,6 +139,8 @@ with app.app_context():
               status="pending")
     db.session.add_all([t1, t2, t3])
     db.session.commit()
+    ann.record_consent()
+    db.session.commit()
     first_gated_id = t1.id
 
 admin_c = app.test_client()

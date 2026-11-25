@@ -29,7 +29,7 @@ with app.app_context():
     db.create_all()
     ad = User(name="A", email="a@x.com", role="admin")
     ad.set_password("x")
-    an = User(name="N", email="n@x.com", role="annotator", terms_version="1.0")
+    an = User(name="N", email="n@x.com", role="annotator", terms_version="2.1")
     an.set_password("x")
     db.session.add_all([ad, an])
     db.session.flush()
@@ -44,6 +44,7 @@ with app.app_context():
     db.session.add(t)
     db.session.flush()
     tid = t.id
+    an.record_consent()
     db.session.commit()
 
 

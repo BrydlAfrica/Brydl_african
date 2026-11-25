@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Contributor Terms &amp; Conditions (v2.1) — Brydl AI{% endblock %}
+{% block meta_description %}Read the Contributor Terms &amp; Conditions governing participation in African-language AI evaluation, red-teaming, and data annotation projects on Brydl.{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10 col-xl-9">
+
+      {# ---- Document Navigation Tabs ---- #}
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary text-white px-2.5 py-1 small fw-semibold">Legal &amp; Policy Pack</span>
+          <span class="badge bg-secondary-subtle text-body-emphasis border small fw-bold">Version 2.1</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 small">
+          <a href="{{ url_for('public.terms') }}" class="btn btn-sm btn-primary fw-semibold"><i class="bi bi-file-earmark-text me-1"></i>Terms &amp; Conditions</a>
+          <a href="{{ url_for('public.privacy') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-shield-lock me-1"></i>Privacy Notice</a>
+          <a href="{{ url_for('public.policies') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-journal-check me-1"></i>Contributor Policies</a>
+        </div>
+      </div>
+
+      {# ---- Main Document Card ---- #}
+      <div class="card border-0 shadow-sm overflow-hidden mb-4">
+        <div class="card-header bg-white p-4 p-md-5 border-bottom">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+              <p class="text-primary text-uppercase small fw-bold mb-1 tracking-wider">Legal Framework</p>
+              <h1 class="h3 fw-bold text-body-emphasis mb-1">BRYDL CONTRIBUTOR TERMS &amp; CONDITIONS</h1>
+              <p class="text-muted small mb-0">
+                Operating country: <strong>Nigeria</strong> &bull; Contact: <a href="mailto:inquiry@brydldata.com.ng" class="text-decoration-none">inquiry@brydldata.com.ng</a>
+              </p>
+            </div>
+            <div class="text-md-end">
+              <span class="badge bg-light text-body-secondary border p-2 text-start d-block">
+                <i class="bi bi-file-earmark-check me-1"></i><strong>Version 2.1</strong><br>
+                <small class="text-muted">Effective: November 2026</small>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+
+          {# ---- Table of Contents / Quick Jump ---- #}
+          <div class="p-3 bg-light rounded-3 border mb-4">
+            <h3 class="h6 fw-bold text-body-emphasis mb-2"><i class="bi bi-list-nested me-1 text-primary"></i>Table of Contents</h3>
+            <div class="row g-2 small">
+              <div class="col-md-6">
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                  <li><a href="#sec-1" class="text-decoration-none text-body-secondary">1. Introduction and Contracting Party</a></li>
+                  <li><a href="#sec-2" class="text-decoration-none text-body-secondary">2. Eligibility and Account Registration</a></li>
+                  <li><a href="#sec-3" class="text-decoration-none text-body-secondary">3. Nature of Contributor Relationship</a></li>
+                  <li><a href="#sec-4" class="text-decoration-none text-body-secondary">4. Projects and Task Requirements</a></li>
+                  <li><a href="#sec-5" class="text-decoration-none text-body-secondary">5. Quality Assurance, Review &amp; Revisions</a></li>
+                  <li><a href="#sec-6" class="text-decoration-none text-body-secondary">6. Compensation and Payments</a></li>
+                  <li><a href="#sec-7" class="text-decoration-none text-body-secondary">7. Confidentiality and Security</a></li>
+                  <li><a href="#sec-8" class="text-decoration-none text-body-secondary">8. Personal Data and Privacy</a></li>
+                  <li><a href="#sec-9" class="text-decoration-none text-body-secondary">9. Intellectual Property &amp; Deliverables</a></li>
+                  <li><a href="#sec-10" class="text-decoration-none text-body-secondary">10. Sensitive Content &amp; Contributor Wellbeing</a></li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                  <li><a href="#sec-11" class="text-decoration-none text-body-secondary">11. Prohibited Conduct</a></li>
+                  <li><a href="#sec-12" class="text-decoration-none text-body-secondary">12. Account Restrictions, Suspension &amp; Termination</a></li>
+                  <li><a href="#sec-13" class="text-decoration-none text-body-secondary">13. Platform Availability &amp; Opportunities</a></li>
+                  <li><a href="#sec-14" class="text-decoration-none text-body-secondary">14. Liability</a></li>
+                  <li><a href="#sec-15" class="text-decoration-none text-body-secondary">15. Changes to These Terms</a></li>
+                  <li><a href="#sec-16" class="text-decoration-none text-body-secondary">16. Complaints and Dispute Resolution</a></li>
+                  <li><a href="#sec-17" class="text-decoration-none text-body-secondary">17. General Provisions</a></li>
+                  <li><a href="#sec-18" class="text-decoration-none text-body-secondary">18. Contact</a></li>
+                  <li><a href="#sec-19" class="text-decoration-none text-body-secondary">19. Contributor Acceptance</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {# ---- Section 1 ---- #}
+          <section id="sec-1" class="mb-4 pt-2">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">1. Introduction and Contracting Party</h2>
+            <p class="small text-body-secondary lh-base mb-2">
+              These Contributor Terms &amp; Conditions (&ldquo;Terms&rdquo;) govern participation in projects and activities made available through the Brydl platform (&ldquo;Brydl&rdquo;, &ldquo;Platform&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo;).
+            </p>
+            <p class="small text-body-secondary lh-base mb-3">
+              Brydl is a platform for African-language AI evaluation, safety research, red-teaming, language data work and related human evaluation activities operating in the Federal Republic of Nigeria. Official inquiries and notices may be directed to <a href="mailto:inquiry@brydldata.com.ng" class="text-decoration-none">inquiry@brydldata.com.ng</a>.
+            </p>
+            <p class="small text-body-secondary lh-base mb-0">
+              By creating a contributor account, accepting a project, or submitting work through the Platform, you agree to these Terms and project-specific requirements. If you do not agree, do not accept tasks or submit work through the Platform.
+            </p>
+          </section>
+
+          {# ---- Section 2 ---- #}
+          <section id="sec-2" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">2. Eligibility and Account Registration</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>2.1.</strong> Contributors must generally be at least 18 years old unless a particular project expressly permits another age group and applicable law allows it.</li>
+              <li><strong>2.2.</strong> You must provide accurate, current and complete registration information.</li>
+              <li><strong>2.3.</strong> You must keep your account credentials confidential and promptly report suspected unauthorised access.</li>
+              <li><strong>2.4.</strong> You must not create multiple accounts to evade restrictions, manipulate qualification results or obtain additional project access.</li>
+              <li><strong>2.5.</strong> We may request reasonable identity, eligibility, language proficiency or payment verification where necessary for a legitimate operational, security, legal or project-related purpose.</li>
+              <li><strong>2.6.</strong> Verification information must be handled in accordance with the Brydl Privacy Notice.</li>
+              <li><strong>2.7.</strong> You must not register using another person's identity or submit false documents.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 3 ---- #}
+          <section id="sec-3" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">3. Nature of the Contributor Relationship</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>3.1.</strong> Contributors participate in individual projects or assignments under the terms communicated for those projects.</li>
+              <li><strong>3.2.</strong> Unless a separate written agreement states otherwise, participation does not create an employment relationship, partnership, agency, joint venture or authority to represent Brydl or its contracting party.</li>
+              <li><strong>3.3.</strong> Contributors are not guaranteed a minimum number of tasks, hours, assignments, income or continued access to projects.</li>
+              <li><strong>3.4.</strong> Contributors may accept or decline project opportunities before beginning the relevant work, subject to any clearly disclosed project-specific commitment.</li>
+              <li><strong>3.5.</strong> Contributors are responsible for their own tax obligations and personal working arrangements to the extent required by applicable law.</li>
+              <li><strong>3.6.</strong> The actual working arrangement, not merely the label used in these Terms, determines the legal relationship. These provisions must be reviewed against the actual operating model by Nigerian counsel.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 4 ---- #}
+          <section id="sec-4" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">4. Projects and Task Requirements</h2>
+            <p class="small text-body-secondary mb-2"><strong>4.1.</strong> Projects may involve activities such as:</p>
+            <ul class="small text-body-secondary mb-3 ps-3">
+              <li>African-language AI evaluation and safety assessment.</li>
+              <li>Language quality assessment and classification.</li>
+              <li>Text annotation, transcription or translation.</li>
+              <li>Model response evaluation and preference ranking.</li>
+              <li>Red-teaming and safety testing.</li>
+              <li>Speech and language data activities.</li>
+              <li>Cultural and contextual language evaluation.</li>
+              <li>Other related research or data tasks.</li>
+            </ul>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>4.2.</strong> Not every project or activity is necessarily available at all times. Project availability depends on client requirements, research scope, language needs, quality requirements and operational capacity.</li>
+              <li><strong>4.3.</strong> Before accepting a task, contributors should receive the relevant project instructions, eligibility criteria, compensation basis and applicable deadlines.</li>
+              <li><strong>4.4.</strong> Contributors must follow the instructions and submission format supplied for the specific project.</li>
+              <li><strong>4.5.</strong> Contributors must not fabricate answers, copy another contributor's work, manipulate evaluation results or knowingly submit inaccurate work.</li>
+              <li><strong>4.6.</strong> Contributors must disclose any conflict of interest that could reasonably affect their work.</li>
+              <li><strong>4.7.</strong> Contributors must not use automated tools, generative AI or external assistance where the project rules prohibit them. Where tools are permitted, contributors must follow the project's disclosure and usage requirements.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 5 ---- #}
+          <section id="sec-5" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">5. Quality Assurance, Review and Revisions</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>5.1.</strong> Submitted work may be reviewed by authorised human reviewers, project administrators or quality-assurance processes.</li>
+              <li><strong>5.2.</strong> Review may consider accuracy, completeness, consistency, adherence to instructions, language quality, evidence and project-specific requirements.</li>
+              <li><strong>5.3.</strong> Work may be returned for correction, clarification or revision where the project permits it.</li>
+              <li><strong>5.4.</strong> Work may be rejected where it materially fails the stated requirements. Where reasonably practicable, the contributor should receive an explanation of the relevant issue.</li>
+              <li><strong>5.5.</strong> Contributors may request a review of a rejection through the available appeal or complaint process.</li>
+              <li><strong>5.6.</strong> Disagreement with a reviewer, a language interpretation or a research conclusion does not by itself constitute misconduct.</li>
+              <li><strong>5.7.</strong> Review decisions should be made in good faith and should not be manipulated to avoid paying for work that has already met the agreed requirements.</li>
+              <li><strong>5.8.</strong> Project-specific quality thresholds must be communicated before contributors begin work where those thresholds determine acceptance or compensation.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 6 ---- #}
+          <section id="sec-6" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">6. Compensation and Payments</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>6.1.</strong> Compensation may be calculated per task, accepted item, batch, project, hour or another clearly disclosed basis.</li>
+              <li><strong>6.2.</strong> The applicable rate or compensation basis must be communicated before the contributor accepts the relevant work.</li>
+              <li><strong>6.3.</strong> Compensation is subject to the stated project requirements and review process. Only work that satisfies the disclosed acceptance criteria may be approved for payment.</li>
+              <li><strong>6.4.</strong> The Platform must communicate the applicable payment method, payment schedule, minimum payout threshold (if any), currency and any relevant transaction charges before work begins.</li>
+              <li><strong>6.5.</strong> Payment timing may depend on review completion, payment-provider availability, banking processes and other disclosed operational requirements.</li>
+              <li><strong>6.6.</strong> Where an approved payment is delayed, contributors may contact support for an explanation and an updated status.</li>
+              <li><strong>6.7.</strong> No registration fee, qualification fee or payment is required merely to apply as a contributor. Brydl does not charge contributors to access ordinary project opportunities.</li>
+              <li><strong>6.8.</strong> Approved compensation must not be arbitrarily withheld. Where a genuine dispute, suspected fraud or legal requirement affects a payment, only the amount reasonably connected to the issue should be held while it is investigated.</li>
+              <li><strong>6.9.</strong> Contributors must provide accurate payment details. Brydl is not responsible for losses caused by incorrect payment information supplied by a contributor.</li>
+              <li><strong>6.10.</strong> No guaranteed earnings, payment frequency or volume of work is promised.</li>
+              <li><strong>6.11.</strong> The Platform does not advertise instant transfers, guaranteed payout times or unverified payment capabilities.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 7 ---- #}
+          <section id="sec-7" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">7. Confidentiality and Information Security</h2>
+            <p class="small text-body-secondary mb-2"><strong>7.1.</strong> Contributors may receive confidential information, including unpublished research, project instructions, client materials, datasets, model outputs, evaluation prompts, credentials and internal communications.</p>
+            <p class="small text-body-secondary mb-2"><strong>7.2.</strong> Contributors must:</p>
+            <ul class="small text-body-secondary mb-2 ps-3">
+              <li>Use confidential information only for the assigned project.</li>
+              <li>Not share, publish, sell or distribute confidential materials without written authorisation.</li>
+              <li>Not disclose client identities or unpublished research where restricted.</li>
+              <li>Protect account credentials and access links.</li>
+              <li>Avoid storing project data on insecure or unauthorised devices or services.</li>
+              <li>Report suspected unauthorised access, disclosure or loss promptly.</li>
+            </ul>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>7.3.</strong> Contributors must not attempt to access systems, data or accounts beyond their authorised permissions.</li>
+              <li><strong>7.4.</strong> Confidentiality obligations do not prevent disclosures required by law.</li>
+              <li><strong>7.5.</strong> These obligations continue after a contributor leaves a project or closes an account.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 8 ---- #}
+          <section id="sec-8" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">8. Personal Data and Privacy</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>8.1.</strong> Personal data collected through contributor registration, verification, task participation, support and payment processes will be processed in accordance with the Brydl Privacy Notice.</li>
+              <li><strong>8.2.</strong> Contributors should review the Privacy Notice before submitting personal information.</li>
+              <li><strong>8.3.</strong> Contributors must not submit another person's personal data to a project unless the project instructions authorise it.</li>
+              <li><strong>8.4.</strong> Where a project involves personal or identifiable information, contributors must follow project-specific data-handling instructions.</li>
+              <li><strong>8.5.</strong> Contributors must promptly report suspected exposure, loss or unauthorised disclosure of personal data.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 9 ---- #}
+          <section id="sec-9" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">9. Intellectual Property and Deliverables</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>9.1.</strong> &ldquo;Deliverables&rdquo; means work specifically created and submitted by a contributor for an accepted project, including annotations, evaluations, classifications, written responses, translations, transcriptions and other project outputs.</li>
+              <li><strong>9.2.</strong> Subject to applicable law, upon full payment of approved compensation for the relevant Deliverables, rights that can lawfully be transferred in those Deliverables will be assigned to the contracting party or its designated client.</li>
+              <li><strong>9.3.</strong> Where assignment is not legally effective, contributor grants a worldwide, non-exclusive, transferable, sublicensable, royalty-free licence for project purposes.</li>
+              <li><strong>9.4.</strong> Contributors retain ownership of Pre-existing Materials developed independently outside the project.</li>
+              <li><strong>9.5.</strong> Incorporating Pre-existing Materials grants only the licence necessary for disclosed project purposes.</li>
+              <li><strong>9.6.</strong> Contributors must not submit work that knowingly infringes third-party intellectual property or confidentiality.</li>
+              <li><strong>9.7.</strong> Project-specific intellectual property terms must be disclosed before accepting a project.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 10 ---- #}
+          <section id="sec-10" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">10. Sensitive Content and Contributor Wellbeing</h2>
+            <ul class="small text-body-secondary lh-base mb-0 ps-3 d-flex flex-column gap-1.5">
+              <li><strong>10.1.</strong> Certain projects may involve sensitive, disturbing or challenging material, including harmful language, scams or unsafe content.</li>
+              <li><strong>10.2.</strong> Where reasonably practicable, project instructions describe the nature of sensitive material before acceptance.</li>
+              <li><strong>10.3.</strong> Contributors should not accept a project if uncomfortable with its content.</li>
+              <li><strong>10.4.</strong> Contributors may raise concerns or report material outside approved scope.</li>
+              <li><strong>10.5.</strong> Any pause or reassignment is subject to actual facilities available for that project.</li>
+            </ul>
+          </section>
+
+          {# ---- Section 11 ---- #}
+          <section id="sec-11" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">11. Prohibited Conduct</h2>
+            <p class="small text-body-secondary mb-2">Contributors must not:</p>
+            <ul class="small text-body-secondary mb-0 ps-3 d-flex flex-column gap-1">
+              <li>Submit fabricated, plagiarised or deliberately misleading work.</li>
+              <li>Manipulate qualification tests, quality scores or payment records.</li>
+              <li>Use another person's account or identity.</li>
+              <li>Share confidential project materials without permission.</li>
+              <li>Attempt unauthorised access to Platform systems or other accounts.</li>
+              <li>Harass, threaten, discriminate against or intimidate other contributors or staff.</li>
+              <li>Bribe, collude with or improperly influence reviewers.</li>
+              <li>Submit malware, malicious links or harmful files.</li>
+              <li>Misrepresent language proficiency, qualifications or experience.</li>
+              <li>Circumvent project restrictions or use prohibited automation.</li>
+              <li>Misuse personal data or client information.</li>
+              <li>Engage in fraud, payment manipulation or other unlawful conduct.</li>
+            </ul>
+          </section>
+
+          {# ---- Sections 12-19 Summary Grid ---- #}
+          <section id="sec-12" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">12. Account Restrictions, Suspension and Termination</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Access may be restricted or suspended where reasonably necessary to investigate suspected fraud, security risks, serious policy violations, or legal requirements. Suspension or termination does not automatically cancel compensation already approved for completed work.
+            </p>
+          </section>
+
+          <section id="sec-13" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">13. Platform Availability and Project Opportunities</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              The Platform may undergo maintenance, updates, or temporary interruptions. Brydl does not guarantee uninterrupted availability or continuous access to projects.
+            </p>
+          </section>
+
+          <section id="sec-14" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">14. Liability</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Nothing in these Terms excludes or limits a right or liability that cannot lawfully be excluded or limited under Nigerian law.
+            </p>
+          </section>
+
+          <section id="sec-15" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">15. Changes to These Terms</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              When revised versions are issued, the Platform identifies the version number, publication date, and material changes. Historical accepted versions are preserved.
+            </p>
+          </section>
+
+          <section id="sec-16" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">16. Complaints and Dispute Resolution</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Contributors may raise concerns about task reviews, compensation, account access, or conduct by emailing <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>. These Terms are intended to be governed by the laws of the Federal Republic of Nigeria.
+            </p>
+          </section>
+
+          <section id="sec-17" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">17. General Provisions</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Severability, non-waiver, and non-transferability provisions apply to all contributor activities.
+            </p>
+          </section>
+
+          <section id="sec-18" class="mb-4 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">18. Contact</h2>
+            <p class="small text-body-secondary lh-base mb-0">
+              Email: <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a> &bull; Platform: <strong>Brydl</strong>
+            </p>
+          </section>
+
+          <section id="sec-19" class="mb-2 pt-2 border-top pt-3">
+            <h2 class="h5 fw-bold text-body-emphasis mb-2">19. Contributor Acceptance Protocol</h2>
+            <p class="small text-body-secondary lh-base mb-3">
+              By selecting &ldquo;Accept Terms &amp; Conditions&rdquo; in the contributor interface, contributors confirm having read these terms voluntarily. The Platform records exact version, authenticated identity, UTC timestamp, and durable document hash.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ url_for('auth.login') }}" class="btn btn-primary"><i class="bi bi-person-workspace me-1"></i>Sign In to Contributor Workspace</a>
+              <a href="{{ url_for('public.privacy') }}" class="btn btn-outline-secondary"><i class="bi bi-shield-lock me-1"></i>View Privacy Notice</a>
+              <a href="{{ url_for('public.policies') }}" class="btn btn-outline-secondary"><i class="bi bi-journal-check me-1"></i>View Contributor Policies</a>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

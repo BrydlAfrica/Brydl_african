@@ -1,126 +1,322 @@
 {% extends "base.html" %}
 
-{% block title %}Terms &amp; Conditions · {{ app_name }}{% endblock %}
+{% block title %}Contributor Terms &amp; Conditions (v{{ version }}) · {{ app_name }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-12 col-lg-9 col-xl-8">
-    <div class="card border-0 shadow-sm">
+  <div class="col-12 col-lg-10 col-xl-9">
+
+    {# ---- Top Navigation Bar ---- #}
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 pb-2 border-bottom">
+      <div class="d-flex align-items-center gap-2">
+        {% if accepted %}
+        <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+        </a>
+        {% endif %}
+        <span class="badge bg-primary text-white small">Contributor Agreement</span>
+        <span class="badge bg-secondary-subtle text-body-emphasis border small fw-bold">Version {{ version }}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 small">
+        <a href="{{ url_for('public.privacy') }}" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bi bi-shield-lock me-1"></i>Privacy Notice</a>
+        <a href="{{ url_for('annotator.policies') if current_user.is_authenticated else url_for('public.policies') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-journal-check me-1"></i>Contributor Policies</a>
+      </div>
+    </div>
+
+    {# ---- Main Terms Card ---- #}
+    <div class="card border-0 shadow-sm overflow-hidden mb-4">
+      <div class="card-header bg-white p-4 p-md-5 border-bottom">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <p class="text-primary text-uppercase small fw-bold mb-1 tracking-wider">Legal Framework &bull; Contributor Agreement</p>
+            <h1 class="h4 fw-bold text-body-emphasis mb-1">Brydl Contributor Terms &amp; Conditions</h1>
+            <p class="text-muted small mb-0">
+              Version {{ version }} &bull; Operating country: <strong>Nigeria</strong> &bull; Contact: <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>
+            </p>
+          </div>
+          <div class="text-md-end">
+            <span class="badge bg-light text-body-secondary border p-2 text-start d-block">
+              <i class="bi bi-file-earmark-check me-1"></i><strong>Version {{ version }}</strong><br>
+              <small class="text-muted">Effective: November 2026</small>
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div class="card-body p-4 p-md-5">
-        <h1 class="h4 fw-bold mb-1">Brydl Annotator — Terms &amp; Conditions</h1>
-        <p class="text-muted small">
-          Version {{ version }} · Brydl (operated from Abuja, Nigeria).
-          Please read these terms before starting work.
-        </p>
 
-        <h2 class="h6 fw-bold mt-4">1. Your status</h2>
-        <p class="small text-muted">
-          You work as an independent contractor for Brydl's labelling
-          projects. You are not an employee; you choose how and when to
-          complete assigned work within each project's deadline, and you
-          are responsible for the accuracy of the answers you submit.
-        </p>
+        {# ---- Terms Body (19 Clauses) ---- #}
+        <div class="p-3 bg-light rounded-3 border mb-4">
+          <h3 class="h6 fw-bold text-body-emphasis mb-2"><i class="bi bi-list-nested me-1 text-primary"></i>Agreement Outline (19 Clauses)</h3>
+          <div class="row g-2 small text-body-secondary">
+            <div class="col-md-6">
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                <li><a href="#t-1" class="text-decoration-none text-body-secondary">1. Introduction and Contracting Party</a></li>
+                <li><a href="#t-2" class="text-decoration-none text-body-secondary">2. Eligibility and Account Registration</a></li>
+                <li><a href="#t-3" class="text-decoration-none text-body-secondary">3. Nature of Contributor Relationship</a></li>
+                <li><a href="#t-4" class="text-decoration-none text-body-secondary">4. Projects and Task Requirements</a></li>
+                <li><a href="#t-5" class="text-decoration-none text-body-secondary">5. Quality Assurance, Review &amp; Revisions</a></li>
+                <li><a href="#t-6" class="text-decoration-none text-body-secondary">6. Compensation and Payments</a></li>
+                <li><a href="#t-7" class="text-decoration-none text-body-secondary">7. Confidentiality and Information Security</a></li>
+                <li><a href="#t-8" class="text-decoration-none text-body-secondary">8. Personal Data and Privacy</a></li>
+                <li><a href="#t-9" class="text-decoration-none text-body-secondary">9. Intellectual Property and Deliverables</a></li>
+                <li><a href="#t-10" class="text-decoration-none text-body-secondary">10. Sensitive Content &amp; Wellbeing</a></li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                <li><a href="#t-11" class="text-decoration-none text-body-secondary">11. Prohibited Conduct</a></li>
+                <li><a href="#t-12" class="text-decoration-none text-body-secondary">12. Account Restrictions &amp; Termination</a></li>
+                <li><a href="#t-13" class="text-decoration-none text-body-secondary">13. Platform Availability &amp; Opportunities</a></li>
+                <li><a href="#t-14" class="text-decoration-none text-body-secondary">14. Liability</a></li>
+                <li><a href="#t-15" class="text-decoration-none text-body-secondary">15. Changes to These Terms</a></li>
+                <li><a href="#t-16" class="text-decoration-none text-body-secondary">16. Complaints and Dispute Resolution</a></li>
+                <li><a href="#t-17" class="text-decoration-none text-body-secondary">17. General Provisions</a></li>
+                <li><a href="#t-18" class="text-decoration-none text-body-secondary">18. Contact</a></li>
+                <li><a href="#t-19" class="text-decoration-none text-body-secondary">19. Contributor Acceptance Protocol</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-        <h2 class="h6 fw-bold mt-3">2. The work and quality standards</h2>
-        <p class="small text-muted">
-          Tasks may include classification, translation, entity marking,
-          rating and other annotation formats. Work is reviewed by Brydl
-          QA before approval. To protect client quality, some tasks carry
-          hidden checks (known to Brydl only); consistently failing them,
-          copying answers, or submitting without reading the content may
-          lead to rejected work or deactivation. Rejected tasks may be
-          revised and resubmitted where the project allows it.
-        </p>
+        {# Clause 1 #}
+        <section id="t-1" class="mb-4">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">1. Introduction and Contracting Party</h2>
+          <p class="small text-body-secondary lh-base mb-2">
+            These Contributor Terms &amp; Conditions (&ldquo;Terms&rdquo;) govern participation in projects and activities made available through the Brydl platform (&ldquo;Brydl&rdquo;, &ldquo;Platform&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo;). Brydl is a platform for African-language AI evaluation, safety research, red-teaming, language data work and related human evaluation activities operating in Nigeria. Official inquiries and notices may be directed to <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>.
+          </p>
+          <p class="small text-body-secondary lh-base mb-0">
+            By creating a contributor account, accepting a project, or submitting work through the Platform, you agree to these Terms and project-specific requirements.
+          </p>
+        </section>
 
-        <h2 class="h6 fw-bold mt-3">3. Payment</h2>
-        <p class="small text-muted">
-          Each project states a fixed per-task rate between $0.05 and
-          $5.00 before you start. Your ledger is kept in US Dollars and
-          converted to Naira for display at the rate Brydl sets — the
-          Dollar amount is the amount of record. Only approved work is
-          payable. Approved work is bundled into payment cycles run by
-          Brydl (typically monthly); a payment record marked
-          &ldquo;paid&rdquo; is Brydl's confirmation that the transfer
-          was made to the details you provided to Brydl administration.
-        </p>
+        {# Clause 2 #}
+        <section id="t-2" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">2. Eligibility and Account Registration</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Contributors must be at least 18 years old unless expressly permitted by a project and applicable law. You must provide accurate registration details, maintain credential confidentiality, avoid multi-account evasion, and not impersonate others. Identity verification is processed in accordance with the Brydl Privacy Notice.
+          </p>
+        </section>
 
-        <h2 class="h6 fw-bold mt-3">4. Your account</h2>
-        <p class="small text-muted">
-          Keep one account only, use a strong unique password, and never
-          share your sign-in with anyone — including friends and family.
-          You are responsible for activity carried out with your
-          account. You may change your name and password from your
-          profile page; your email can only be changed by an admin.
-        </p>
+        {# Clause 3 #}
+        <section id="t-3" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">3. Nature of the Contributor Relationship</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Contributors participate as independent project contributors. Participation does not create an employment relationship, partnership, agency, or joint venture. Contributors are not guaranteed minimum tasks, hours, or earnings, and may accept or decline project opportunities freely. Contributors are responsible for their own personal tax obligations under Nigerian law.
+          </p>
+        </section>
 
-        <h2 class="h6 fw-bold mt-3">5. Confidentiality and data protection</h2>
-        <p class="small text-muted">
-          Task content is client property and strictly confidential: do
-          not copy, screenshot, share or discuss it outside Brydl. Brydl
-          stores the minimum personal data needed to run the platform
-          (your name, email, work record and payment history), keeps an
-          audit record of platform actions, and handles this data in
-          line with the Nigeria Data Protection Regulation. Requests
-          about your data go through Brydl administration.
-        </p>
+        {# Clause 4 #}
+        <section id="t-4" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">4. Projects and Task Requirements</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Projects include African-language AI evaluation, translation, RLHF preference ranking, red-teaming, speech data collection, and safety auditing. Contributors must follow supplied instructions, never fabricate answers or copy work, disclose conflicts of interest, and avoid prohibited automated generative AI tools where disallowed.
+          </p>
+        </section>
 
-        <h2 class="h6 fw-bold mt-3">6. Deactivation</h2>
-        <p class="small text-muted">
-          Brydl may deactivate an account for quality, integrity or
-          security reasons. Deactivation ends platform access
-          immediately; your work and payment history are retained so
-          earned money up to the deactivation date is still accounted
-          for.
-        </p>
+        {# Clause 5 #}
+        <section id="t-5" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">5. Quality Assurance, Review and Revisions</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Submissions are reviewed by human reviewers, project administrators, or automated checks for accuracy, completeness, and adherence to guidelines. Materially failing submissions may be returned for revision or rejected with explanation. Good-faith disagreements over language interpretation do not constitute misconduct.
+          </p>
+        </section>
 
-        <h2 class="h6 fw-bold mt-3">7. Changes to these terms</h2>
-        <p class="small text-muted">
-          These terms carry a version number. When Brydl updates them,
-          you will be asked to accept the new version before continuing
-          work. Continuing to work on the platform after accepting a
-          version means you agree to it.
-        </p>
+        {# Clause 6 #}
+        <section id="t-6" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">6. Compensation and Payments</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Compensation is calculated per approved task or milestone as disclosed prior to work. Rates and ledger balances are tracked in USD and disbursed in Nigerian Naira (NGN). No application or registration fees are ever charged. Unearned payouts for fraudulent submissions may be withheld, but undisputed approved earnings are honored.
+          </p>
+        </section>
 
-        <h2 class="h6 fw-bold mt-3">8. Governing law</h2>
-        <p class="small text-muted">
-          These terms are governed by the laws of the Federal Republic
-          of Nigeria.
-        </p>
+        {# Clause 7 #}
+        <section id="t-7" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">7. Confidentiality and Information Security</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Project data, prompts, model outputs, benchmark rubrics, and client identities are confidential trade secrets. Contributors must not copy, screenshot, publish, or distribute project materials. Confidentiality obligations survive account closure.
+          </p>
+        </section>
 
-        <div class="border-top mt-4 pt-4">
+        {# Clause 8 #}
+        <section id="t-8" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">8. Personal Data and Privacy</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Personal data is processed in accordance with the Brydl Privacy Notice and NDPA 2023 principles. Contributors must not upload third-party personal data without authorization and must report data security incidents promptly.
+          </p>
+        </section>
+
+        {# Clause 9 #}
+        <section id="t-9" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">9. Intellectual Property and Deliverables</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Upon full payment of approved compensation, rights in submitted Deliverables are assigned or licensed to the contracting party and its designated research clients. Contributors retain rights in their independently developed pre-existing materials.
+          </p>
+        </section>
+
+        {# Clause 10 #}
+        <section id="t-10" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">10. Sensitive Content and Contributor Wellbeing</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Certain AI safety evaluations involve sensitive or offensive language. Projects disclose potential content categories before task acceptance, and contributors may decline tasks without penalty.
+          </p>
+        </section>
+
+        {# Clause 11 #}
+        <section id="t-11" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">11. Prohibited Conduct</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Fabrication, plagiarism, score manipulation, credential sharing, unauthorized data scraping, harassment, malware distribution, and automated bots are strictly prohibited and result in immediate account deactivation.
+          </p>
+        </section>
+
+        {# Clauses 12 to 18 #}
+        <section id="t-12" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">12. Account Restrictions, Suspension and Termination</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Accounts may be suspended for investigation of security or policy breaches. Approved undisputed compensation remains payable.
+          </p>
+        </section>
+
+        <section id="t-13" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">13. Platform Availability and Opportunities</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Brydl does not guarantee uninterrupted service or continuous project volume. Project allocation depends on client demand and quality records.
+          </p>
+        </section>
+
+        <section id="t-14" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">14. Liability</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Liability is governed by the laws of the Federal Republic of Nigeria. Mandatory statutory rights cannot be excluded.
+          </p>
+        </section>
+
+        <section id="t-15" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">15. Changes to These Terms</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Material changes prompt contributors to accept updated versions. Historical consent records are permanently preserved.
+          </p>
+        </section>
+
+        <section id="t-16" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">16. Complaints and Dispute Resolution</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Complaints regarding reviews, payments, or access are handled via <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>. Governed by Nigerian law.
+          </p>
+        </section>
+
+        <section id="t-17" class="mb-4 border-top pt-3">
+          <h2 class="h6 fw-bold text-body-emphasis mb-1">17. General Provisions &amp; 18. Contact</h2>
+          <p class="small text-body-secondary lh-base mb-0">
+            Severability, non-waiver, and assignment rules apply. Support: <a href="mailto:inquiry@brydldata.com.ng">inquiry@brydldata.com.ng</a>.
+          </p>
+        </section>
+
+        {# ---- Clause 19 & Acceptance Action Box ---- #}
+        <section id="t-19" class="border-top mt-4 pt-4">
+          <h2 class="h6 fw-bold text-body-emphasis mb-2">19. Contributor Acceptance Protocol</h2>
+          <p class="small text-muted mb-3">
+            By selecting &ldquo;Accept Terms &amp; Conditions&rdquo;, you confirm that you have read and agreed to Version {{ version }} voluntarily. The Platform records your authenticated account ID, UTC timestamp, and document hash.
+          </p>
+
           {% if accepted %}
-          <div class="alert alert-success mb-0 py-3">
-            <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>
-            You accepted version {{ version }}{% if current_user.terms_accepted_at %}
-            on {{ current_user.terms_accepted_at.strftime('%d %b %Y at %H:%M UTC') }}{% endif %}.
-            You're all set.
+          <div class="alert alert-success border-success border-opacity-25 rounded-3 p-3.5 mb-0" role="alert">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-shield-check text-success fs-5"></i>
+              <strong class="text-success">You accepted version {{ version }}</strong>
+            </div>
+            <p class="small text-muted mb-2">
+              {% if current_user.terms_accepted_at %}
+              Accepted on {{ current_user.terms_accepted_at.strftime('%d %b %Y at %H:%M UTC') }}.
+              {% else %}
+              Accepted for this contributor account.
+              {% endif %}
+              Your consent record is securely stored in the audit ledger.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ url_for('annotator.dashboard') }}" class="btn btn-sm btn-success fw-semibold"><i class="bi bi-person-workspace me-1"></i>Open Contributor Workspace</a>
+              <a href="{{ url_for('annotator.policies') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-journal-check me-1"></i>View Contributor Policies</a>
+              <a href="{{ url_for('public.privacy') }}" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bi bi-shield-lock me-1"></i>View Privacy Notice</a>
+            </div>
           </div>
           {% else %}
-          <form method="post" action="{{ url_for('annotator.accept_terms') }}">
+          <form method="post" action="{{ url_for('annotator.accept_terms') }}" id="terms-acceptance-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="p-3.5 bg-light rounded border mb-4">
+
+            <div class="p-3.5 bg-light rounded-3 border mb-3">
               <div class="form-check mb-0">
-                <input class="form-check-input" type="checkbox"
+                <input class="form-check-input" type="checkbox" name="terms_confirm"
                        id="terms-understand" required>
-                <label class="form-check-label small fw-semibold text-dark ms-1" for="terms-understand">
+                <label class="form-check-label small fw-semibold text-body-emphasis ms-1" for="terms-understand" style="cursor: pointer;">
                   I confirm that I have read, understood and agree to Version {{ version }} of the Brydl Annotator Terms &amp; Conditions.
                 </label>
               </div>
             </div>
+
+            <div class="p-2.5 bg-warning-subtle text-warning-emphasis rounded border border-warning-subtle mb-4 small">
+              <i class="bi bi-info-circle-fill me-1"></i>
+              <strong>Notice:</strong> Accepting these Terms does not guarantee employment, task availability or minimum earnings. Please review the separate <a href="{{ url_for('public.privacy') }}" target="_blank" class="fw-bold text-decoration-underline text-warning-emphasis">Privacy Notice</a>.
+            </div>
+
             <div class="d-flex flex-column flex-sm-row gap-2">
-              <button type="submit" class="btn btn-primary btn-lg flex-grow-1 fw-bold">
+              <button type="submit" class="btn btn-primary btn-lg flex-grow-1 fw-bold py-2.5 shadow-sm" id="accept-submit-btn">
                 <i class="bi bi-shield-check me-1" aria-hidden="true"></i>
                 Accept Terms &amp; Conditions
               </button>
-              <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-lg">
+              <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-lg py-2.5">
                 <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Decline &amp; Sign Out
               </a>
             </div>
           </form>
           {% endif %}
-        </div>
+        </section>
+
       </div>
     </div>
+
+    {# ---- Historical Consent Audit Records ---- #}
+    {% if consents %}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h3 class="h6 fw-bold text-body-emphasis mb-0"><i class="bi bi-clock-history me-1.5 text-primary"></i>Your Legal Consent &amp; Acceptance History</h3>
+        <span class="badge bg-light text-body-secondary border">{{ consents|length }} Record{% if consents|length != 1 %}s{% endif %}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Document</th>
+              <th scope="col">Version</th>
+              <th scope="col">Accepted At (UTC)</th>
+              <th scope="col">IP Address</th>
+              <th scope="col">Document Content SHA-256</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in consents %}
+            <tr>
+              <td class="fw-semibold text-body-emphasis">{{ c.document_type|replace('_', ' ')|title }}</td>
+              <td><span class="badge bg-secondary-subtle text-body-emphasis">v{{ c.version }}</span></td>
+              <td class="text-nowrap text-body-secondary">{{ c.accepted_at.strftime('%d %b %Y, %H:%M:%S') }}</td>
+              <td class="font-monospace text-body-secondary">{{ c.ip_address or '—' }}</td>
+              <td class="font-monospace text-body-secondary" title="{{ c.document_hash }}">{{ c.document_hash[:16] }}…{{ c.document_hash[-8:] }}</td>
+              <td>
+                {% if c.version == version and c.is_active %}
+                <span class="badge bg-success">Current</span>
+                {% else %}
+                <span class="badge bg-secondary">Historical</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 </div>
 {% endblock %}

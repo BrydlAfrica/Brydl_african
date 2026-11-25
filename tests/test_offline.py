@@ -70,6 +70,8 @@ with app.app_context():
         assigned_ids.append(task.id)
     ann1_id = ann1.id
     db.session.commit()
+    ann1.record_consent()
+    db.session.commit()
 open_task_id = assigned_ids[0]
 # one submitted (draft must purge) + one approved + one rejected
 # (draft must be KEPT for revision) for the marker checks
