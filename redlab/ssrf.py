@@ -192,3 +192,18 @@ def validate_endpoint_url(url: str) -> tuple[bool, str | None]:
     """
     ok, _ip, reason = resolve_and_validate_endpoint_url(url)
     return ok, reason
+
+
+def validate_target_url(
+    url: str,
+) -> tuple[bool, str | None, str | None]:
+    """Validate a target endpoint URL against SSRF rules and resolve its IP.
+
+    Returns:
+        ``(is_valid, resolved_ip, reason)`` where:
+        * ``is_valid`` is True if the endpoint passes all SSRF rules.
+        * ``resolved_ip`` is the pinned IPv4/IPv6 string (or None on failure).
+        * ``reason`` is a machine-readable failure reason (or None on success).
+    """
+    return resolve_and_validate_endpoint_url(url)
+
